@@ -77,6 +77,28 @@ class CompareTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(0, report["blocking_difference_count"])
 
+    def test_claims_only_mode_allows_wording_but_keeps_claims_strict(self):
+        report = compare_traces(
+            make_trace(text="The package has not shipped yet."),
+            make_trace(text="订单目前仍未发货。"),
+            ComparisonPolicy(final_answer_mode="claims-only"),
+        )
+        self.assertTrue(report["passed"])
+        self.assertEqual([], report["differences"])
+        self.assertEqual("claims-only", report["policy"]["final_answer_mode"])
+
+    def test_claims_only_mode_still_blocks_changed_claims(self):
+        report = compare_traces(
+            make_trace(text="The package has not shipped yet."),
+            make_trace(status="shipped", text="订单已发货。"),
+            ComparisonPolicy(final_answer_mode="claims-only"),
+        )
+        self.assertFalse(report["passed"])
+        self.assertEqual(
+            {"result_interpretation"},
+            {item["category"] for item in report["differences"]},
+        )
+
     def test_report_redacts_sensitive_diff_values(self):
         baseline = make_trace()
         candidate = make_trace()

@@ -32,6 +32,7 @@ Agent / MCP Server
 - 服务端请求处理：sampling、elicitation，以及 HTTP POST-SSE 流中的双向请求响应。
 - 任务化工具调用：任务创建、状态轮询、结果获取和取消。
 - 严格结构化对比：支持单用例和批量 JSON、Markdown、JUnit 报告以及 CI exit code。
+- 非确定性文本控制：`claims-only` 模式允许最终措辞变化，但仍严格比较结构化 claims、工具调用和工具结果。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -40,9 +41,9 @@ Agent / MCP Server
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **54 项通过，0 项失败** |
+| Python 单元与集成测试 | **56 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-1.5.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-1.6.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -80,6 +81,19 @@ agent-regression compare \
 ```
 
 候选版本发生回归时，`compare` 返回退出码 `1`；匹配时返回 `0`；输入或 Trace 无效时返回 `2`。
+
+如果 Agent 的最终回答每次措辞可能不同，但你已经让 Agent 输出结构化
+`claims`，可以显式只比较 claims：
+
+```bash
+agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/candidate.trace.json \
+  --final-answer-mode claims-only
+```
+
+这个模式只忽略 `final_answer.text` 的差异；claims、工具名称、参数、工具结果
+和错误状态仍然会阻断回归。默认模式仍是 `exact`。
 
 ### 项目边界
 
@@ -215,7 +229,7 @@ agent-regression batch-compare \
 
 Agent Regression Kit is a small, framework-neutral regression-testing layer for AI Agents. It turns an Agent run into versioned, redacted JSON evidence, then compares a candidate run with a reviewed baseline. A changed prompt, model, tool schema, or adapter should produce a visible diff in CI instead of a silent behavior change.
 
-Current release line: **v1.5 development preview**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, and custom HTTP headers.
+Current release line: **v1.6 development preview**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, and explicit claims-only final-answer comparison for non-deterministic wording.
 
 ```text
 Agent / MCP Server
@@ -242,9 +256,9 @@ The following results were run locally on 2026-09-17:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **54 passed, 0 failed** |
+| Python unit and integration suite | **56 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-1.5.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-1.6.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -254,7 +268,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 54 tests in 8.1s
+Ran 56 tests in 8.1s
 
 OK
 ```
@@ -466,14 +480,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v1.5. In addition to
+The HTTP client is intentionally synchronous in v1.6. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v1.5.
+supported. The generic AgentTrace recorder remains sequential in v1.6.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned
 task with `get_task` and fetch its final value with `get_task_result`. When an
@@ -526,6 +540,20 @@ agent-regression compare \
   --candidate work/candidate.trace.json \
   --allow-path final_answer.text
 ```
+
+For Agents whose prose changes between runs, prefer the explicit claims-only
+policy when every run emits structured claims:
+
+```bash
+agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/candidate.trace.json \
+  --final-answer-mode claims-only
+```
+
+`claims-only` ignores only the final prose field. It still blocks changed or
+missing claims, tool names, arguments, results, errors, and event structure.
+Use the default `exact` mode when wording itself is part of the contract.
 
 For a test suite with multiple cases, keep matching baseline and candidate
 files under two directories:

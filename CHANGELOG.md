@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.6.0 - 2026-09-17
+
+- Add `ComparisonPolicy.final_answer_mode` with `exact` and `claims-only` modes.
+- Add CLI support for `--final-answer-mode` on `compare` and `batch-compare`.
+- Keep structured claims, tool calls, arguments, and results strict while allowing
+  model-generated final prose to vary explicitly in `claims-only` mode.
+
 ## 1.5.0 - 2026-09-17
 
 - Add `batch-compare` for comparing matching Trace cases across baseline and candidate directories.

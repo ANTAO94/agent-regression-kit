@@ -26,7 +26,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -158,6 +158,12 @@ def build_parser() -> argparse.ArgumentParser:
     compare.add_argument("--out")
     compare.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
     compare.add_argument(
+        "--final-answer-mode",
+        choices=["exact", "claims-only"],
+        default="exact",
+        help="compare final prose exactly or compare only structured claims",
+    )
+    compare.add_argument(
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
     )
     compare.add_argument(
@@ -188,6 +194,11 @@ def build_parser() -> argparse.ArgumentParser:
     batch_compare.add_argument("--candidate-dir", required=True)
     batch_compare.add_argument("--out")
     batch_compare.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    batch_compare.add_argument(
+        "--final-answer-mode",
+        choices=["exact", "claims-only"],
+        default="exact",
+    )
     batch_compare.add_argument("--secret-value", action="append", default=[])
     batch_compare.add_argument("--allow-category", action="append", default=[])
     batch_compare.add_argument("--allow-path", action="append", default=[])
@@ -214,6 +225,7 @@ def main(argv: list[str] | None = None) -> int:
                 policy=ComparisonPolicy(
                     allowed_categories=set(args.allow_category),
                     allowed_paths=set(args.allow_path),
+                    final_answer_mode=args.final_answer_mode,
                 ),
                 redaction_policy=redaction_policy,
             )
@@ -326,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
             ComparisonPolicy(
                 allowed_categories=set(args.allow_category),
                 allowed_paths=set(args.allow_path),
+                final_answer_mode=args.final_answer_mode,
             ),
             redaction_policy,
         )

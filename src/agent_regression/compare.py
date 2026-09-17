@@ -13,6 +13,11 @@ class ComparisonPolicy:
 
     allowed_categories: Set[str] = field(default_factory=set)
     allowed_paths: Set[str] = field(default_factory=set)
+    final_answer_mode: str = "exact"
+
+    def __post_init__(self) -> None:
+        if self.final_answer_mode not in {"exact", "claims-only"}:
+            raise ValueError("final_answer_mode must be 'exact' or 'claims-only'")
 
     def allows(self, difference: Dict[str, Any]) -> bool:
         return (
@@ -25,6 +30,7 @@ class ComparisonPolicy:
             "mode": "strict" if not self.allowed_categories and not self.allowed_paths else "allow_list",
             "allowed_categories": sorted(self.allowed_categories),
             "allowed_paths": sorted(self.allowed_paths),
+            "final_answer_mode": self.final_answer_mode,
         }
 
 
@@ -108,14 +114,15 @@ def compare_traces(
         baseline_answer.get("claims", {}),
         candidate_answer.get("claims", {}),
     )
-    _add_diff(
-        diffs,
-        "final_answer",
-        "final_answer.text",
-        baseline_answer["text"],
-        candidate_answer["text"],
-    )
     active_policy = policy or ComparisonPolicy()
+    if active_policy.final_answer_mode == "exact":
+        _add_diff(
+            diffs,
+            "final_answer",
+            "final_answer.text",
+            baseline_answer["text"],
+            candidate_answer["text"],
+        )
     diffs = (redaction_policy or DEFAULT_REDACTION_POLICY).redact(diffs)
     for difference in diffs:
         difference["allowed"] = active_policy.allows(difference)
