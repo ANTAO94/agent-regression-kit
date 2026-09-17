@@ -1,11 +1,12 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 from .adapters import AgentAdapter, RunContext, ScriptedAgentAdapter
 from .batch import compare_trace_batch
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
+from .contracts import ContractPolicy
 from .mcp import (
     McpProtocolError,
     McpEventStream,
@@ -34,6 +35,7 @@ __all__ = [
     "AgentTrace",
     "compare_trace_batch",
     "ComparisonPolicy",
+    "ContractPolicy",
     "DEFAULT_REDACTION_POLICY",
     "FixtureTools",
     "McpProtocolError",

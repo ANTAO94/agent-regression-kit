@@ -122,6 +122,17 @@ class CliTests(unittest.TestCase):
                         "report": "outputs/compare.md",
                         "format": "markdown",
                         "final_answer_mode": "claims-only",
+                        "contract": {
+                            "assertions": [
+                                {
+                                    "path": "final_answer.claims.order_status",
+                                    "equals": "not_shipped",
+                                }
+                            ],
+                            "must_call": [{"tool": "get_order"}],
+                            "must_not_call": ["delete_order"],
+                            "max_steps": 1,
+                        },
                     }
                 ),
                 encoding="utf-8",

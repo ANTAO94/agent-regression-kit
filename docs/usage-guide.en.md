@@ -175,9 +175,9 @@ agent-regression compare \
 
 This ignores only `final_answer.text`. It still checks claims, tool calls, arguments, results, and error state. It is not a semantic judge. Keep the default `exact` mode when the final wording is part of your product contract.
 
-### Baseline checks and noise filtering: current boundary
+### Baseline checks and noise filtering
 
-In v2.0, a baseline is a complete AgentTrace. You can configure which differences should not block:
+In v2.1, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
 
 ```json
 {
@@ -185,17 +185,27 @@ In v2.0, a baseline is a complete AgentTrace. You can configure which difference
   "candidate": "work/my-agent.trace.json",
   "format": "markdown",
   "allow_categories": ["final_answer"],
-  "allow_paths": ["tool_calls[0].arguments.debug_id"],
+  "allow_paths": ["tool_calls[0].arguments"],
   "final_answer_mode": "claims-only",
-  "secret_values": ["local-secret"]
+  "secret_values": ["local-secret"],
+  "contract": {
+    "must_call": [{"tool": "get_order"}],
+    "must_not_call": ["delete_order"],
+    "assertions": [
+      {"path": "final_answer.claims.order_status", "equals": "not_shipped"}
+    ],
+    "ignore_paths": ["tool_results[*].result.request_id"],
+    "normalizers": [
+      {"path": "tool_results[*].result.created_at", "type": "timestamp"}
+    ],
+    "max_steps": 5
+  }
 }
 ```
 
-`allow_categories` and `allow_paths` **relax blocking rules**; they do not select which checks run. Every detected difference remains in the report. `secret_values` provides redaction, not dynamic-field noise filtering.
+`allow_categories` and `allow_paths` **relax baseline blocking rules**; every detected difference remains in the report. `contract` constrains candidate behavior: it can require or forbid tool calls, assert Trace fields, ignore dynamic fields, normalize timestamps/lists, and cap tool-call steps. `secret_values` only provides redaction.
 
-The current release therefore does not yet provide the full traditional traffic-replay feature set: field-level assertions such as `status=success`, nested-field removal, timestamp/random-ID normalization, regex redaction, or custom normalizers. In particular, `allow-path` matches a complete difference path already produced by the comparator; it does not recursively remove a child field from an arbitrary tool-result JSON object.
-
-The recommended next design is deterministic `checks`, `ignore_paths`, and `normalizers`: explicitly remove declared noise, then assert selected fields while keeping undeclared critical tool behavior strict. That belongs in v2.1 so existing baseline meaning does not change implicitly.
+`allow-path` matches a complete difference path already produced by the comparator. `contract.ignore_paths` is the nested JSON filter and supports `[*]`; for example, `tool_results[*].result.request_id` ignores each result's request ID without allowing the entire tool result to change.
 
 ## 6. Multiple cases and CI
 
@@ -241,7 +251,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.0 compares explicitly recorded structural evidence and does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.1 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2.1.0 - 2026-09-18
+
+- Add `ContractPolicy` for deterministic Agent behavior contracts.
+- Add field assertions with `equals`, `contains`, and `exists` operators.
+- Add nested `ignore_paths` with `[*]` support and timestamp/list normalizers.
+- Add required/forbidden tool rules and maximum tool-call step limits.
+- Preserve all contract violations in comparison reports and config-driven CI flows.
+
 ## 2.0.0 - 2026-09-17
 
 - Add `config validate` for preflight validation of single-case and batch

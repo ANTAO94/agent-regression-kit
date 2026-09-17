@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict
 
+from .contracts import ContractPolicy
 
 def _relative_to_project(config_path: Path, value: str) -> str:
     """Resolve scaffold paths relative to the project root."""
@@ -51,6 +52,8 @@ def _load_config(path: str | Path, required_paths: tuple[str, ...]) -> Dict[str,
             or not all(isinstance(item, str) for item in result[key])
         ):
             raise ValueError(f"config.{key} must be an array of strings")
+    if "contract" in result:
+        result["contract"] = ContractPolicy.from_dict(result["contract"]).to_dict()
     return result
 
 

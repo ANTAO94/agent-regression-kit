@@ -12,6 +12,7 @@ from .batch import compare_trace_batch
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
 from .config import load_batch_compare_config, load_compare_config
+from .contracts import ContractPolicy
 from .model import AgentTrace, TraceValidationError
 from .mcp import (
     McpTransportError,
@@ -27,7 +28,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -272,6 +273,7 @@ def main(argv: list[str] | None = None) -> int:
                 if args.allow_path is not None
                 else set(batch_config.get("allow_paths", []))
             )
+            contract = ContractPolicy.from_dict(batch_config.get("contract"))
             output_path = args.out or batch_config.get("report")
             report = compare_trace_batch(
                 baseline_dir,
@@ -280,6 +282,7 @@ def main(argv: list[str] | None = None) -> int:
                     allowed_categories=allowed_categories,
                     allowed_paths=allowed_paths,
                     final_answer_mode=final_answer_mode,
+                    contract=contract,
                 ),
                 redaction_policy=redaction_policy,
             )
@@ -401,6 +404,7 @@ def main(argv: list[str] | None = None) -> int:
             else set(compare_config.get("allow_paths", []))
         )
         output_path = args.out or compare_config.get("report")
+        contract = ContractPolicy.from_dict(compare_config.get("contract"))
         baseline = AgentTrace.from_dict(_read_json(baseline_path))
         candidate = AgentTrace.from_dict(_read_json(candidate_path))
         report = compare_traces(
@@ -410,6 +414,7 @@ def main(argv: list[str] | None = None) -> int:
                 allowed_categories=allowed_categories,
                 allowed_paths=allowed_paths,
                 final_answer_mode=final_answer_mode,
+                contract=contract,
             ),
             redaction_policy,
         )

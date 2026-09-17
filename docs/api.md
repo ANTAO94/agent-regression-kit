@@ -46,7 +46,11 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   running an Agent or comparing traces.
 - `compare_traces(baseline, candidate, policy=None)` returns a JSON-serializable report.
 - `compare_trace_batch(baseline_dir, candidate_dir, policy=None)` compares matching nested `*.trace.json` cases and reports missing files.
-- `ComparisonPolicy(allowed_categories=..., allowed_paths=..., final_answer_mode=...)` changes which differences block while retaining all differences in the report. `final_answer_mode="exact"` compares final prose; `final_answer_mode="claims-only"` ignores only `final_answer.text` while continuing to require matching structured claims.
+- `ComparisonPolicy(allowed_categories=..., allowed_paths=..., final_answer_mode=..., contract=...)` changes which differences block while retaining all differences in the report. `final_answer_mode="exact"` compares final prose; `final_answer_mode="claims-only"` ignores only `final_answer.text` while continuing to require matching structured claims.
+- `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
+  `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
+  `sort`), `must_call`, `must_not_call`, and `max_steps`. Put it under the
+  config file's `contract` object and pass it through `ComparisonPolicy`.
 - `replay_trace(trace)` validates and renders recorded evidence without executing tools.
 - `render_junit(report)` renders one comparison as JUnit XML.
 - `render_batch_junit(report)` and `render_batch_markdown(report)` render aggregate batch results.

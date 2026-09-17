@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Set
 
+from .contracts import ContractPolicy, _IGNORED
 from .model import AgentTrace
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 
@@ -14,6 +15,7 @@ class ComparisonPolicy:
     allowed_categories: Set[str] = field(default_factory=set)
     allowed_paths: Set[str] = field(default_factory=set)
     final_answer_mode: str = "exact"
+    contract: ContractPolicy | None = None
 
     def __post_init__(self) -> None:
         if self.final_answer_mode not in {"exact", "claims-only"}:
@@ -31,6 +33,7 @@ class ComparisonPolicy:
             "allowed_categories": sorted(self.allowed_categories),
             "allowed_paths": sorted(self.allowed_paths),
             "final_answer_mode": self.final_answer_mode,
+            "contract": self.contract.to_dict() if self.contract else {},
         }
 
 
@@ -52,6 +55,7 @@ def _compare_event_list(
     baseline: Iterable[Dict[str, Any]],
     candidate: Iterable[Dict[str, Any]],
     event_type: str,
+    contract: ContractPolicy | None = None,
 ) -> None:
     baseline_list = list(baseline)
     candidate_list = list(candidate)
@@ -65,21 +69,17 @@ def _compare_event_list(
     for index, (left, right) in enumerate(zip(baseline_list, candidate_list)):
         if event_type == "tool_call":
             _add_diff(diffs, "tool_name", f"tool_calls[{index}].tool", left["tool"], right["tool"])
-            _add_diff(
-                diffs,
-                "tool_arguments",
-                f"tool_calls[{index}].arguments",
-                left["arguments"],
-                right["arguments"],
-            )
+            path = f"tool_calls[{index}].arguments"
+            left_arguments = contract.sanitize(left["arguments"], path) if contract else left["arguments"]
+            right_arguments = contract.sanitize(right["arguments"], path) if contract else right["arguments"]
+            if left_arguments is not _IGNORED and right_arguments is not _IGNORED:
+                _add_diff(diffs, "tool_arguments", path, left_arguments, right_arguments)
         elif event_type == "tool_result":
-            _add_diff(
-                diffs,
-                "tool_result",
-                f"tool_results[{index}].result",
-                left.get("result"),
-                right.get("result"),
-            )
+            path = f"tool_results[{index}].result"
+            left_result = contract.sanitize(left.get("result"), path) if contract else left.get("result")
+            right_result = contract.sanitize(right.get("result"), path) if contract else right.get("result")
+            if left_result is not _IGNORED and right_result is not _IGNORED:
+                _add_diff(diffs, "tool_result", path, left_result, right_result)
             _add_diff(
                 diffs,
                 "tool_error_state",
@@ -98,31 +98,30 @@ def compare_traces(
     baseline.validate()
     candidate.validate()
     diffs: List[Dict[str, Any]] = []
+    active_policy = policy or ComparisonPolicy()
+    contract = active_policy.contract
     _compare_event_list(
-        diffs, _events(baseline, "tool_call"), _events(candidate, "tool_call"), "tool_call"
+        diffs, _events(baseline, "tool_call"), _events(candidate, "tool_call"), "tool_call", contract
     )
     _compare_event_list(
-        diffs, _events(baseline, "tool_result"), _events(candidate, "tool_result"), "tool_result"
+        diffs, _events(baseline, "tool_result"), _events(candidate, "tool_result"), "tool_result", contract
     )
 
     baseline_answer = _events(baseline, "final_answer")[0]
     candidate_answer = _events(candidate, "final_answer")[0]
-    _add_diff(
-        diffs,
-        "result_interpretation",
-        "final_answer.claims",
-        baseline_answer.get("claims", {}),
-        candidate_answer.get("claims", {}),
-    )
-    active_policy = policy or ComparisonPolicy()
+    claims_path = "final_answer.claims"
+    baseline_claims = contract.sanitize(baseline_answer.get("claims", {}), claims_path) if contract else baseline_answer.get("claims", {})
+    candidate_claims = contract.sanitize(candidate_answer.get("claims", {}), claims_path) if contract else candidate_answer.get("claims", {})
+    if baseline_claims is not _IGNORED and candidate_claims is not _IGNORED:
+        _add_diff(diffs, "result_interpretation", claims_path, baseline_claims, candidate_claims)
     if active_policy.final_answer_mode == "exact":
-        _add_diff(
-            diffs,
-            "final_answer",
-            "final_answer.text",
-            baseline_answer["text"],
-            candidate_answer["text"],
-        )
+        text_path = "final_answer.text"
+        baseline_text = contract.sanitize(baseline_answer["text"], text_path) if contract else baseline_answer["text"]
+        candidate_text = contract.sanitize(candidate_answer["text"], text_path) if contract else candidate_answer["text"]
+        if baseline_text is not _IGNORED and candidate_text is not _IGNORED:
+            _add_diff(diffs, "final_answer", text_path, baseline_text, candidate_text)
+    if contract:
+        diffs.extend(contract.check(baseline, candidate))
     diffs = (redaction_policy or DEFAULT_REDACTION_POLICY).redact(diffs)
     for difference in diffs:
         difference["allowed"] = active_policy.allows(difference)

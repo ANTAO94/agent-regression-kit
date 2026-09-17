@@ -175,9 +175,9 @@ agent-regression compare \
 
 这只忽略 `final_answer.text`，不会忽略 claims、工具调用、参数、结果或错误状态。不要把它当成语义评分器；如果最终措辞本身是产品契约，就保留默认的 `exact`。
 
-### baseline 检查项和噪音过滤：当前边界
+### baseline 检查项和噪音过滤
 
-当前 v2.0 的 baseline 是一份完整的 AgentTrace。你可以配置“哪些差异不阻断”：
+v2.1 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
 
 ```json
 {
@@ -185,17 +185,27 @@ agent-regression compare \
   "candidate": "work/my-agent.trace.json",
   "format": "markdown",
   "allow_categories": ["final_answer"],
-  "allow_paths": ["tool_calls[0].arguments.debug_id"],
+  "allow_paths": ["tool_calls[0].arguments"],
   "final_answer_mode": "claims-only",
-  "secret_values": ["local-secret"]
+  "secret_values": ["local-secret"],
+  "contract": {
+    "must_call": [{"tool": "get_order"}],
+    "must_not_call": ["delete_order"],
+    "assertions": [
+      {"path": "final_answer.claims.order_status", "equals": "not_shipped"}
+    ],
+    "ignore_paths": ["tool_results[*].result.request_id"],
+    "normalizers": [
+      {"path": "tool_results[*].result.created_at", "type": "timestamp"}
+    ],
+    "max_steps": 5
+  }
 }
 ```
 
-这里的 `allow_categories` / `allow_paths` 是**放宽阻断规则**，不是选择性执行检查；所有差异仍会出现在报告里。`secret_values` 是敏感信息脱敏，也不是动态字段噪音过滤。
+`allow_categories` / `allow_paths` 是**放宽 baseline 差异的阻断规则**，所有差异仍会出现在报告里。`contract` 才是候选行为约束：它可以要求必须调用某个工具、禁止调用某个工具、断言 Trace 字段、忽略动态字段、归一化时间戳/排序，并限制最大工具步骤数。`secret_values` 只负责敏感信息脱敏。
 
-因此，当前版本还没有传统接口回放里的完整能力：字段级断言（例如只断言 `status=success`）、嵌套字段删除、时间戳/随机 ID 归一化、正则脱敏或自定义 normalizer。尤其要注意，`allow-path` 只匹配比较器已经产生的完整差异路径，不会自动深入一个工具结果 JSON 删除某个子字段。
-
-推荐的下一阶段设计是增加确定性的 `checks`、`ignore_paths` 和 `normalizers`：先过滤明确声明的噪音，再对选定字段做断言，未声明的关键工具行为仍保持严格比较。这个能力适合做成 v2.1，不应通过隐式规则改变现有 baseline 的含义。
+`allow-path` 匹配比较器已经产生的完整差异路径；`contract.ignore_paths` 才支持深入嵌套 JSON，并支持 `[*]` 通配。例如 `tool_results[*].result.request_id` 可以忽略每个工具结果里的 request ID，而不会放宽整个工具结果。
 
 ## 6. 多用例和 CI
 
@@ -241,7 +251,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.0 只比较明确记录下来的结构化证据，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.1 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 
