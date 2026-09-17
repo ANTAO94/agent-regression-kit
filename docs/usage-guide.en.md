@@ -43,8 +43,8 @@ The meaning is simple: the baseline is the behavior we reviewed as correct; the 
 Python 3.9 or newer is enough. Verify the project in a clean checkout:
 
 ```bash
-git clone https://github.com/ANTAO94/agent-regression.git
-cd agent-regression
+git clone https://github.com/ANTAO94/agent-regression-kit.git
+cd agent-regression-kit
 python -m venv .venv
 .venv/bin/pip install -e .
 ```
@@ -175,6 +175,28 @@ agent-regression compare \
 
 This ignores only `final_answer.text`. It still checks claims, tool calls, arguments, results, and error state. It is not a semantic judge. Keep the default `exact` mode when the final wording is part of your product contract.
 
+### Baseline checks and noise filtering: current boundary
+
+In v2.0, a baseline is a complete AgentTrace. You can configure which differences should not block:
+
+```json
+{
+  "baseline": "baselines/my-agent.trace.json",
+  "candidate": "work/my-agent.trace.json",
+  "format": "markdown",
+  "allow_categories": ["final_answer"],
+  "allow_paths": ["tool_calls[0].arguments.debug_id"],
+  "final_answer_mode": "claims-only",
+  "secret_values": ["local-secret"]
+}
+```
+
+`allow_categories` and `allow_paths` **relax blocking rules**; they do not select which checks run. Every detected difference remains in the report. `secret_values` provides redaction, not dynamic-field noise filtering.
+
+The current release therefore does not yet provide the full traditional traffic-replay feature set: field-level assertions such as `status=success`, nested-field removal, timestamp/random-ID normalization, regex redaction, or custom normalizers. In particular, `allow-path` matches a complete difference path already produced by the comparator; it does not recursively remove a child field from an arbitrary tool-result JSON object.
+
+The recommended next design is deterministic `checks`, `ignore_paths`, and `normalizers`: explicitly remove declared noise, then assert selected fields while keeping undeclared critical tool behavior strict. That belongs in v2.1 so existing baseline meaning does not change implicitly.
+
 ## 6. Multiple cases and CI
 
 For multiple cases, use matching relative paths in two directories:
@@ -203,9 +225,9 @@ Minimal GitHub Action:
 - uses: actions/setup-python@v5
   with:
     python-version: "3.11"
-- run: python -m pip install "git+https://github.com/ANTAO94/agent-regression.git"
+- run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
 - run: python scripts/record_agent.py --out work/my-agent.trace.json
-- uses: ANTAO94/agent-regression/.github/actions/agent-regression@main
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@main
   with:
     baseline: baselines/my-agent.trace.json
     candidate: work/my-agent.trace.json

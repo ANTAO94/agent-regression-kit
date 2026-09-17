@@ -1,12 +1,12 @@
 # Agent Regression Kit
 
-[![CI](https://github.com/ANTAO94/agent-regression/actions/workflows/regression.yml/badge.svg)](https://github.com/ANTAO94/agent-regression/actions/workflows/regression.yml)
-[![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression)](https://github.com/ANTAO94/agent-regression/releases)
+[![CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml)
+[![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression-kit)](https://github.com/ANTAO94/agent-regression-kit/releases)
 [![License](https://img.shields.io/github/license/ANTAO94/agent-regression)](LICENSE)
 
 [中文说明](#中文说明) | [English](#english)
 
-[中文新手接入指南](docs/usage-guide.zh-CN.md) | [English Getting Started](docs/usage-guide.en.md) | [宣传与发布计划](docs/promotion-plan.md)
+[中文新手接入指南](docs/usage-guide.zh-CN.md) | [English Getting Started](docs/usage-guide.en.md)
 
 ## 中文说明
 
@@ -266,7 +266,7 @@ agent-regression batch-compare --config .agent-regression/batch.json
 
 Agent Regression Kit is a small, framework-neutral regression-testing layer for AI Agents. It turns an Agent run into versioned, redacted JSON evidence, then compares a candidate run with a reviewed baseline. A changed prompt, model, tool schema, or adapter should produce a visible diff in CI instead of a silent behavior change.
 
-For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md). For launch messaging and community outreach, see the [promotion plan](docs/promotion-plan.md).
+For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
 Current release line: **v2.0 stable**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, explicit claims-only final-answer comparison for non-deterministic wording, config-driven single-case and batch comparison, preflight config validation, and matching policy controls in the reusable GitHub Action.
 

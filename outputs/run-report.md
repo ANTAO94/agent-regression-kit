@@ -9,7 +9,7 @@ Verified on 2026-09-17 with Python 3.9.6.
 - Wheel build: `agent_regression_kit-2.0.0-py3-none-any.whl` succeeded.
 - Config preflight validation: passed for single-case and batch config shapes.
 - Documentation QA: bilingual getting-started guides, Mermaid onboarding flow,
-  README navigation, and promotion plan added.
+  and README navigation added.
 - Batch config comparison: passed with project-relative directories and Markdown report output.
 - GitHub Action policy forwarding: passed for final-answer mode and exact allow paths.
 - Config-driven comparison: passed with scaffold-compatible `.agent-regression/config.json`.

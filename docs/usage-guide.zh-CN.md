@@ -43,8 +43,8 @@ flowchart LR
 Python 3.9 或更高版本即可。先在一个临时目录验证：
 
 ```bash
-git clone https://github.com/ANTAO94/agent-regression.git
-cd agent-regression
+git clone https://github.com/ANTAO94/agent-regression-kit.git
+cd agent-regression-kit
 python -m venv .venv
 .venv/bin/pip install -e .
 ```
@@ -175,6 +175,28 @@ agent-regression compare \
 
 这只忽略 `final_answer.text`，不会忽略 claims、工具调用、参数、结果或错误状态。不要把它当成语义评分器；如果最终措辞本身是产品契约，就保留默认的 `exact`。
 
+### baseline 检查项和噪音过滤：当前边界
+
+当前 v2.0 的 baseline 是一份完整的 AgentTrace。你可以配置“哪些差异不阻断”：
+
+```json
+{
+  "baseline": "baselines/my-agent.trace.json",
+  "candidate": "work/my-agent.trace.json",
+  "format": "markdown",
+  "allow_categories": ["final_answer"],
+  "allow_paths": ["tool_calls[0].arguments.debug_id"],
+  "final_answer_mode": "claims-only",
+  "secret_values": ["local-secret"]
+}
+```
+
+这里的 `allow_categories` / `allow_paths` 是**放宽阻断规则**，不是选择性执行检查；所有差异仍会出现在报告里。`secret_values` 是敏感信息脱敏，也不是动态字段噪音过滤。
+
+因此，当前版本还没有传统接口回放里的完整能力：字段级断言（例如只断言 `status=success`）、嵌套字段删除、时间戳/随机 ID 归一化、正则脱敏或自定义 normalizer。尤其要注意，`allow-path` 只匹配比较器已经产生的完整差异路径，不会自动深入一个工具结果 JSON 删除某个子字段。
+
+推荐的下一阶段设计是增加确定性的 `checks`、`ignore_paths` 和 `normalizers`：先过滤明确声明的噪音，再对选定字段做断言，未声明的关键工具行为仍保持严格比较。这个能力适合做成 v2.1，不应通过隐式规则改变现有 baseline 的含义。
+
 ## 6. 多用例和 CI
 
 多用例时，两个目录中的 Trace 使用相同相对路径：
@@ -203,9 +225,9 @@ agent-regression batch-compare --config .agent-regression/batch.json
 - uses: actions/setup-python@v5
   with:
     python-version: "3.11"
-- run: python -m pip install "git+https://github.com/ANTAO94/agent-regression.git"
+- run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
 - run: python scripts/record_agent.py --out work/my-agent.trace.json
-- uses: ANTAO94/agent-regression/.github/actions/agent-regression@main
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@main
   with:
     baseline: baselines/my-agent.trace.json
     candidate: work/my-agent.trace.json
