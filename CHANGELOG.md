@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.2.0 - 2026-09-17
+
+- Add `agent-regression init` to scaffold a first-use integration project with a runnable Agent example, baseline guidance, configuration, and GitHub Actions workflow.
+- Add safe repeatable scaffolding with skip-by-default behavior and an explicit `--force` overwrite option.
+- Update the package and MCP client identity to version 1.2.0.
+
 - Add MCP Streamable HTTP capture with session propagation and JSON/SSE response decoding.
 - Add bounded GET SSE event-stream iteration for server notifications and requests.
 - Add explicit JSON-RPC responses for server-initiated HTTP requests.

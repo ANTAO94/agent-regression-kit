@@ -11,6 +11,30 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CliTests(unittest.TestCase):
+    def test_init_scaffolds_a_project_without_overwriting_existing_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(0, main(["init", "--directory", directory]))
+            root = Path(directory)
+            expected = [
+                ".agent-regression/config.json",
+                "baselines/README.md",
+                "scripts/record_agent.py",
+                ".github/workflows/agent-regression.yml",
+            ]
+            for relative in expected:
+                self.assertTrue((root / relative).exists(), relative)
+            script = root / "scripts/record_agent.py"
+            original = script.read_text(encoding="utf-8")
+            script.write_text("custom\n", encoding="utf-8")
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(0, main(["init", "--directory", directory]))
+            self.assertEqual("custom\n", script.read_text(encoding="utf-8"))
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(0, main(["init", "--directory", directory, "--force"]))
+            self.assertEqual(original, script.read_text(encoding="utf-8"))
+
     def test_parameter_regression_returns_failure_status(self):
         with tempfile.TemporaryDirectory() as directory:
             baseline = Path(directory) / "baseline.json"

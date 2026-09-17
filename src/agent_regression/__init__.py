@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from .adapters import AgentAdapter, RunContext, ScriptedAgentAdapter
 from .compare import ComparisonPolicy, compare_traces
