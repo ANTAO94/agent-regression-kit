@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2.0.0 - 2026-09-17
+
+- Add `config validate` for preflight validation of single-case and batch
+  comparison configuration files.
+- Establish the v2.0 configuration contract with normalized project-relative
+  paths and explicit `single`/`batch` config shapes.
+- Keep the v1.x Trace schema and comparison APIs compatible.
+
 ## 1.9.0 - 2026-09-17
 
 - Add `batch-compare --config` for directory-based multi-case comparisons.

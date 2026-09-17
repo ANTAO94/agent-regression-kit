@@ -27,7 +27,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.9.0"
+VERSION = "2.0.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -205,6 +205,15 @@ def build_parser() -> argparse.ArgumentParser:
     batch_compare.add_argument("--secret-value", action="append", default=None)
     batch_compare.add_argument("--allow-category", action="append", default=None)
     batch_compare.add_argument("--allow-path", action="append", default=None)
+
+    config = subparsers.add_parser("config", help="validate project comparison configuration")
+    config_actions = config.add_subparsers(dest="config_action", required=True)
+    config_validate = config_actions.add_parser("validate", help="validate a JSON config file")
+    config_validate.add_argument("--config", required=True)
+    config_validate.add_argument(
+        "--kind", choices=["single", "batch"], default="single",
+        help="config shape to validate (default: single)",
+    )
     return parser
 
 
@@ -234,6 +243,12 @@ def main(argv: list[str] | None = None) -> int:
             root.mkdir(parents=True, exist_ok=True)
             result = initialize_project(root, force=args.force)
             _write_output({"ok": True, "directory": str(root), **result})
+            return 0
+
+        if args.command == "config":
+            loader = load_compare_config if args.kind == "single" else load_batch_compare_config
+            loaded = loader(args.config)
+            _write_output({"ok": True, "kind": args.kind, "config": loaded})
             return 0
 
         if args.command == "batch-compare":

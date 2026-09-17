@@ -187,6 +187,51 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(0, main(["batch-compare", "--config", str(config)]))
             self.assertIn("`PASS`", (root / "outputs/batch.md").read_text(encoding="utf-8"))
 
+    def test_config_validate_preflights_single_and_batch_shapes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            single = root / "single.json"
+            single.write_text(
+                json.dumps(
+                    {
+                        "baseline": "baselines/order.trace.json",
+                        "candidate": "work/order.trace.json",
+                        "report": "outputs/order.junit.xml",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            batch = root / "batch.json"
+            batch.write_text(
+                json.dumps(
+                    {
+                        "baseline_dir": "baselines",
+                        "candidate_dir": "work",
+                        "format": "markdown",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(0, main(["config", "validate", "--config", str(single)]))
+                self.assertEqual(
+                    0,
+                    main(
+                        [
+                            "config",
+                            "validate",
+                            "--config",
+                            str(batch),
+                            "--kind",
+                            "batch",
+                        ]
+                    ),
+                )
+            rendered = output.getvalue()
+            self.assertIn('"kind": "single"', rendered)
+            self.assertIn('"kind": "batch"', rendered)
+
     def test_mcp_record_replay_compare_flow(self):
         with tempfile.TemporaryDirectory() as directory:
             baseline = Path(directory) / "baseline.json"
