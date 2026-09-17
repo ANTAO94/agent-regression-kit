@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.8.0 - 2026-09-17
+
+- Add GitHub Action inputs for `final-answer-mode` and comma-separated exact
+  `allow-path` values.
+- Keep the reusable Action behavior aligned with the local `compare` CLI.
+
 ## 1.7.0 - 2026-09-17
 
 - Add `compare --config` for project-level JSON configuration.

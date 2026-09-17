@@ -27,7 +27,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.7.0"
+VERSION = "1.8.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:

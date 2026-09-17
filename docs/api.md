@@ -56,3 +56,5 @@ Default comparison is strict and deterministic. No public API invokes an LLM jud
 - `run_compatibility_smoke(client)` initializes a client and performs non-mutating discovery checks for advertised tools, resources, prompts, and tasks.
 - The `mcp-smoke` CLI command accepts either a stdio server command or a Streamable HTTP URL. It is optional and is not part of the default offline test suite.
 - `.github/workflows/mcp-compatibility.yml` runs the smoke check against the official Everything Server manually; it is intentionally separate from the deterministic offline workflow.
+- `.github/actions/agent-regression` exposes `final-answer-mode`, comma-separated
+  `allow-category`, and comma-separated `allow-path` inputs for CI policy control.
