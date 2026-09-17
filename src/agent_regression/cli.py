@@ -11,6 +11,7 @@ from .adapters import ScriptedAgentAdapter
 from .batch import compare_trace_batch
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
+from .config import load_compare_config
 from .model import AgentTrace, TraceValidationError
 from .mcp import (
     McpTransportError,
@@ -26,7 +27,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -153,23 +154,24 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--trace", required=True)
 
     compare = subparsers.add_parser("compare", help="compare candidate evidence to a baseline")
-    compare.add_argument("--baseline", required=True)
-    compare.add_argument("--candidate", required=True)
+    compare.add_argument("--baseline")
+    compare.add_argument("--candidate")
+    compare.add_argument("--config", help="JSON config with project-level compare defaults")
     compare.add_argument("--out")
-    compare.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    compare.add_argument("--format", choices=["json", "junit", "markdown"])
     compare.add_argument(
         "--final-answer-mode",
         choices=["exact", "claims-only"],
-        default="exact",
+        default=None,
         help="compare final prose exactly or compare only structured claims",
     )
     compare.add_argument(
-        "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
+        "--secret-value", action="append", default=None, help="literal secret value to redact; repeatable"
     )
     compare.add_argument(
         "--allow-category",
         action="append",
-        default=[],
+        default=None,
         help="difference category that should not fail the comparison; repeatable",
     )
 
@@ -183,7 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
     compare.add_argument(
         "--allow-path",
         action="append",
-        default=[],
+        default=None,
         help="exact difference path that should not fail the comparison; repeatable",
     )
 
@@ -208,9 +210,18 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     redaction_policy = RedactionPolicy(
-        secret_values=tuple(getattr(args, "secret_value", []))
+        secret_values=tuple(getattr(args, "secret_value", None) or [])
     )
     try:
+        compare_config = (
+            load_compare_config(args.config)
+            if args.command == "compare" and args.config
+            else {}
+        )
+        if args.command == "compare" and args.secret_value is None:
+            redaction_policy = RedactionPolicy(
+                secret_values=tuple(compare_config.get("secret_values", []))
+            )
         if args.command == "init":
             root = Path(args.directory).resolve()
             root.mkdir(parents=True, exist_ok=True)
@@ -330,24 +341,41 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
 
-        baseline = AgentTrace.from_dict(_read_json(args.baseline))
-        candidate = AgentTrace.from_dict(_read_json(args.candidate))
+        baseline_path = args.baseline or compare_config.get("baseline")
+        candidate_path = args.candidate or compare_config.get("candidate")
+        if not baseline_path or not candidate_path:
+            raise ValueError("compare requires --baseline and --candidate, or --config with both")
+        output_format = args.format or compare_config.get("format", "json")
+        final_answer_mode = args.final_answer_mode or compare_config.get("final_answer_mode", "exact")
+        allowed_categories = (
+            set(args.allow_category)
+            if args.allow_category is not None
+            else set(compare_config.get("allow_categories", []))
+        )
+        allowed_paths = (
+            set(args.allow_path)
+            if args.allow_path is not None
+            else set(compare_config.get("allow_paths", []))
+        )
+        output_path = args.out or compare_config.get("report")
+        baseline = AgentTrace.from_dict(_read_json(baseline_path))
+        candidate = AgentTrace.from_dict(_read_json(candidate_path))
         report = compare_traces(
             baseline,
             candidate,
             ComparisonPolicy(
-                allowed_categories=set(args.allow_category),
-                allowed_paths=set(args.allow_path),
-                final_answer_mode=args.final_answer_mode,
+                allowed_categories=allowed_categories,
+                allowed_paths=allowed_paths,
+                final_answer_mode=final_answer_mode,
             ),
             redaction_policy,
         )
-        if args.format == "junit":
-            _write_text(render_junit(report), args.out)
-        elif args.format == "markdown":
-            _write_text(render_markdown(report), args.out)
+        if output_format == "junit":
+            _write_text(render_junit(report), output_path)
+        elif output_format == "markdown":
+            _write_text(render_markdown(report), output_path)
         else:
-            _write_output(report, args.out)
+            _write_output(report, output_path)
         return 0 if report["passed"] else 1
     except (KeyError, ValueError, TraceValidationError, McpTransportError) as exc:
         _write_output({"ok": False, "error": redaction_policy.redact(str(exc))})

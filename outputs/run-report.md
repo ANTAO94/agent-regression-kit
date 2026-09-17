@@ -1,12 +1,13 @@
-# Agent Regression Kit v1.6 verification
+# Agent Regression Kit v1.7 verification
 
 Verified on 2026-09-17 with Python 3.9.6.
 
 ## Results
 
 - Runtime: Python 3.9.6.
-- Unit and integration tests: 56 passed, 0 failed.
-- Wheel build: `agent_regression_kit-1.6.0-py3-none-any.whl` succeeded.
+- Unit and integration tests: 57 passed, 0 failed.
+- Wheel build: `agent_regression_kit-1.7.0-py3-none-any.whl` succeeded.
+- Config-driven comparison: passed with scaffold-compatible `.agent-regression/config.json`.
 - Claims-only final-answer comparison: passed; wording changes were ignored while changed claims remained blocking.
 - Batch directory comparison with missing-case detection: passed.
 - Authenticated HTTP request headers: passed.
@@ -28,4 +29,4 @@ The implementation contains AgentTrace v0.1, deterministic and MCP stdio/HTTP ad
 
 ## Remaining compatibility boundary
 
-The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v1.6 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator.
+The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v1.7 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator.

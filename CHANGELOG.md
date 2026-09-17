@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.7.0 - 2026-09-17
+
+- Add `compare --config` for project-level JSON configuration.
+- Make `agent-regression init`'s generated baseline, candidate, report, format,
+  comparison policy, and redaction settings usable without repeating CLI flags.
+- Keep explicit command-line values higher priority than config-file defaults.
+
 ## 1.6.0 - 2026-09-17
 
 - Add `ComparisonPolicy.final_answer_mode` with `exact` and `claims-only` modes.

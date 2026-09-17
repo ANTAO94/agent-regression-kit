@@ -38,6 +38,9 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 
 ## Comparison and reports
 
+- `compare --config path/to/config.json` loads project-level baseline, candidate,
+  report, format, policy, and redaction defaults. Explicit CLI flags override
+  values from the config file.
 - `compare_traces(baseline, candidate, policy=None)` returns a JSON-serializable report.
 - `compare_trace_batch(baseline_dir, candidate_dir, policy=None)` compares matching nested `*.trace.json` cases and reports missing files.
 - `ComparisonPolicy(allowed_categories=..., allowed_paths=..., final_answer_mode=...)` changes which differences block while retaining all differences in the report. `final_answer_mode="exact"` compares final prose; `final_answer_mode="claims-only"` ignores only `final_answer.text` while continuing to require matching structured claims.

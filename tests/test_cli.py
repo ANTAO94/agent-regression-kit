@@ -1,4 +1,5 @@
 import io
+import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -76,6 +77,58 @@ class CliTests(unittest.TestCase):
                         ]
                     ),
                 )
+
+    def test_compare_can_load_project_config_and_claims_only_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = root / "baseline.json"
+            candidate = root / "candidate.json"
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    0,
+                    main(
+                        [
+                            "record",
+                            "--scenario",
+                            str(ROOT / "examples/order-123/baseline.scenario.json"),
+                            "--out",
+                            str(baseline),
+                        ]
+                    ),
+                )
+                self.assertEqual(
+                    0,
+                    main(
+                        [
+                            "record",
+                            "--scenario",
+                            str(ROOT / "examples/order-123/candidate-ok.scenario.json"),
+                            "--out",
+                            str(candidate),
+                        ]
+                    ),
+                )
+            candidate_value = json.loads(candidate.read_text(encoding="utf-8"))
+            candidate_value["events"][-1]["text"] = "Equivalent wording"
+            candidate.write_text(json.dumps(candidate_value), encoding="utf-8")
+
+            config = root / ".agent-regression/config.json"
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                json.dumps(
+                    {
+                        "baseline": "baseline.json",
+                        "candidate": "candidate.json",
+                        "report": "outputs/compare.md",
+                        "format": "markdown",
+                        "final_answer_mode": "claims-only",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(0, main(["compare", "--config", str(config)]))
+            self.assertIn("`PASS`", (root / "outputs/compare.md").read_text(encoding="utf-8"))
 
     def test_mcp_record_replay_compare_flow(self):
         with tempfile.TemporaryDirectory() as directory:

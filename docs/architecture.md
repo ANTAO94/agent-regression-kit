@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v1.6. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework?
+This document describes Agent Regression Kit v1.7. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework?
 
 ```mermaid
 flowchart TD
@@ -24,6 +24,7 @@ The recorder is the stable center: adapters produce actions, executors isolate t
 - `StdioMcpClient` owns the pinned MCP lifecycle and newline-delimited JSON-RPC transport. It does not know about comparison policy.
 - `StreamableHttpMcpClient` owns synchronous Streamable HTTP request/response transport, session propagation, JSON/SSE decoding, and explicit GET event-stream iteration. It shares the same lifecycle surface as the stdio client.
 - `compare_traces` performs deterministic structural comparison. `ComparisonPolicy` can allow named categories, exact paths, or explicitly compare only structured final-answer claims without an LLM.
+- The CLI configuration layer resolves project-level baseline, candidate, report, and policy defaults while keeping direct command-line flags authoritative.
 - CLI and report renderers translate library results into files and process exit codes; they do not change comparison outcomes.
 
 ## MCP call and failure flow
@@ -56,4 +57,4 @@ The same tool-result event shape records success, MCP tool errors, protocol erro
 
 ## Version boundaries
 
-Agent Regression Kit v1.6 writes AgentTrace schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v1.7 writes AgentTrace schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
