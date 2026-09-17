@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.9.0 - 2026-09-17
+
+- Add `batch-compare --config` for directory-based multi-case comparisons.
+- Reuse project-relative reports, policies, formats, and redaction settings for
+  both single-case and batch comparison commands.
+
 ## 1.8.0 - 2026-09-17
 
 - Add GitHub Action inputs for `final-answer-mode` and comma-separated exact

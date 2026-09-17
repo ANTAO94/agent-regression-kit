@@ -17,8 +17,8 @@ def _relative_to_project(config_path: Path, value: str) -> str:
     return str((project_root / value).resolve())
 
 
-def load_compare_config(path: str | Path) -> Dict[str, Any]:
-    """Load and validate a compare config file."""
+def _load_config(path: str | Path, required_paths: tuple[str, ...]) -> Dict[str, Any]:
+    """Load and validate a comparison config with the requested path keys."""
     config_path = Path(path).resolve()
     try:
         value = json.loads(config_path.read_text(encoding="utf-8"))
@@ -30,7 +30,7 @@ def load_compare_config(path: str | Path) -> Dict[str, Any]:
         raise ValueError("config must contain a JSON object")
 
     result = dict(value)
-    for key in ("baseline", "candidate"):
+    for key in required_paths:
         configured = result.get(key)
         if not isinstance(configured, str) or not configured.strip():
             raise ValueError(f"config.{key} must be a non-empty string")
@@ -52,3 +52,13 @@ def load_compare_config(path: str | Path) -> Dict[str, Any]:
         ):
             raise ValueError(f"config.{key} must be an array of strings")
     return result
+
+
+def load_compare_config(path: str | Path) -> Dict[str, Any]:
+    """Load a single-trace compare config file."""
+    return _load_config(path, ("baseline", "candidate"))
+
+
+def load_batch_compare_config(path: str | Path) -> Dict[str, Any]:
+    """Load a directory-based batch compare config file."""
+    return _load_config(path, ("baseline_dir", "candidate_dir"))

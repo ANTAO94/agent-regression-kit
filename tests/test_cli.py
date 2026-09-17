@@ -130,6 +130,63 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(0, main(["compare", "--config", str(config)]))
             self.assertIn("`PASS`", (root / "outputs/compare.md").read_text(encoding="utf-8"))
 
+    def test_batch_compare_can_load_project_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = root / "source-baseline.json"
+            candidate = root / "source-candidate.json"
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    0,
+                    main(
+                        [
+                            "record",
+                            "--scenario",
+                            str(ROOT / "examples/order-123/baseline.scenario.json"),
+                            "--out",
+                            str(baseline),
+                        ]
+                    ),
+                )
+                self.assertEqual(
+                    0,
+                    main(
+                        [
+                            "record",
+                            "--scenario",
+                            str(ROOT / "examples/order-123/candidate-ok.scenario.json"),
+                            "--out",
+                            str(candidate),
+                        ]
+                    ),
+                )
+            baseline_dir = root / "baselines"
+            candidate_dir = root / "candidate"
+            baseline_dir.mkdir()
+            candidate_dir.mkdir()
+            (baseline_dir / "order.trace.json").write_text(
+                baseline.read_text(encoding="utf-8"), encoding="utf-8"
+            )
+            (candidate_dir / "order.trace.json").write_text(
+                candidate.read_text(encoding="utf-8"), encoding="utf-8"
+            )
+            config = root / ".agent-regression/batch.json"
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                json.dumps(
+                    {
+                        "baseline_dir": "baselines",
+                        "candidate_dir": "candidate",
+                        "report": "outputs/batch.md",
+                        "format": "markdown",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(0, main(["batch-compare", "--config", str(config)]))
+            self.assertIn("`PASS`", (root / "outputs/batch.md").read_text(encoding="utf-8"))
+
     def test_mcp_record_replay_compare_flow(self):
         with tempfile.TemporaryDirectory() as directory:
             baseline = Path(directory) / "baseline.json"

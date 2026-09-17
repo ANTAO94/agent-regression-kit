@@ -11,7 +11,7 @@ from .adapters import ScriptedAgentAdapter
 from .batch import compare_trace_batch
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
-from .config import load_compare_config
+from .config import load_batch_compare_config, load_compare_config
 from .model import AgentTrace, TraceValidationError
 from .mcp import (
     McpTransportError,
@@ -27,7 +27,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.8.0"
+VERSION = "1.9.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -192,18 +192,19 @@ def build_parser() -> argparse.ArgumentParser:
     batch_compare = subparsers.add_parser(
         "batch-compare", help="compare matching Trace files across two directories"
     )
-    batch_compare.add_argument("--baseline-dir", required=True)
-    batch_compare.add_argument("--candidate-dir", required=True)
+    batch_compare.add_argument("--baseline-dir")
+    batch_compare.add_argument("--candidate-dir")
+    batch_compare.add_argument("--config", help="JSON config with project-level batch defaults")
     batch_compare.add_argument("--out")
-    batch_compare.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    batch_compare.add_argument("--format", choices=["json", "junit", "markdown"])
     batch_compare.add_argument(
         "--final-answer-mode",
         choices=["exact", "claims-only"],
-        default="exact",
+        default=None,
     )
-    batch_compare.add_argument("--secret-value", action="append", default=[])
-    batch_compare.add_argument("--allow-category", action="append", default=[])
-    batch_compare.add_argument("--allow-path", action="append", default=[])
+    batch_compare.add_argument("--secret-value", action="append", default=None)
+    batch_compare.add_argument("--allow-category", action="append", default=None)
+    batch_compare.add_argument("--allow-path", action="append", default=None)
     return parser
 
 
@@ -218,9 +219,15 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "compare" and args.config
             else {}
         )
-        if args.command == "compare" and args.secret_value is None:
+        batch_config = (
+            load_batch_compare_config(args.config)
+            if args.command == "batch-compare" and args.config
+            else {}
+        )
+        if args.command in {"compare", "batch-compare"} and args.secret_value is None:
+            active_config = compare_config if args.command == "compare" else batch_config
             redaction_policy = RedactionPolicy(
-                secret_values=tuple(compare_config.get("secret_values", []))
+                secret_values=tuple(active_config.get("secret_values", []))
             )
         if args.command == "init":
             root = Path(args.directory).resolve()
@@ -230,22 +237,43 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "batch-compare":
+            baseline_dir = args.baseline_dir or batch_config.get("baseline_dir")
+            candidate_dir = args.candidate_dir or batch_config.get("candidate_dir")
+            if not baseline_dir or not candidate_dir:
+                raise ValueError(
+                    "batch-compare requires --baseline-dir and --candidate-dir, or --config with both"
+                )
+            output_format = args.format or batch_config.get("format", "json")
+            final_answer_mode = args.final_answer_mode or batch_config.get(
+                "final_answer_mode", "exact"
+            )
+            allowed_categories = (
+                set(args.allow_category)
+                if args.allow_category is not None
+                else set(batch_config.get("allow_categories", []))
+            )
+            allowed_paths = (
+                set(args.allow_path)
+                if args.allow_path is not None
+                else set(batch_config.get("allow_paths", []))
+            )
+            output_path = args.out or batch_config.get("report")
             report = compare_trace_batch(
-                args.baseline_dir,
-                args.candidate_dir,
+                baseline_dir,
+                candidate_dir,
                 policy=ComparisonPolicy(
-                    allowed_categories=set(args.allow_category),
-                    allowed_paths=set(args.allow_path),
-                    final_answer_mode=args.final_answer_mode,
+                    allowed_categories=allowed_categories,
+                    allowed_paths=allowed_paths,
+                    final_answer_mode=final_answer_mode,
                 ),
                 redaction_policy=redaction_policy,
             )
-            if args.format == "junit":
-                _write_text(render_batch_junit(report), args.out)
-            elif args.format == "markdown":
-                _write_text(render_batch_markdown(report), args.out)
+            if output_format == "junit":
+                _write_text(render_batch_junit(report), output_path)
+            elif output_format == "markdown":
+                _write_text(render_batch_markdown(report), output_path)
             else:
-                _write_output(report, args.out)
+                _write_output(report, output_path)
             return 0 if report["passed"] else 1
 
         if args.command in {"record", "mcp-record", "mcp-http-record"}:
