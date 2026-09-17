@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 from .adapters import AgentAdapter, RunContext, ScriptedAgentAdapter
 from .compare import ComparisonPolicy, compare_traces
@@ -20,7 +20,7 @@ from .model import AgentTrace, TraceValidationError
 from .record import FixtureTools, ToolExecutionResult, ToolExecutor, record_run
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 from .replay import replay_trace
-from .reports import render_junit
+from .reports import render_junit, render_markdown
 from .rule_agent import (
     NORMAL,
     PARAMETER_REGRESSION,
@@ -58,5 +58,6 @@ __all__ = [
     "record_mcp_http_run",
     "replay_trace",
     "render_junit",
+    "render_markdown",
     "__version__",
 ]

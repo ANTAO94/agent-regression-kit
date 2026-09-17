@@ -1,10 +1,42 @@
 import unittest
 import xml.etree.ElementTree as ET
 
-from agent_regression import render_junit
+from agent_regression import render_junit, render_markdown
 
 
 class ReportTests(unittest.TestCase):
+    def test_markdown_report_shows_blocking_and_allowed_differences(self):
+        markdown = render_markdown(
+            {
+                "passed": False,
+                "baseline_run_id": "base",
+                "candidate_run_id": "candidate",
+                "difference_count": 2,
+                "blocking_difference_count": 1,
+                "differences": [
+                    {"category": "final_answer", "path": "final_answer.text", "allowed": True},
+                    {"category": "tool_arguments", "path": "tool_calls[0].arguments", "allowed": False},
+                ],
+            }
+        )
+        self.assertIn("**Status:** `FAIL`", markdown)
+        self.assertIn("| allowed | `final_answer` | `final_answer.text` |", markdown)
+        self.assertIn("| blocking | `tool_arguments` | `tool_calls[0].arguments` |", markdown)
+
+    def test_markdown_report_for_match_is_concise(self):
+        markdown = render_markdown(
+            {
+                "passed": True,
+                "baseline_run_id": "base",
+                "candidate_run_id": "candidate",
+                "difference_count": 0,
+                "blocking_difference_count": 0,
+                "differences": [],
+            }
+        )
+        self.assertIn("**Status:** `PASS`", markdown)
+        self.assertIn("No differences detected.", markdown)
+
     def test_failed_comparison_renders_junit_failure(self):
         xml = render_junit(
             {

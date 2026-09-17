@@ -11,6 +11,10 @@ inputs:
     description: Path for the JUnit report.
     required: false
     default: outputs/agent-regression.junit.xml
+  summary:
+    description: Path for the Markdown summary and optional GitHub step summary.
+    required: false
+    default: outputs/agent-regression.md
   allow-category:
     description: Optional comma-separated difference categories to allow.
     required: false
@@ -24,21 +28,29 @@ runs:
         BASELINE: ${{ inputs.baseline }}
         CANDIDATE: ${{ inputs.candidate }}
         REPORT: ${{ inputs.report }}
+        SUMMARY: ${{ inputs.summary }}
         ALLOW_CATEGORY: ${{ inputs.allow-category }}
       run: |
         set -euo pipefail
         mkdir -p "$(dirname "$REPORT")"
-        args=(
-          compare
-          --baseline "$BASELINE"
-          --candidate "$CANDIDATE"
-          --format junit
-          --out "$REPORT"
-        )
+        mkdir -p "$(dirname "$SUMMARY")"
+        args=(compare --baseline "$BASELINE" --candidate "$CANDIDATE")
         if [[ -n "$ALLOW_CATEGORY" ]]; then
           IFS=',' read -r -a categories <<< "$ALLOW_CATEGORY"
           for category in "${categories[@]}"; do
             args+=(--allow-category "$category")
           done
         fi
-        agent-regression "${args[@]}"
+        set +e
+        agent-regression "${args[@]}" --format junit --out "$REPORT"
+        comparison_status=$?
+        agent-regression "${args[@]}" --format markdown --out "$SUMMARY"
+        markdown_status=$?
+        set -e
+        if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "$SUMMARY" ]]; then
+          cat "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        if [[ "$comparison_status" -ne 0 ]]; then
+          exit "$comparison_status"
+        fi
+        exit "$markdown_status"

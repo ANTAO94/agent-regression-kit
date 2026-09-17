@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v1.2 deliberately stays small.
+Agent Regression Kit v1.3 deliberately stays small.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
 - Tool calls are aligned by event order, not by an optimal sequence-matching algorithm.

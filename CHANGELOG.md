@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.3.0 - 2026-09-17
+
+- Add Markdown comparison reports through `--format markdown` and `render_markdown`.
+- Add GitHub Actions job-summary output to the reusable comparison action while preserving the original comparison exit code.
+
 ## 1.2.0 - 2026-09-17
 
 - Add `agent-regression init` to scaffold a first-use integration project with a runnable Agent example, baseline guidance, configuration, and GitHub Actions workflow.

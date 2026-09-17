@@ -1,12 +1,13 @@
-# Agent Regression Kit v1.2 verification
+# Agent Regression Kit v1.3 verification
 
 Verified on 2026-09-17 with Python 3.9.6.
 
 ## Results
 
 - Runtime: Python 3.9.6.
-- Unit and integration tests: 49 passed, 0 failed.
-- Wheel build: `agent_regression_kit-1.2.0-py3-none-any.whl` succeeded.
+- Unit and integration tests: 51 passed, 0 failed.
+- Wheel build: `agent_regression_kit-1.3.0-py3-none-any.whl` succeeded.
+- Markdown comparison report and GitHub job-summary rendering: passed.
 - `agent-regression init` scaffolded a fresh project and its generated Agent example recorded a valid Trace.
 - Source compilation with `compileall`: succeeded.
 - Local MCP fixture capture: succeeded through real subprocess stdio and Streamable HTTP.
@@ -24,4 +25,4 @@ The implementation contains AgentTrace v0.1, deterministic and MCP stdio/HTTP ad
 
 ## Remaining compatibility boundary
 
-The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v1.2 stdio and Streamable HTTP subset, but authentication, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline.
+The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v1.3 stdio and Streamable HTTP subset, but authentication, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline.

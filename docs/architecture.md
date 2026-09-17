@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v1.2. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework?
+This document describes Agent Regression Kit v1.3. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework?
 
 ```mermaid
 flowchart TD
@@ -56,4 +56,4 @@ The same tool-result event shape records success, MCP tool errors, protocol erro
 
 ## Version boundaries
 
-Agent Regression Kit v1.2 writes AgentTrace schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v1.3 writes AgentTrace schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

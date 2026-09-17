@@ -222,7 +222,7 @@ class StdioMcpClient:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": deepcopy(self.client_capabilities),
-                "clientInfo": {"name": "agent-regression-kit", "version": "1.2.0"},
+                "clientInfo": {"name": "agent-regression-kit", "version": "1.3.0"},
             },
         )
         _validate_initialize(result)
@@ -464,7 +464,7 @@ class StreamableHttpMcpClient:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": deepcopy(self.client_capabilities),
-                "clientInfo": {"name": "agent-regression-kit", "version": "1.2.0"},
+                "clientInfo": {"name": "agent-regression-kit", "version": "1.3.0"},
             },
         )
         _validate_initialize(result)

@@ -51,3 +51,34 @@ def render_junit(report: Dict[str, Any]) -> str:
         },
     )
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
+
+
+def render_markdown(report: Dict[str, Any]) -> str:
+    """Render a compact human-readable comparison summary."""
+    passed = bool(report.get("passed"))
+    status = "PASS" if passed else "FAIL"
+    lines = [
+        "# Agent Regression",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Baseline: `{report.get('baseline_run_id')}`",
+        f"- Candidate: `{report.get('candidate_run_id')}`",
+        f"- Differences: `{report.get('difference_count', 0)}`",
+        f"- Blocking differences: `{report.get('blocking_difference_count', 0)}`",
+        "",
+        "## Differences",
+        "",
+    ]
+    differences = report.get("differences", [])
+    if not differences:
+        lines.append("No differences detected.")
+        return "\n".join(lines) + "\n"
+    lines.extend(["| Status | Category | Path |", "| --- | --- | --- |"])
+    for difference in differences:
+        difference_status = "allowed" if difference.get("allowed") else "blocking"
+        category = str(difference.get("category", "")).replace("|", "\\|")
+        path = str(difference.get("path", "")).replace("|", "\\|")
+        lines.append(f"| {difference_status} | `{category}` | `{path}` |")
+    lines.append("")
+    return "\n".join(lines) + "\n"

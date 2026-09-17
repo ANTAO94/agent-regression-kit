@@ -20,12 +20,12 @@ from .mcp import (
 )
 from .record import FixtureTools, record_run
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
-from .reports import render_junit
+from .reports import render_junit, render_markdown
 from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -133,7 +133,7 @@ def build_parser() -> argparse.ArgumentParser:
     compare.add_argument("--baseline", required=True)
     compare.add_argument("--candidate", required=True)
     compare.add_argument("--out")
-    compare.add_argument("--format", choices=["json", "junit"], default="json")
+    compare.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
     compare.add_argument(
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
     )
@@ -274,6 +274,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         if args.format == "junit":
             _write_text(render_junit(report), args.out)
+        elif args.format == "markdown":
+            _write_text(render_markdown(report), args.out)
         else:
             _write_output(report, args.out)
         return 0 if report["passed"] else 1
