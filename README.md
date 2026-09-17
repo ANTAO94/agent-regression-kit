@@ -143,6 +143,54 @@ agent-regression compare \
 
 如果你的 MCP Server 是 Streamable HTTP，只需将 `record_mcp_run` 换成 `record_mcp_http_run` 并传入 `/mcp` 地址；如果你的 Agent 已经有自己的工具执行层，也可以直接使用通用的 `record_run`。仓库中的 `examples/rule_agent_mcp_example.py` 是可以直接运行的完整参考，`examples/order-123/` 则是 CLI 演示数据，不是用户必须采用的 Agent 格式。
 
+### CI 集成
+
+CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
+
+在你的项目中提交一份类似下面的 `.github/workflows/agent-regression.yml`：
+
+```yaml
+name: agent-regression
+
+on:
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 从 GitHub 安装 Agent Regression Kit
+      - name: Install regression kit
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
+
+      # 这是你的脚本：启动真实 Agent，生成 work/candidate.trace.json
+      - name: Record candidate trace
+        run: python scripts/record_agent.py
+
+      # 远程复用本项目提供的比较 Action
+      - name: Compare with reviewed baseline
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@main
+        with:
+          baseline: baselines/my-agent.trace.json
+          candidate: work/candidate.trace.json
+          report: outputs/my-agent.junit.xml
+
+      - name: Upload regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-regression-report
+          path: outputs/my-agent.junit.xml
+```
+
+运行规则：`compare` 返回 `0`，PR 通过；返回 `1`，说明发现阻断性回归，PR 失败；返回 `2`，说明输入、Trace 或运行环境有问题。GitHub 会把 JUnit 文件作为构建产物保存，便于查看具体差异。
+
 详细 API、架构、限制和完整英文文档见后面的 [English](#english) 部分，以及 [`docs/`](docs/) 目录。
 
 ## English
@@ -478,6 +526,39 @@ local action at `.github/actions/agent-regression` compares a candidate trace,
 writes a JUnit report, and preserves the blocking exit code. Exit code `0`
 means pass, `1` means a blocking regression, and `2` means invalid input or an
 operational error.
+
+For another GitHub repository, the integration has one important boundary:
+your project runs the Agent and writes `work/candidate.trace.json`; this kit
+compares it with a reviewed baseline committed at
+`baselines/my-agent.trace.json`. Do not regenerate the baseline automatically
+on every CI run. A minimal external workflow is:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: actions/setup-python@v5
+  with:
+    python-version: "3.11"
+- name: Install Agent Regression Kit
+  run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
+- name: Record candidate trace
+  run: python scripts/record_agent.py
+- name: Compare with baseline
+  uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@main
+  with:
+    baseline: baselines/my-agent.trace.json
+    candidate: work/candidate.trace.json
+    report: outputs/my-agent.junit.xml
+- uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: agent-regression-report
+    path: outputs/my-agent.junit.xml
+```
+
+The candidate-producing script is owned by the integrating project because
+each Agent framework has a different execution API. The action then returns
+`0` for a passing comparison, `1` for a blocking regression, and `2` for
+invalid input or an operational error.
 
 ## Security and reproducibility
 
