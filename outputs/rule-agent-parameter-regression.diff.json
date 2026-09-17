@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1",
+  "baseline_run_id": "rule-agent-normal",
+  "candidate_run_id": "rule-agent-parameter_regression",
+  "passed": false,
+  "difference_count": 5,
+  "blocking_difference_count": 5,
+  "policy": {
+    "mode": "strict",
+    "allowed_categories": [],
+    "allowed_paths": []
+  },
+  "differences": [
+    {
+      "category": "tool_arguments",
+      "path": "tool_calls[0].arguments",
+      "baseline": {
+        "order_id": "123"
+      },
+      "candidate": {
+        "order_id": 123
+      },
+      "allowed": false
+    },
+    {
+      "category": "tool_result",
+      "path": "tool_results[0].result",
+      "baseline": {
+        "order_id": "123",
+        "status": "not_shipped"
+      },
+      "candidate": {
+        "error": "invalid_arguments",
+        "message": "order_id must be a string"
+      },
+      "allowed": false
+    },
+    {
+      "category": "tool_error_state",
+      "path": "tool_results[0].is_error",
+      "baseline": false,
+      "candidate": true,
+      "allowed": false
+    },
+    {
+      "category": "result_interpretation",
+      "path": "final_answer.claims",
+      "baseline": {
+        "order_id": "123",
+        "order_status": "not_shipped"
+      },
+      "candidate": {
+        "order_id": "123",
+        "error": "invalid_arguments"
+      },
+      "allowed": false
+    },
+    {
+      "category": "final_answer",
+      "path": "final_answer.text",
+      "baseline": "订单 123 尚未发货。",
+      "candidate": "订单查询失败：order_id must be a string",
+      "allowed": false
+    }
+  ]
+}

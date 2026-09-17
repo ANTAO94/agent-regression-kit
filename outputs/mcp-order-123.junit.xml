@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuite name="agent-regression" tests="1" failures="0" errors="0"><testcase classname="agent_regression.compare" name="order-123-baseline -&gt; order-123-candidate-ok" /><properties><property name="difference_count" value="0" /><property name="blocking_difference_count" value="0" /></properties></testsuite>

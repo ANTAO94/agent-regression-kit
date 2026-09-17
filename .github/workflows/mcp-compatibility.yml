@@ -1,0 +1,51 @@
+name: MCP compatibility
+
+on:
+  workflow_dispatch:
+
+jobs:
+  official-everything:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Agent Regression Kit
+        run: python -m pip install --no-build-isolation .
+      - name: Smoke test official stdio server
+        run: >-
+          agent-regression mcp-smoke
+          --server-command 'npx -y @modelcontextprotocol/server-everything stdio'
+          --stdio-framing newline
+          --timeout 60
+          --out outputs/official-everything-stdio.json
+      - name: Start official Streamable HTTP server
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3001 npx -y @modelcontextprotocol/server-everything streamableHttp > outputs/everything-http.log 2>&1 &
+          echo $! > outputs/everything-http.pid
+          for attempt in {1..60}; do
+            if grep -q "listening on port 3001" outputs/everything-http.log; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat outputs/everything-http.log
+          exit 1
+      - name: Smoke test official Streamable HTTP server
+        run: >-
+          agent-regression mcp-smoke
+          --url http://127.0.0.1:3001/mcp
+          --timeout 60
+          --out outputs/official-everything-http.json
+      - name: Upload compatibility reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-compatibility-reports
+          path: outputs/official-everything-*.json

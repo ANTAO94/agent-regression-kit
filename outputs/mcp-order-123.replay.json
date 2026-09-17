@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "run_id": "order-123-baseline",
+  "calls": [
+    {
+      "call_id": "call-1",
+      "tool": "get_order",
+      "arguments": {
+        "order_id": "123"
+      },
+      "recorded_result": {
+        "result": {
+          "order_id": "123",
+          "status": "not_shipped"
+        },
+        "is_error": false
+      }
+    }
+  ],
+  "final_answer": {
+    "text": "订单 123 尚未发货。",
+    "claims": {
+      "order_id": "123",
+      "order_status": "not_shipped"
+    }
+  }
+}

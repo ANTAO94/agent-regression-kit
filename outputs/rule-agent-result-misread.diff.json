@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "baseline_run_id": "rule-agent-normal",
+  "candidate_run_id": "rule-agent-result_misread",
+  "passed": false,
+  "difference_count": 2,
+  "blocking_difference_count": 2,
+  "policy": {
+    "mode": "strict",
+    "allowed_categories": [],
+    "allowed_paths": []
+  },
+  "differences": [
+    {
+      "category": "result_interpretation",
+      "path": "final_answer.claims",
+      "baseline": {
+        "order_id": "123",
+        "order_status": "not_shipped"
+      },
+      "candidate": {
+        "order_id": "123",
+        "order_status": "shipped"
+      },
+      "allowed": false
+    },
+    {
+      "category": "final_answer",
+      "path": "final_answer.text",
+      "baseline": "订单 123 尚未发货。",
+      "candidate": "订单 123 已发货。",
+      "allowed": false
+    }
+  ]
+}

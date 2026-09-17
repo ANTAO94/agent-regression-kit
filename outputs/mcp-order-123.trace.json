@@ -1,0 +1,189 @@
+{
+  "schema_version": "0.1",
+  "run_id": "mcp-order-123",
+  "agent": {
+    "name": "toy-mcp-agent",
+    "version": "1.0.0"
+  },
+  "events": [
+    {
+      "type": "tool_call",
+      "call_id": "call-1",
+      "tool": "get_order",
+      "arguments": {
+        "order_id": "123"
+      },
+      "sequence": 1
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-1",
+      "result": {
+        "order_id": "123",
+        "status": "not_shipped"
+      },
+      "is_error": false,
+      "metadata": {
+        "mcp_request_id": 3,
+        "attempt": 1,
+        "retry_count": 0,
+        "timeout_seconds": 5.0
+      },
+      "sequence": 2
+    },
+    {
+      "type": "final_answer",
+      "text": "订单 123 尚未发货。",
+      "claims": {
+        "order_status": "not_shipped"
+      },
+      "sequence": 3
+    }
+  ],
+  "metadata": {
+    "input": "查询订单 123",
+    "fixture": "project-owned-mcp-stdio",
+    "mcp": {
+      "protocol_version": "2025-11-25",
+      "server_info": {
+        "name": "agent-regression-kit-fixture",
+        "version": "1.0.0"
+      },
+      "tools": [
+        {
+          "name": "get_order",
+          "description": "Return a deterministic fixture order by ID.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "order_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "order_id"
+            ],
+            "additionalProperties": false
+          }
+        }
+      ],
+      "transcript": [
+        {
+          "direction": "client_to_server",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+              "protocolVersion": "2025-11-25",
+              "capabilities": {},
+              "clientInfo": {
+                "name": "agent-regression-kit",
+                "version": "1.0.0"
+              }
+            }
+          }
+        },
+        {
+          "direction": "server_to_client",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "protocolVersion": "2025-11-25",
+              "capabilities": {
+                "tools": {
+                  "listChanged": false
+                }
+              },
+              "serverInfo": {
+                "name": "agent-regression-kit-fixture",
+                "version": "1.0.0"
+              }
+            }
+          }
+        },
+        {
+          "direction": "client_to_server",
+          "message": {
+            "jsonrpc": "2.0",
+            "method": "notifications/initialized",
+            "params": {}
+          }
+        },
+        {
+          "direction": "client_to_server",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list",
+            "params": {}
+          }
+        },
+        {
+          "direction": "server_to_client",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+              "tools": [
+                {
+                  "name": "get_order",
+                  "description": "Return a deterministic fixture order by ID.",
+                  "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                      "order_id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "order_id"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "direction": "client_to_server",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+              "name": "get_order",
+              "arguments": {
+                "order_id": "123"
+              }
+            }
+          }
+        },
+        {
+          "direction": "server_to_client",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"order_id\": \"123\", \"status\": \"not_shipped\"}"
+                }
+              ],
+              "structuredContent": {
+                "order_id": "123",
+                "status": "not_shipped"
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "retry_policy": "none",
+      "side_effect_boundary": "server_subprocess"
+    }
+  }
+}

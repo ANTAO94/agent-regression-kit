@@ -1,0 +1,13 @@
+# Limitations and security boundary
+
+Agent Regression Kit v1.1 deliberately stays small.
+
+- AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
+- Tool calls are aligned by event order, not by an optimal sequence-matching algorithm.
+- The MCP client is synchronous at the lifecycle level, single-session, and pinned to the 2025-11-25 handshake. Stdio and Streamable HTTP request/response capture are supported, including JSON and SSE response bodies. HTTP GET SSE events can be read, resumed with `Last-Event-ID`, and recorded; server-initiated requests can be answered explicitly or through a caller callback. Resources, prompts, pagination, explicit cancellation, reconnect, progress filtering, and bounded concurrent HTTP calls are supported, but the generic AgentTrace recorder remains sequential. Sampling, elicitation, tasks, typed server-request routing, and the handshake-free 2026-07-28 protocol remain unsupported.
+- The MCP client is synchronous at the lifecycle level, single-session, and pinned to the 2025-11-25 handshake. Stdio supports newline and Content-Length framing; Streamable HTTP supports JSON and SSE response bodies. HTTP GET SSE events can be read, resumed with `Last-Event-ID`, and recorded; server-initiated requests can be answered explicitly or through a caller callback. Resources, prompts, pagination, explicit cancellation, reconnect, progress filtering, and bounded concurrent HTTP calls are supported, but the generic AgentTrace recorder remains sequential. Sampling, elicitation, tasks, typed server-request routing, and the handshake-free 2026-07-28 protocol remain unsupported.
+- The local MCP server is project-owned test infrastructure. It is not a conformance claim. Official Everything Server and conformance-suite checks remain optional external validation.
+- The client applies a timeout and performs no automatic retries. This avoids repeating unknown side effects. A production adapter must make its own idempotency and retry decisions explicit.
+- Default redaction recognizes common sensitive key names. Values embedded in free-form text require `--secret-value` or `RedactionPolicy(secret_values=...)`. Redaction reduces accidental leakage; it is not a data-loss-prevention system.
+- An external MCP server runs as a local child process with the current user's permissions. Only run commands you trust. The bundled fixture performs no network or durable side effects.
+- Baseline acceptance is explicit but unsigned. Review baseline changes in version control.

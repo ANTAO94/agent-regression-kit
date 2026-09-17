@@ -1,0 +1,35 @@
+name: agent-regression
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  offline-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Install
+        run: python -m pip install --no-build-isolation .
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Record candidate through the local MCP fixture
+        run: >-
+          agent-regression mcp-record
+          --scenario examples/order-123/candidate-ok.scenario.json
+          --out work/candidate.trace.json
+      - name: Block structural regressions
+        uses: ./.github/actions/agent-regression
+        with:
+          baseline: baselines/order-123.trace.json
+          candidate: work/candidate.trace.json
+          report: outputs/junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agent-regression-report
+          path: outputs/junit.xml

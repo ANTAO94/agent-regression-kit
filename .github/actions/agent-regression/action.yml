@@ -1,0 +1,44 @@
+name: Agent Regression
+description: Compare an Agent Regression Kit candidate trace with a reviewed baseline.
+inputs:
+  baseline:
+    description: Path to the reviewed baseline AgentTrace JSON file.
+    required: true
+  candidate:
+    description: Path to the candidate AgentTrace JSON file.
+    required: true
+  report:
+    description: Path for the JUnit report.
+    required: false
+    default: outputs/agent-regression.junit.xml
+  allow-category:
+    description: Optional comma-separated difference categories to allow.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Compare AgentTrace evidence
+      shell: bash
+      env:
+        BASELINE: ${{ inputs.baseline }}
+        CANDIDATE: ${{ inputs.candidate }}
+        REPORT: ${{ inputs.report }}
+        ALLOW_CATEGORY: ${{ inputs.allow-category }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$(dirname "$REPORT")"
+        args=(
+          compare
+          --baseline "$BASELINE"
+          --candidate "$CANDIDATE"
+          --format junit
+          --out "$REPORT"
+        )
+        if [[ -n "$ALLOW_CATEGORY" ]]; then
+          IFS=',' read -r -a categories <<< "$ALLOW_CATEGORY"
+          for category in "${categories[@]}"; do
+            args+=(--allow-category "$category")
+          done
+        fi
+        agent-regression "${args[@]}"

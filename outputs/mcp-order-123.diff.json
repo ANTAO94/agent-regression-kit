@@ -1,0 +1,74 @@
+{
+  "schema_version": "0.1",
+  "baseline_run_id": "order-123-baseline",
+  "candidate_run_id": "order-123-candidate-regression",
+  "passed": false,
+  "difference_count": 6,
+  "blocking_difference_count": 6,
+  "policy": {
+    "mode": "strict",
+    "allowed_categories": [],
+    "allowed_paths": []
+  },
+  "differences": [
+    {
+      "category": "tool_name",
+      "path": "tool_calls[0].tool",
+      "baseline": "get_order",
+      "candidate": "lookup_order",
+      "allowed": false
+    },
+    {
+      "category": "tool_arguments",
+      "path": "tool_calls[0].arguments",
+      "baseline": {
+        "order_id": "123"
+      },
+      "candidate": {
+        "order_id": 123
+      },
+      "allowed": false
+    },
+    {
+      "category": "tool_result",
+      "path": "tool_results[0].result",
+      "baseline": {
+        "order_id": "123",
+        "status": "not_shipped"
+      },
+      "candidate": {
+        "error": "mcp_protocol_error",
+        "code": -32602,
+        "message": "Unknown tool"
+      },
+      "allowed": false
+    },
+    {
+      "category": "tool_error_state",
+      "path": "tool_results[0].is_error",
+      "baseline": false,
+      "candidate": true,
+      "allowed": false
+    },
+    {
+      "category": "result_interpretation",
+      "path": "final_answer.claims",
+      "baseline": {
+        "order_id": "123",
+        "order_status": "not_shipped"
+      },
+      "candidate": {
+        "order_id": "123",
+        "order_status": "shipped"
+      },
+      "allowed": false
+    },
+    {
+      "category": "final_answer",
+      "path": "final_answer.text",
+      "baseline": "订单 123 尚未发货。",
+      "candidate": "订单 123 已经发货。",
+      "allowed": false
+    }
+  ]
+}
