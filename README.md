@@ -1,29 +1,36 @@
 # Agent Regression Kit
 
+[![CI](https://github.com/ANTAO94/agent-regression/actions/workflows/regression.yml/badge.svg)](https://github.com/ANTAO94/agent-regression/actions/workflows/regression.yml)
+[![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression)](https://github.com/ANTAO94/agent-regression/releases)
+[![License](https://img.shields.io/github/license/ANTAO94/agent-regression)](LICENSE)
+
 [中文说明](#中文说明) | [English](#english)
+
+[中文新手接入指南](docs/usage-guide.zh-CN.md) | [English Getting Started](docs/usage-guide.en.md) | [宣传与发布计划](docs/promotion-plan.md)
 
 ## 中文说明
 
 Agent Regression Kit 是一个面向 AI Agent 的、与框架无关的回归测试工具包。它把一次 Agent 运行记录成版本化、脱敏的 JSON Trace，再将候选版本与经过审核的基线进行结构化比较。
 
+一句话理解：**它像给 Agent 的单元测试——关注 Agent 调用了什么工具、传了什么参数、拿到了什么结果，以及是否正确回答，而不是只看最后一句话。**
+
+如果你只想先跑通，请直接复制下面四步；如果你要接入自己的 Agent，请看[新手接入指南](docs/usage-guide.zh-CN.md)。
+
 当你修改 Prompt、模型、工具 Schema 或 Agent Adapter 时，项目可以在 CI 中明确告诉你：工具名称、参数、工具结果、最终答案或交互流程是否发生了回归，而不是依赖人工观察。
 
 ### 核心流程
 
-```text
-Agent / MCP Server
-        │
-        ▼
-  录制 Trace ───────► 审核后的 baseline
-        │                      │
-        └── candidate Trace ───┘
-                               │
-                               ▼
-                    compare + JSON/JUnit 报告
-                               │
-                               ▼
-                         CI 通过 / 阻断回归
+```mermaid
+flowchart LR
+    Change[修改 Prompt / 模型 / 工具] --> Run[运行 Agent]
+    Run --> Candidate[candidate Trace]
+    Baseline[审核后的 baseline] --> Compare[结构化 compare]
+    Candidate --> Compare
+    Compare -->|通过| Pass[CI 通过]
+    Compare -->|发现回归| Fail[CI 失败 + Diff 报告]
 ```
+
+这张图回答的是：一次 Agent 改动如何变成 CI 中可以审核的证据。
 
 ### 当前能力
 
@@ -258,6 +265,8 @@ agent-regression batch-compare --config .agent-regression/batch.json
 ## English
 
 Agent Regression Kit is a small, framework-neutral regression-testing layer for AI Agents. It turns an Agent run into versioned, redacted JSON evidence, then compares a candidate run with a reviewed baseline. A changed prompt, model, tool schema, or adapter should produce a visible diff in CI instead of a silent behavior change.
+
+For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md). For launch messaging and community outreach, see the [promotion plan](docs/promotion-plan.md).
 
 Current release line: **v2.0 stable**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, explicit claims-only final-answer comparison for non-deterministic wording, config-driven single-case and batch comparison, preflight config validation, and matching policy controls in the reusable GitHub Action.
 
