@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .adapters import ScriptedAgentAdapter
+from .batch import compare_trace_batch
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
 from .model import AgentTrace, TraceValidationError
@@ -20,12 +21,12 @@ from .mcp import (
 )
 from .record import FixtureTools, record_run
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
-from .reports import render_junit, render_markdown
+from .reports import render_batch_junit, render_batch_markdown, render_junit, render_markdown
 from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -179,6 +180,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="exact difference path that should not fail the comparison; repeatable",
     )
+
+    batch_compare = subparsers.add_parser(
+        "batch-compare", help="compare matching Trace files across two directories"
+    )
+    batch_compare.add_argument("--baseline-dir", required=True)
+    batch_compare.add_argument("--candidate-dir", required=True)
+    batch_compare.add_argument("--out")
+    batch_compare.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    batch_compare.add_argument("--secret-value", action="append", default=[])
+    batch_compare.add_argument("--allow-category", action="append", default=[])
+    batch_compare.add_argument("--allow-path", action="append", default=[])
     return parser
 
 
@@ -194,6 +206,24 @@ def main(argv: list[str] | None = None) -> int:
             result = initialize_project(root, force=args.force)
             _write_output({"ok": True, "directory": str(root), **result})
             return 0
+
+        if args.command == "batch-compare":
+            report = compare_trace_batch(
+                args.baseline_dir,
+                args.candidate_dir,
+                policy=ComparisonPolicy(
+                    allowed_categories=set(args.allow_category),
+                    allowed_paths=set(args.allow_path),
+                ),
+                redaction_policy=redaction_policy,
+            )
+            if args.format == "junit":
+                _write_text(render_batch_junit(report), args.out)
+            elif args.format == "markdown":
+                _write_text(render_batch_markdown(report), args.out)
+            else:
+                _write_output(report, args.out)
+            return 0 if report["passed"] else 1
 
         if args.command in {"record", "mcp-record", "mcp-http-record"}:
             scenario = _read_json(args.scenario)

@@ -82,3 +82,51 @@ def render_markdown(report: Dict[str, Any]) -> str:
         lines.append(f"| {difference_status} | `{category}` | `{path}` |")
     lines.append("")
     return "\n".join(lines) + "\n"
+
+
+def render_batch_markdown(report: Dict[str, Any]) -> str:
+    """Render a batch comparison summary."""
+    status = "PASS" if report.get("passed") else "FAIL"
+    lines = [
+        "# Agent Regression Batch",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Cases: `{report.get('case_count', 0)}`",
+        f"- Passed: `{report.get('passed_case_count', 0)}`",
+        f"- Failed: `{report.get('failed_case_count', 0)}`",
+        "",
+        "| Status | Case | Blocking differences |",
+        "| --- | --- | ---: |",
+    ]
+    for case in report.get("cases", []):
+        case_status = "passed" if case.get("passed") else "failed"
+        blocking = case.get("blocking_difference_count", 0)
+        if "reason" in case:
+            blocking = case["reason"]
+        lines.append(f"| {case_status} | `{case.get('case')}` | `{blocking}` |")
+    return "\n".join(lines) + "\n"
+
+
+def render_batch_junit(report: Dict[str, Any]) -> str:
+    """Render one JUnit testcase per batch case."""
+    cases = report.get("cases", [])
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": "agent-regression-batch",
+            "tests": str(len(cases)),
+            "failures": str(report.get("failed_case_count", 0)),
+            "errors": "0",
+        },
+    )
+    for case in cases:
+        testcase = ET.SubElement(
+            suite,
+            "testcase",
+            {"classname": "agent_regression.batch", "name": str(case.get("case"))},
+        )
+        if not case.get("passed"):
+            failure = ET.SubElement(testcase, "failure", {"type": "AgentRegressionFailure"})
+            failure.text = json.dumps(case, ensure_ascii=False, indent=2)
+    return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"

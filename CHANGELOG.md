@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.5.0 - 2026-09-17
+
+- Add `batch-compare` for comparing matching Trace cases across baseline and candidate directories.
+- Add aggregate JSON, Markdown, and JUnit batch reports with missing-case detection.
+
 ## 1.4.0 - 2026-09-17
 
 - Add custom HTTP header support to the Streamable HTTP client and MCP HTTP recorder.

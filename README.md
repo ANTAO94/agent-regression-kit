@@ -31,7 +31,7 @@ Agent / MCP Server
 - MCP stdio 与 Streamable HTTP：JSON/SSE、会话、分页、取消、重连、进度和并发调用。
 - 服务端请求处理：sampling、elicitation，以及 HTTP POST-SSE 流中的双向请求响应。
 - 任务化工具调用：任务创建、状态轮询、结果获取和取消。
-- 严格结构化对比：支持 JSON 报告、JUnit 报告和 CI exit code。
+- 严格结构化对比：支持单用例和批量 JSON、Markdown、JUnit 报告以及 CI exit code。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -40,10 +40,9 @@ Agent / MCP Server
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **52 项通过，0 项失败** |
+| Python 单元与集成测试 | **54 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Python 单元与集成测试 | **51 项通过，0 项失败** |
-| Wheel 构建 | `agent_regression_kit-1.4.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-1.5.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -198,13 +197,25 @@ jobs:
 
 运行规则：`compare` 返回 `0`，PR 通过；返回 `1`，说明发现阻断性回归，PR 失败；返回 `2`，说明输入、Trace 或运行环境有问题。GitHub 会把 JUnit 文件作为构建产物保存，便于查看具体差异。
 
+如果项目有多个用例，可以把 baseline 和 candidate 按相同的相对路径放进两个目录：
+
+```bash
+agent-regression batch-compare \
+  --baseline-dir baselines \
+  --candidate-dir work/candidate \
+  --format markdown \
+  --out outputs/batch-summary.md
+```
+
+这个命令会递归匹配所有 `*.trace.json`，汇总通过、失败和缺失用例；任何 baseline/candidate 缺失都会让 CI 返回 `1`。
+
 详细 API、架构、限制和完整英文文档见后面的 [English](#english) 部分，以及 [`docs/`](docs/) 目录。
 
 ## English
 
 Agent Regression Kit is a small, framework-neutral regression-testing layer for AI Agents. It turns an Agent run into versioned, redacted JSON evidence, then compares a candidate run with a reviewed baseline. A changed prompt, model, tool schema, or adapter should produce a visible diff in CI instead of a silent behavior change.
 
-Current release line: **v1.4 development preview**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, and custom HTTP headers.
+Current release line: **v1.5 development preview**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, and custom HTTP headers.
 
 ```text
 Agent / MCP Server
@@ -231,9 +242,9 @@ The following results were run locally on 2026-09-17:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **52 passed, 0 failed** |
+| Python unit and integration suite | **54 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-1.4.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-1.5.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -243,7 +254,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 52 tests in 8.1s
+Ran 54 tests in 8.1s
 
 OK
 ```
@@ -455,14 +466,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v1.4. In addition to
+The HTTP client is intentionally synchronous in v1.5. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v1.4.
+supported. The generic AgentTrace recorder remains sequential in v1.5.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned
 task with `get_task` and fetch its final value with `get_task_result`. When an
@@ -515,6 +526,20 @@ agent-regression compare \
   --candidate work/candidate.trace.json \
   --allow-path final_answer.text
 ```
+
+For a test suite with multiple cases, keep matching baseline and candidate
+files under two directories:
+
+```bash
+agent-regression batch-compare \
+  --baseline-dir baselines \
+  --candidate-dir work/candidate \
+  --format markdown \
+  --out outputs/batch-summary.md
+```
+
+The command recursively matches `*.trace.json` files, reports passed, failed,
+and missing cases, and returns `1` if any baseline or candidate is missing.
 
 Baseline changes are explicit:
 
