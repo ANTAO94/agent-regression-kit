@@ -79,6 +79,70 @@ agent-regression compare \
 
 它不是通用 Agent 框架、评分平台、LLM Judge 或 Dashboard。仓库里的订单 Agent 和 MCP Server 是确定性的测试 Fixture，用来证明接入边界可以在没有模型和网络依赖的情况下运行。
 
+### 别人如何接入自己的 Agent
+
+最重要的一点：这个项目不会替你调用 LLM，也不会自动接管一个现有 Agent。你需要写一个很薄的 `AgentAdapter`，把 Agent 的工具调用转发给 `context.call_tool`，把最终回答转发给 `context.final_answer`。之后，回归工具负责录制 Trace、保存 baseline、比较 candidate，并在 CI 中阻断变化。
+
+下面是一个完整的最小接入例子。真实项目里，`MyOrderAgent.run` 内部可以换成你的 LangChain、Spring AI、OpenAI SDK 或自研 Agent 调用；关键是把工具调用和最终回答接到两个 `context` 方法上：
+
+```python
+# scripts/record_agent.py
+import json
+import sys
+from pathlib import Path
+
+from agent_regression import record_mcp_run
+
+
+class MyOrderAgent:
+    identity = {"name": "my-order-agent", "version": "1.0.0"}
+
+    def run(self, request, context):
+        order_id = str(request).rsplit(" ", 1)[-1]
+        order = context.call_tool("get_order", {"order_id": order_id})
+        status = order["status"]
+        text = f"订单 {order_id} 的状态是 {status}。"
+        context.final_answer(
+            text,
+            {"order_id": order_id, "order_status": status},
+        )
+
+
+trace = record_mcp_run(
+    MyOrderAgent(),
+    "查询订单 123",
+    [sys.executable, "src/agent_regression/fixtures/mcp_stdio_server.py"],
+    run_id="my-order-agent-123",
+)
+Path("work/my-order-agent.trace.json").parent.mkdir(parents=True, exist_ok=True)
+Path("work/my-order-agent.trace.json").write_text(
+    json.dumps(trace.to_dict(), ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+)
+```
+
+实际使用时通常是四步：
+
+```bash
+# 1. 第一次确认行为正确时，生成并审核 baseline
+python scripts/record_agent.py
+cp work/my-order-agent.trace.json baselines/my-order-agent.trace.json
+
+# 2. 修改 Prompt、模型、工具或 Agent 代码后，再录一份 candidate
+python scripts/record_agent.py
+
+# 3. 比较两次运行
+agent-regression compare \
+  --baseline baselines/my-order-agent.trace.json \
+  --candidate work/my-order-agent.trace.json \
+  --format junit \
+  --out outputs/my-order-agent.junit.xml
+
+# 4. 在 CI 中使用同一个 compare 命令；退出码 1 就表示检测到阻断性回归
+```
+
+如果你的 MCP Server 是 Streamable HTTP，只需将 `record_mcp_run` 换成 `record_mcp_http_run` 并传入 `/mcp` 地址；如果你的 Agent 已经有自己的工具执行层，也可以直接使用通用的 `record_run`。仓库中的 `examples/rule_agent_mcp_example.py` 是可以直接运行的完整参考，`examples/order-123/` 则是 CLI 演示数据，不是用户必须采用的 Agent 格式。
+
 详细 API、架构、限制和完整英文文档见后面的 [English](#english) 部分，以及 [`docs/`](docs/) 目录。
 
 ## English
@@ -186,6 +250,57 @@ The default suite is deterministic and offline. It covers trace validation,
 record/replay/compare, redaction, JSON/JUnit reports, MCP stdio and HTTP
 transports, pagination, cancellation, reconnect, resumable SSE, progress,
 concurrent calls, server-initiated requests, task helpers, and failure paths.
+
+## How users integrate their own Agent
+
+The package does not call an LLM or take control of an existing Agent. A user
+provides a thin `AgentAdapter`: route tool calls through `context.call_tool`
+and finish through `context.final_answer`. The package then records the run,
+stores a reviewed baseline, compares a candidate, and returns a CI-friendly
+exit code. The `record` and `mcp-record` CLI commands are deterministic fixture
+demos; they are not automatic discovery of arbitrary user Agents.
+
+Minimal adapter shape:
+
+```python
+from agent_regression import record_mcp_run
+
+
+class MyAgent:
+    identity = {"name": "my-agent", "version": "1.0.0"}
+
+    def run(self, request, context):
+        result = context.call_tool("get_order", {"order_id": "123"})
+        context.final_answer(
+            f"Order status: {result['status']}",
+            {"order_status": result["status"]},
+        )
+
+
+trace = record_mcp_run(
+    MyAgent(),
+    "lookup order 123",
+    ["node", "path/to/your-mcp-server.js", "stdio"],
+    run_id="my-agent-123",
+)
+```
+
+Write `trace.to_dict()` to a JSON file, keep the first reviewed file as the
+baseline, generate a new candidate after each Agent change, and compare them:
+
+```bash
+agent-regression compare \
+  --baseline baselines/my-agent.trace.json \
+  --candidate work/my-agent.trace.json \
+  --format junit \
+  --out outputs/my-agent.junit.xml
+```
+
+For a Streamable HTTP MCP server, use `record_mcp_http_run` with its `/mcp`
+URL. For an Agent that already owns tool execution, use the framework-neutral
+`record_run` API. See the Chinese walkthrough above and
+[`examples/rule_agent_mcp_example.py`](examples/rule_agent_mcp_example.py) for
+a runnable reference.
 
 ## Public API
 
