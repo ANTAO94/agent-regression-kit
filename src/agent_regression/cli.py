@@ -25,7 +25,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -52,6 +52,16 @@ def _write_text(value: str, out: str | None = None) -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(value, encoding="utf-8")
     print(value, end="")
+
+
+def _parse_headers(values: list[str]) -> Dict[str, str]:
+    headers: Dict[str, str] = {}
+    for value in values:
+        name, separator, header_value = value.partition(":")
+        if not separator or not name.strip():
+            raise ValueError(f"header must use 'Name: value' syntax: {value!r}")
+        headers[name.strip()] = header_value.strip()
+    return headers
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -102,6 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_http_record.add_argument("--out", required=True)
     mcp_http_record.add_argument("--timeout", type=float, default=5.0)
     mcp_http_record.add_argument(
+        "--header",
+        action="append",
+        default=[],
+        help="HTTP request header in 'Name: value' form; repeatable",
+    )
+    mcp_http_record.add_argument(
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
     )
 
@@ -120,6 +136,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="stdio framing for --server-command (default: newline)",
     )
     smoke.add_argument("--timeout", type=float, default=5.0)
+    smoke.add_argument(
+        "--header",
+        action="append",
+        default=[],
+        help="HTTP request header in 'Name: value' form; repeatable",
+    )
     smoke.add_argument("--out")
 
     replay = subparsers.add_parser("replay", help="validate and inspect recorded evidence")
@@ -208,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
                     run_id=scenario["run_id"],
                     metadata=scenario.get("metadata"),
                     timeout_seconds=args.timeout,
+                    headers=_parse_headers(args.header),
                     redaction_policy=redaction_policy,
                 )
             _write_output(trace.to_dict(), args.out)
@@ -220,7 +243,11 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "mcp-smoke":
             if args.url:
-                client = StreamableHttpMcpClient(args.url, timeout_seconds=args.timeout)
+                client = StreamableHttpMcpClient(
+                    args.url,
+                    timeout_seconds=args.timeout,
+                    headers=_parse_headers(args.header),
+                )
             else:
                 client = StdioMcpClient(
                     shlex.split(args.server_command),

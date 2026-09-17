@@ -40,10 +40,10 @@ Agent / MCP Server
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **51 项通过，0 项失败** |
+| Python 单元与集成测试 | **52 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
 | Python 单元与集成测试 | **51 项通过，0 项失败** |
-| Wheel 构建 | `agent_regression_kit-1.3.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-1.4.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -204,7 +204,7 @@ jobs:
 
 Agent Regression Kit is a small, framework-neutral regression-testing layer for AI Agents. It turns an Agent run into versioned, redacted JSON evidence, then compares a candidate run with a reviewed baseline. A changed prompt, model, tool schema, or adapter should produce a visible diff in CI instead of a silent behavior change.
 
-Current release line: **v1.3 development preview**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, and one-command project scaffolding.
+Current release line: **v1.4 development preview**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, structural comparison, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, and custom HTTP headers.
 
 ```text
 Agent / MCP Server
@@ -231,9 +231,9 @@ The following results were run locally on 2026-09-17:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **51 passed, 0 failed** |
+| Python unit and integration suite | **52 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-1.3.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-1.4.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -243,7 +243,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 51 tests in 7.6s
+Ran 52 tests in 8.1s
 
 OK
 ```
@@ -439,6 +439,7 @@ preserves the `Mcp-Session-Id`, and stores the HTTP transcript in the same
 ```bash
 agent-regression mcp-http-record \
   --url http://127.0.0.1:8000/mcp \
+  --header 'Authorization: Bearer $MCP_TOKEN' \
   --scenario examples/order-123/baseline.scenario.json \
   --out work/http-baseline.trace.json
 ```
@@ -454,14 +455,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v1.3. In addition to
+The HTTP client is intentionally synchronous in v1.4. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v1.3.
+supported. The generic AgentTrace recorder remains sequential in v1.4.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned
 task with `get_task` and fetch its final value with `get_task_result`. When an

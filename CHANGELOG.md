@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.4.0 - 2026-09-17
+
+- Add custom HTTP header support to the Streamable HTTP client and MCP HTTP recorder.
+- Add repeatable CLI `--header 'Name: value'` options to `mcp-http-record` and `mcp-smoke`.
+- Add authenticated-request coverage for the HTTP fixture.
+
 ## 1.3.0 - 2026-09-17
 
 - Add Markdown comparison reports through `--format markdown` and `render_markdown`.

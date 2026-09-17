@@ -222,7 +222,7 @@ class StdioMcpClient:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": deepcopy(self.client_capabilities),
-                "clientInfo": {"name": "agent-regression-kit", "version": "1.3.0"},
+                "clientInfo": {"name": "agent-regression-kit", "version": "1.4.0"},
             },
         )
         _validate_initialize(result)
@@ -426,6 +426,7 @@ class StreamableHttpMcpClient:
         url: str,
         *,
         timeout_seconds: float = 5.0,
+        headers: Mapping[str, str] | None = None,
         client_capabilities: Mapping[str, Any] | None = None,
         server_request_handler: Callable[[Dict[str, Any]], Mapping[str, Any]] | None = None,
     ):
@@ -433,6 +434,7 @@ class StreamableHttpMcpClient:
             raise ValueError("MCP HTTP URL must not be empty")
         self.url = url
         self.timeout_seconds = timeout_seconds
+        self.headers = {str(key): str(value) for key, value in (headers or {}).items()}
         self.client_capabilities = deepcopy(dict(client_capabilities or {}))
         self.server_request_handler = server_request_handler
         self.transcript: List[Dict[str, Any]] = []
@@ -464,7 +466,7 @@ class StreamableHttpMcpClient:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": deepcopy(self.client_capabilities),
-                "clientInfo": {"name": "agent-regression-kit", "version": "1.3.0"},
+                "clientInfo": {"name": "agent-regression-kit", "version": "1.4.0"},
             },
         )
         _validate_initialize(result)
@@ -611,6 +613,7 @@ class StreamableHttpMcpClient:
             "Accept": "text/event-stream",
             "MCP-Protocol-Version": PROTOCOL_VERSION,
         }
+        headers.update(self.headers)
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
         resume_id = last_event_id if last_event_id is not None else self.last_event_id
@@ -667,6 +670,7 @@ class StreamableHttpMcpClient:
             "Content-Type": "application/json",
             "MCP-Protocol-Version": PROTOCOL_VERSION,
         }
+        headers.update(self.headers)
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
         request = urllib.request.Request(
@@ -988,6 +992,7 @@ def record_mcp_http_run(
     run_id: str,
     metadata: Mapping[str, Any] | None = None,
     timeout_seconds: float = 5.0,
+    headers: Mapping[str, str] | None = None,
     client_capabilities: Mapping[str, Any] | None = None,
     server_request_handler: Callable[[Dict[str, Any]], Mapping[str, Any]] | None = None,
     redaction_policy: RedactionPolicy | None = None,
@@ -996,6 +1001,7 @@ def record_mcp_http_run(
     with StreamableHttpMcpClient(
         server_url,
         timeout_seconds=timeout_seconds,
+        headers=headers,
         client_capabilities=client_capabilities,
         server_request_handler=server_request_handler,
     ) as client:

@@ -22,7 +22,7 @@ An adapter must expose an `identity` mapping and implement `run(request, context
 
 - `StdioMcpClient` implements the documented MCP 2025-11-25 subset and accepts newline or Content-Length framing through its `framing` parameter.
 - Both clients accept optional `client_capabilities` and `server_request_handler` callbacks for controlled sampling/elicitation-style server requests.
-- `StreamableHttpMcpClient` implements synchronous MCP Streamable HTTP request/response capture with JSON and SSE responses, plus `open_event_stream()` for a session GET SSE stream.
+- `StreamableHttpMcpClient` implements synchronous MCP Streamable HTTP request/response capture with JSON and SSE responses, plus `open_event_stream()` for a session GET SSE stream. Custom HTTP headers can be supplied through `headers={...}` for authorization and gateway integration.
 - `StreamableHttpMcpClient.call_tools_concurrently(...)` runs bounded concurrent tool calls and preserves input order in its returned results.
 - `list_*_page(cursor=...)` and `iter_*()` expose MCP pagination for tools, resources, and prompts; `cancel(...)` sends a cancellation notification and `reconnect()` re-establishes the client lifecycle.
 - `McpEventStream` incrementally reads the session's server-to-client SSE stream and records notifications or requests. It tracks `Last-Event-ID`, supports `iter_progress()`, and `respond()` sends an explicit JSON-RPC response; `open_event_stream(request_handler=...)` can automatically answer server requests through a caller-owned callback.
@@ -31,7 +31,7 @@ An adapter must expose an `identity` mapping and implement `run(request, context
 - `call_tool(name, arguments, task={...})` requests task-augmented execution when the server advertises it; callers can poll the returned task with the task helpers.
 - `McpToolExecutor` normalizes MCP results for the recorder.
 - `record_mcp_run` owns server startup, initialization, discovery, recording, and shutdown; its framing, client capabilities, and server-request callback are injectable for real integrations.
-- `record_mcp_http_run` owns HTTP initialization, discovery, session propagation, recording, and cleanup.
+- `record_mcp_http_run` owns HTTP initialization, discovery, session propagation, custom headers, recording, and cleanup.
 - `McpProtocolError`, `McpTransportError`, and `McpTimeoutError` distinguish failure boundaries.
 
 The project-owned server under `agent_regression.fixtures` is a test fixture, not a supported production server.
@@ -42,6 +42,7 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `ComparisonPolicy(allowed_categories=..., allowed_paths=...)` changes which differences block while retaining all differences in the report.
 - `replay_trace(trace)` validates and renders recorded evidence without executing tools.
 - `render_junit(report)` renders one comparison as JUnit XML.
+- `render_markdown(report)` renders a compact human-readable comparison summary for CI job summaries.
 - `render_markdown(report)` renders a compact human-readable comparison summary for CI job summaries.
 
 Default comparison is strict and deterministic. No public API invokes an LLM judge.

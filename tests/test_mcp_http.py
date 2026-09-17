@@ -33,6 +33,10 @@ class _McpHttpHandler(BaseHTTPRequestHandler):
 
         session_id = self.server.session_id  # type: ignore[attr-defined]
         received_session = self.headers.get("Mcp-Session-Id")
+        required_header = getattr(self.server, "required_header", None)
+        if required_header and self.headers.get(required_header[0]) != required_header[1]:
+            self.send_error(401, "missing required header")
+            return
         self.server.received_sessions.append(received_session)  # type: ignore[attr-defined]
         self.server.received_versions.append(self.headers.get("MCP-Protocol-Version"))  # type: ignore[attr-defined]
         if received_session not in (None, session_id):
@@ -140,6 +144,7 @@ class McpHttpFixtureTests(unittest.TestCase):
         self.server.include_progress = False
         self.server.use_sse = False
         self.server.include_server_request = False
+        self.server.required_header = None
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.url = f"http://127.0.0.1:{self.server.server_port}/mcp"
@@ -160,6 +165,16 @@ class McpHttpFixtureTests(unittest.TestCase):
         self.assertEqual("not_shipped", result["structuredContent"]["status"])
         self.assertEqual([None, "fixture-session", "fixture-session", "fixture-session"], self.server.received_sessions)
         self.assertEqual(["2025-11-25"] * 4, self.server.received_versions)
+
+    def test_custom_headers_are_sent_on_http_requests(self):
+        self.server.required_header = ("Authorization", "Bearer fixture")
+        with StreamableHttpMcpClient(
+            self.url,
+            headers={"Authorization": "Bearer fixture"},
+        ) as client:
+            client.initialize()
+            result = client.call_tool("get_order", {"order_id": "123"})
+        self.assertEqual("not_shipped", result["structuredContent"]["status"])
 
     def test_resources_and_prompts_are_available_over_http(self):
         with StreamableHttpMcpClient(self.url) as client:
