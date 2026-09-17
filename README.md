@@ -1,5 +1,88 @@
 # Agent Regression Kit
 
+[中文说明](#中文说明) | [English](#english)
+
+## 中文说明
+
+Agent Regression Kit 是一个面向 AI Agent 的、与框架无关的回归测试工具包。它把一次 Agent 运行记录成版本化、脱敏的 JSON Trace，再将候选版本与经过审核的基线进行结构化比较。
+
+当你修改 Prompt、模型、工具 Schema 或 Agent Adapter 时，项目可以在 CI 中明确告诉你：工具名称、参数、工具结果、最终答案或交互流程是否发生了回归，而不是依赖人工观察。
+
+### 核心流程
+
+```text
+Agent / MCP Server
+        │
+        ▼
+  录制 Trace ───────► 审核后的 baseline
+        │                      │
+        └── candidate Trace ───┘
+                               │
+                               ▼
+                    compare + JSON/JUnit 报告
+                               │
+                               ▼
+                         CI 通过 / 阻断回归
+```
+
+### 当前能力
+
+- AgentTrace v0.1：事件序列、工具调用/结果配对、最终答案和结构化 claims。
+- MCP stdio 与 Streamable HTTP：JSON/SSE、会话、分页、取消、重连、进度和并发调用。
+- 服务端请求处理：sampling、elicitation，以及 HTTP POST-SSE 流中的双向请求响应。
+- 任务化工具调用：任务创建、状态轮询、结果获取和取消。
+- 严格结构化对比：支持 JSON 报告、JUnit 报告和 CI exit code。
+- 默认脱敏：避免 API Key 等敏感字段进入 Trace。
+
+### 验证结果
+
+以下结果于 2026-09-17 在本地运行：
+
+| 检查项 | 结果 |
+| --- | --- |
+| Python 单元与集成测试 | **48 项通过，0 项失败** |
+| 源码编译 | `compileall` 通过 |
+| Wheel 构建 | `agent_regression_kit-1.1.0-py3-none-any.whl` 构建成功 |
+| 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
+| 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
+| MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
+
+核心测试可以这样复现：
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -q
+```
+
+### 快速开始
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -e .
+
+agent-regression record \
+  --scenario examples/order-123/baseline.scenario.json \
+  --out work/baseline.trace.json
+
+agent-regression record \
+  --scenario examples/order-123/candidate-regression.scenario.json \
+  --out work/candidate.trace.json
+
+agent-regression compare \
+  --baseline work/baseline.trace.json \
+  --candidate work/candidate.trace.json \
+  --out work/diff.json
+```
+
+候选版本发生回归时，`compare` 返回退出码 `1`；匹配时返回 `0`；输入或 Trace 无效时返回 `2`。
+
+### 项目边界
+
+它不是通用 Agent 框架、评分平台、LLM Judge 或 Dashboard。仓库里的订单 Agent 和 MCP Server 是确定性的测试 Fixture，用来证明接入边界可以在没有模型和网络依赖的情况下运行。
+
+详细 API、架构、限制和完整英文文档见后面的 [English](#english) 部分，以及 [`docs/`](docs/) 目录。
+
+## English
+
 Agent Regression Kit is a small, framework-neutral regression-testing layer for AI Agents. It turns an Agent run into versioned, redacted JSON evidence, then compares a candidate run with a reviewed baseline. A changed prompt, model, tool schema, or adapter should produce a visible diff in CI instead of a silent behavior change.
 
 Current release line: **v1.1 development preview**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, structural comparison, baseline management, JSON/JUnit reports, and CI exit codes.
