@@ -4,6 +4,16 @@
 
 No unreleased changes.
 
+## 3.4.0 - 2026-09-18
+
+- Add a reusable `agent-report-index` GitHub Action that writes JSON and
+  Markdown indexes, appends the Markdown to Job Summary, and can gate a report
+  directory with `--fail-on-regression`.
+- Extend the coverage Action with a machine-readable JSON report so coverage
+  evidence can share the same report directory as compare and history output.
+- Update the generated project workflows and bilingual CI documentation with
+  the unified report handoff.
+
 ## 3.3.1 - 2026-09-18
 
 - Connect the configuration center to the Report Index handoff so users can

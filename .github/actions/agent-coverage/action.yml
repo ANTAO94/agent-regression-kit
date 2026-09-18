@@ -27,6 +27,10 @@ inputs:
     description: Path for the Markdown coverage summary.
     required: false
     default: outputs/agent-coverage.md
+  json-report:
+    description: Path for the machine-readable coverage JSON report.
+    required: false
+    default: outputs/agent-coverage.json
 runs:
   using: composite
   steps:
@@ -40,9 +44,10 @@ runs:
         INCLUDE_OUTCOMES: ${{ inputs.include-outcomes }}
         REPORT: ${{ inputs.report }}
         SUMMARY: ${{ inputs.summary }}
+        JSON_REPORT: ${{ inputs['json-report'] }}
       run: |
         set -euo pipefail
-        mkdir -p "$(dirname "$REPORT")" "$(dirname "$SUMMARY")"
+        mkdir -p "$(dirname "$REPORT")" "$(dirname "$SUMMARY")" "$(dirname "$JSON_REPORT")"
         args=(coverage --trace-dir "$TRACE_DIR")
         IFS=',' read -r -a paths <<< "$EXPECTED_PATHS"
         for path in "${paths[@]}"; do
@@ -68,6 +73,8 @@ runs:
         coverage_status=$?
         agent-regression "${args[@]}" --format markdown --out "$SUMMARY"
         markdown_status=$?
+        agent-regression "${args[@]}" --format json --out "$JSON_REPORT"
+        json_status=$?
         set -e
         if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "$SUMMARY" ]]; then
           cat "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
@@ -75,4 +82,7 @@ runs:
         if [[ "$coverage_status" -ne 0 ]]; then
           exit "$coverage_status"
         fi
-        exit "$markdown_status"
+        if [[ "$markdown_status" -ne 0 ]]; then
+          exit "$markdown_status"
+        fi
+        exit "$json_status"

@@ -49,19 +49,12 @@ jobs:
           json-report: outputs/order-123.compare.json
       - name: Build report index for reviewers
         if: always()
-        run: |
-          agent-regression report-index \
-            --report-dir outputs \
-            --out outputs/report-index.json \
-            --format json
-          agent-regression report-index \
-            --report-dir outputs \
-            --out outputs/report-index.md \
-            --format markdown \
-            --fail-on-regression
-          if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f outputs/report-index.md ]]; then
-            cat outputs/report-index.md >> "$GITHUB_STEP_SUMMARY"
-          fi
+        uses: ./.github/actions/agent-report-index
+        with:
+          report-dir: outputs
+          json-report: outputs/report-index.json
+          markdown-report: outputs/report-index.md
+          fail-on-regression: 'true'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

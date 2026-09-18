@@ -13,7 +13,7 @@ automatically captured.
 | AgentSession | schema `0.1` | session tests | State continuity is explicit, not inferred. |
 | MCP stdio | protocol `2025-11-25`; newline and Content-Length framing | offline fixture + official Everything Server smoke | The client is synchronous at lifecycle level. |
 | MCP Streamable HTTP | JSON/SSE responses, session GET SSE, headers, pagination, cancellation, reconnect | HTTP fixture + official Everything Server smoke | OAuth negotiation and every optional capability are not promised. |
-| Framework callback | sync and async `CallableAgentAdapter` / `AdapterSpec` | 129 core tests | Framework lifecycle and model provider remain integration-owned. |
+| Framework callback | sync and async `CallableAgentAdapter` / `AdapterSpec` | 130 core tests | Framework lifecycle and model provider remain integration-owned. |
 | LangChain Core | `RunnableLambda` reference example; `langchain-core>=0.3,<2` | separate Python 3.9/3.11/3.13 workflow | Optional; no model key or provider is required by the example. |
 | Viewer | local read-only Trace/Diff, Report Index, and configuration pages | HTML script/link check + wheel smoke | Python CLI remains the comparison source of truth. |
 | CI | GitHub composite Actions and package workflows | workflow structure checks + GitHub execution | External official-server workflow is scheduled and manually runnable. |

@@ -1,8 +1,8 @@
 # Agent Regression Kit：成熟框架路线图
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
-v3.3 核心已经可以作为开发团队的 Agent 回归测试工具使用；下一步重点是
-把本地文件选择、报告目录和 Job Summary 连接得更顺滑，并继续扩大真实框架覆盖。
+v3.4 核心已经可以作为开发团队的 Agent 回归测试工具使用；下一步重点是
+继续扩大真实框架覆盖，并在真实团队使用后再评估服务化层。
 
 ## 成熟框架的定义
 
@@ -35,6 +35,7 @@ v3.3 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 | 本地配置中心 | v3.2 | 表单生成 config JSON，暂不调用 Agent |
 | 本地 Trace Inspector | v3.2 | 读取 Trace 和 compare JSON，Python 比较器仍是事实来源 |
 | 报告索引与批量 Viewer | v3.3 | 读取 report-index JSON，按相对路径交接多份报告 |
+| 统一报告 Action / Job Summary | v3.4 | compare、coverage 和其他 JSON 报告共享输出目录与交接入口 |
 | `agent-regression ui` | v3.2 | loopback 静态服务，源码和 wheel 安装均可启动 |
 | 团队后台 / 权限 / 数据库 | 未开始 | 不进入本地 Viewer 的第一阶段 |
 
@@ -64,6 +65,12 @@ v3.3 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 - [x] 增加失败报告索引和基于相对路径的批量 Viewer 入口。
 - [x] 增加 release workflow：测试、构建 wheel、检查 manifest、生成 changelog。
 - [x] 对 MCP 官方 Server 和目标框架建立定期兼容性矩阵。
+
+### v3.4：统一报告交接
+
+- [x] 提供可复用的 `agent-report-index` GitHub Action。
+- [x] coverage Action 输出 JSON，可与 compare 报告进入同一索引。
+- [x] 生成项目模板和双语文档中的统一报告目录示例。
 
 ### v4.0：可选服务化层
 

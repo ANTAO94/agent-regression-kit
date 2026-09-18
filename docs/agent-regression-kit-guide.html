@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v3.3 完整使用说明、接入指南和技术文档">
-  <title>Agent Regression Kit v3.3 · 完整使用与技术文档</title>
+  <meta name="description" content="Agent Regression Kit v3.4 完整使用说明、接入指南和技术文档">
+  <title>Agent Regression Kit v3.4 · 完整使用与技术文档</title>
   <style>
     :root {
       --ink: #152235;
@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v3.3 · Usage &amp; Technical Guide</small>
+          <small>v3.4 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -250,10 +250,10 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v3.3.1</span>
+            <span class="badge">v3.4.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
-            <span class="badge orange">129 tests passed</span>
+            <span class="badge orange">130 tests passed</span>
             <a class="badge" href="../viewer/index.html">打开 Trace 查看器 →</a>
             <a class="badge" href="../viewer/reports.html">打开报告索引 →</a>
             <a class="badge" href="../viewer/config.html">打开配置中心 →</a>
@@ -360,7 +360,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.3.1</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -992,17 +992,24 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.3.1"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.3.1
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.4.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
           report: outputs/my-agent.junit.xml
+          json-report: outputs/my-agent.compare.json
           summary: outputs/my-agent.md
           final-answer-mode: claims-only
+      - name: Build report index
+        if: always()
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@main
+        with:
+          report-dir: outputs
+          fail-on-regression: 'true'
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
@@ -1017,6 +1024,7 @@ jobs:
               <tr><td><code>candidate</code></td><td>本次构建生成的 Trace 路径</td><td>放在 work 或临时输出目录。</td></tr>
               <tr><td><code>report</code></td><td>JUnit XML 报告</td><td>供 CI 测试报告插件读取。</td></tr>
               <tr><td><code>summary</code></td><td>Markdown 报告</td><td>写入 GitHub Job Summary，方便在 PR 页面阅读。</td></tr>
+              <tr><td><code>json-report</code></td><td>机器可读的 compare JSON</td><td>和 JUnit、Markdown 一起交给报告索引。</td></tr>
               <tr><td><code>allow-category</code></td><td>逗号分隔的可放宽差异类别</td><td>最小化使用，并在代码评审中解释原因。</td></tr>
               <tr><td><code>allow-path</code></td><td>逗号分隔的精确差异路径</td><td>优先精确路径，不要放宽整个结果对象。</td></tr>
               <tr><td><code>final-answer-mode</code></td><td><code>exact</code> 或 <code>claims-only</code></td><td>只有文字风格不稳定时才用 claims-only。</td></tr>
@@ -1244,7 +1252,7 @@ jobs:
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v3.3.1。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
+          <p>本文档面向 Agent Regression Kit v3.4.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

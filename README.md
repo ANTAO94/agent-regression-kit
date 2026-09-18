@@ -68,9 +68,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **129 项通过，0 项失败** |
+| Python 单元与集成测试 | **130 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-3.3.1-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-3.4.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -149,7 +149,7 @@ agent-regression check \
 无副作用预检，会读取 baseline/candidate Trace 并校验其 schema、事件结构和批量
 用例集合，但不会执行 Agent、写入 baseline，也不会把差异判为通过或失败。
 
-### 本地查看器、报告索引和配置中心（v3.3）
+### 本地查看器、报告索引和配置中心（v3.4）
 
 项目提供一个不需要后端的本地 Viewer：可以查看 baseline/candidate 的 Trace 时间线、Python compare 生成的差异 JSON，批量浏览 `report-index` 生成的报告清单，并通过配置中心生成 `.agent-regression/config.json`。
 
@@ -539,6 +539,22 @@ agent-regression batch-compare \
 
 这个命令会递归匹配所有 `*.trace.json`，汇总通过、失败和缺失用例；任何 baseline/candidate 缺失都会让 CI 返回 `1`。
 
+如果一个工作流会同时产生 compare、coverage、stability 或 history 报告，可以直接复用报告索引 Action：
+
+```yaml
+- name: Build report index
+  if: always()
+  uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@main
+  with:
+    report-dir: outputs
+    fail-on-regression: 'true'
+```
+
+它会在 `outputs/` 中生成 `report-index.json` 和 `report-index.md`，并把 Markdown
+索引追加到 GitHub Job Summary；JSON、Markdown、JUnit 和原始报告可以一起作为
+artifact 上传。`agent-coverage` Action 也支持 `json-report`，因此覆盖率报告可以
+进入同一份索引。
+
 多用例项目也可以把目录和报告设置放进配置文件：
 
 ```bash
@@ -555,9 +571,9 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v3.3**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, Adapter Contract Diagnostics, explicit public API and Trace schema boundaries, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, report-index batch handoff, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, local Trace Viewer, Report Index and configuration center, optional framework compatibility checks, and matching policy controls in reusable GitHub Actions.
+Current release line: **v3.4**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, Adapter Contract Diagnostics, explicit public API and Trace schema boundaries, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, report-index batch handoff, reusable report-index and coverage JSON Actions, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, local Trace Viewer, Report Index and configuration center, optional framework compatibility checks, and matching policy controls in reusable GitHub Actions.
 
-The v3.3 release also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector, Report Index and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
+The v3.4 release also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector, Report Index and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
 
 ```text
 Agent / MCP Server
@@ -584,9 +600,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **129 passed, 0 failed** |
+| Python unit and integration suite | **130 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-3.3.1-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-3.4.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -596,7 +612,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 129 tests in 8.6s
+Ran 130 tests in 8.6s
 
 OK
 ```

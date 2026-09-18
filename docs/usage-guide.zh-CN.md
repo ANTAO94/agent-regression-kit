@@ -100,7 +100,7 @@ agent-regression compare --config .agent-regression/config.json
 
 匹配时退出码是 `0`。发现阻断性回归时退出码是 `1`。配置、Trace 或运行环境无效时退出码是 `2`。
 
-### 本地查看器、报告索引和配置中心（v3.3）
+### 本地查看器、报告索引和配置中心（v3.4）
 
 如果你希望用页面查看 Trace 和 compare 差异，可以启动仓库自带的本地 Viewer：
 
@@ -524,13 +524,26 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.0.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
     branch-paths: final_answer.claims.order_status
     expected-branches: paid,cancelled,not_found
 ```
+
+如果同一个工作流还会产生 compare、stability 或 history JSON，可以在门禁之后统一生成索引：
+
+```yaml
+- name: Build report index
+  if: always()
+  uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@main
+  with:
+    report-dir: outputs
+    fail-on-regression: 'true'
+```
+
+它会同时写出 JSON/Markdown 索引，并把 Markdown 追加到 GitHub Job Summary。
 
 ### 多轮 Agent Session
 

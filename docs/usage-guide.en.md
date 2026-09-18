@@ -102,7 +102,7 @@ Trace directories contain matching relative `.trace.json` file names.
 
 Exit code `0` means the comparison passed. Exit code `1` means a blocking regression was found. Exit code `2` means invalid configuration, Trace data, or runtime input.
 
-### Local viewer, report index, and configuration center (v3.3)
+### Local viewer, report index, and configuration center (v3.4)
 
 To inspect Trace timelines and compare differences in a browser, start the
 bundled local Viewer:
@@ -569,13 +569,28 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.0.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
     branch-paths: final_answer.claims.order_status
     expected-branches: paid,cancelled,not_found
 ```
+
+If the same workflow also produces compare, stability, or history JSON files,
+build one handoff index after the gates:
+
+```yaml
+- name: Build report index
+  if: always()
+  uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@main
+  with:
+    report-dir: outputs
+    fail-on-regression: 'true'
+```
+
+It writes JSON and Markdown indexes and appends the Markdown to the GitHub Job
+Summary.
 
 ### Multi-turn Agent Sessions
 

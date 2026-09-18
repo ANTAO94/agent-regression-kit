@@ -99,12 +99,19 @@ jobs:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
           report: outputs/my-agent.junit.xml
+          json-report: outputs/my-agent.compare.json
+      - name: Build report index
+        if: always()
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@main
+        with:
+          report-dir: outputs
+          fail-on-regression: 'true'
       - name: Upload regression report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: agent-regression-report
-          path: outputs/my-agent.junit.xml
+          path: outputs/
 ''',
     ".github/workflows/agent-coverage.yml": '''name: agent-scenario-coverage
 
@@ -124,10 +131,22 @@ jobs:
       - name: Record scenario traces
         run: python scripts/record_agent.py --out work/scenarios/order.trace.json
       - name: Check expected Agent paths
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.3.1
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.0
         with:
           trace-dir: work/scenarios
           expected-paths: get_order
+          json-report: outputs/agent-coverage.json
+      - name: Build report index
+        if: always()
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@main
+        with:
+          report-dir: outputs
+          fail-on-regression: 'true'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agent-coverage-report
+          path: outputs/
 ''',
 }
 

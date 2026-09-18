@@ -1,0 +1,64 @@
+name: Agent Regression Report Index
+description: Build one JSON and Markdown inventory for a CI report directory.
+inputs:
+  report-dir:
+    description: Directory containing compare, batch, stability, or coverage JSON reports.
+    required: false
+    default: outputs
+  pattern:
+    description: Glob pattern used to discover report JSON files.
+    required: false
+    default: '*.json'
+  json-report:
+    description: Path for the machine-readable report index.
+    required: false
+    default: outputs/report-index.json
+  markdown-report:
+    description: Path for the human-readable report index.
+    required: false
+    default: outputs/report-index.md
+  fail-on-regression:
+    description: Return exit code 1 when a recognized report failed.
+    required: false
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - name: Build report index
+      shell: bash
+      env:
+        REPORT_DIR: ${{ inputs.report-dir }}
+        PATTERN: ${{ inputs.pattern }}
+        JSON_REPORT: ${{ inputs.json-report }}
+        MARKDOWN_REPORT: ${{ inputs.markdown-report }}
+        FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$(dirname "$JSON_REPORT")" "$(dirname "$MARKDOWN_REPORT")"
+        set +e
+        agent-regression report-index \
+          --report-dir "$REPORT_DIR" \
+          --pattern "$PATTERN" \
+          --format json \
+          --out "$JSON_REPORT"
+        json_status=$?
+        markdown_args=(
+          report-index
+          --report-dir "$REPORT_DIR"
+          --pattern "$PATTERN"
+          --format markdown
+          --out "$MARKDOWN_REPORT"
+        )
+        if [[ "$FAIL_ON_REGRESSION" == "true" ]]; then
+          markdown_args+=(--fail-on-regression)
+        fi
+        agent-regression "${markdown_args[@]}"
+        markdown_status=$?
+        set -e
+        if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "$MARKDOWN_REPORT" ]]; then
+          cat "$MARKDOWN_REPORT" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        if [[ "$json_status" -ne 0 ]]; then
+          exit "$json_status"
+        fi
+        exit "$markdown_status"
