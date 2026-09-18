@@ -47,7 +47,7 @@ v3.3 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 - [x] Viewer 资产进入 source distribution 和 wheel data files。
 - [x] 显式目录错误、loopback 默认和 CLI 帮助。
 - [x] Viewer 静态检查、CLI 测试和全新 wheel 安装验证。
-- [ ] 将 Viewer 的本地文件选择与项目输出目录做更清晰的向导连接。
+- [x] 将 Viewer 的本地文件选择与项目输出目录做更清晰的向导连接。
 
 ### v3.2.0–v3.2.2：真实框架接入质量
 

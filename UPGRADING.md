@@ -68,6 +68,19 @@ getting-started guide, upgrade guide, and compatibility matrix under
 `share/agent-regression-kit/docs`. No runtime or Trace schema migration is
 required.
 
+## v3.3.0 → v3.3.1
+
+This is a small CI and Viewer handoff patch. The configuration center now links
+the generated policy to the Report Index review step, and the core GitHub
+workflow appends `report-index.md` to `GITHUB_STEP_SUMMARY` in addition to
+uploading the output directory. No Trace schema or configuration migration is
+required.
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.3.1
+agent-regression --version
+```
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which
@@ -101,7 +114,8 @@ boundaries are returned by `public_api_manifest()`.
 ## 中文说明
 
 升级原则是：**先升级回归工具，再审核行为差异；不要因为工具升级就自动
-覆盖 baseline。** 3.3.0 新增报告索引和 CI 机器可读报告，但不会改变
+覆盖 baseline。** 3.3.0 新增报告索引和 CI 机器可读报告，3.3.1 增加 Job
+Summary 和配置中心交接，但不会改变
 AgentTrace `0.1` 的含义，也不会自动读取或覆盖 baseline。
 
 建议顺序：安装固定版本 → 检查 `--version` → `config validate` → `check` →

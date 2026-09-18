@@ -4,6 +4,13 @@
 
 No unreleased changes.
 
+## 3.3.1 - 2026-09-18
+
+- Connect the configuration center to the Report Index handoff so users can
+  follow the complete local flow from policy export to report review.
+- Append the generated report index to the GitHub Actions Job Summary while
+  retaining JSON, Markdown, and JUnit artifacts.
+
 ## 3.3.0 - 2026-09-18
 
 - Add `report-index` to build a redacted, relative-path inventory of compare,

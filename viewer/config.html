@@ -471,7 +471,8 @@ get_order -&gt; get_shipping</textarea></div>
             <label class="check-card"><input id="reviewBaseline" type="checkbox"><span><strong>我确认 baseline 已经过人工审核</strong><span>不会把每次 candidate 自动当成基线。</span></span></label>
             <label class="check-card"><input id="reviewNoise" type="checkbox"><span><strong>我确认过滤字段只是已知噪音</strong><span>没有用 ignore/allow 隐藏业务变化。</span></span></label>
           </div>
-          <div class="section-note">推荐流程：下载 JSON → 放入项目 → 执行 <code>agent-regression config validate</code> → 再运行 compare。页面状态通过不代表真实文件路径和 Trace 内容一定存在。</div>
+          <div class="section-note">推荐流程：下载 JSON → 放入项目 → 执行 <code>agent-regression config validate</code> → 再运行 compare → 执行 <code>agent-regression report-index</code> 汇总输出。页面状态通过不代表真实文件路径和 Trace 内容一定存在。</div>
+          <p class="help" style="margin-top:.75rem">完成一次 CI 或本地回归后，可以在 <a href="reports.html">报告索引</a> 中先看整体通过/失败，再把具体 JSON 显式交给 Trace Inspector。</p>
         </section>
 
         <div class="bottom-actions">
