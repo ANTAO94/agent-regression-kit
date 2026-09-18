@@ -115,6 +115,45 @@ class CompareTests(unittest.TestCase):
         self.assertNotIn("candidate-secret", rendered)
         self.assertIn("[REDACTED]", rendered)
 
+    def test_tool_results_are_associated_by_call_id_when_event_order_changes(self):
+        baseline = AgentTrace.from_dict(
+            {
+                "schema_version": "0.1",
+                "run_id": "baseline-two-calls",
+                "agent": {"name": "toy"},
+                "events": [
+                    {"sequence": 1, "type": "tool_call", "call_id": "a", "tool": "first", "arguments": {}},
+                    {"sequence": 2, "type": "tool_call", "call_id": "b", "tool": "second", "arguments": {}},
+                    {"sequence": 3, "type": "tool_result", "call_id": "a", "result": {"value": 1}, "is_error": False},
+                    {"sequence": 4, "type": "tool_result", "call_id": "b", "result": {"value": 2}, "is_error": False},
+                    {"sequence": 5, "type": "final_answer", "text": "ok", "claims": {"ok": True}},
+                ],
+            }
+        )
+        candidate = AgentTrace.from_dict(
+            {
+                **baseline.to_dict(),
+                "run_id": "candidate-two-calls",
+                "events": [
+                    baseline.events[0],
+                    baseline.events[1],
+                    {"sequence": 3, "type": "tool_result", "call_id": "b", "result": {"value": 2}, "is_error": False},
+                    {"sequence": 4, "type": "tool_result", "call_id": "a", "result": {"value": 1}, "is_error": False},
+                    baseline.events[4],
+                ],
+            }
+        )
+        self.assertTrue(compare_traces(baseline, candidate).get("passed"))
+        ordered = compare_traces(
+            baseline, candidate, ComparisonPolicy(result_alignment="order")
+        )
+        self.assertFalse(ordered["passed"])
+        self.assertIn("tool_result", {item["category"] for item in ordered["differences"]})
+
+    def test_invalid_result_alignment_is_rejected(self):
+        with self.assertRaises(ValueError):
+            ComparisonPolicy(result_alignment="position")
+
 
 if __name__ == "__main__":
     unittest.main()

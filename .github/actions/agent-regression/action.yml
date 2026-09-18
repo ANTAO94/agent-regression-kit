@@ -35,6 +35,10 @@ inputs:
     description: Compare final prose exactly or compare only structured claims.
     required: false
     default: ""
+  result-alignment:
+    description: Align tool results by call_id (default) or historical event order.
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
@@ -50,6 +54,7 @@ runs:
         ALLOW_CATEGORY: ${{ inputs['allow-category'] }}
         ALLOW_PATH: ${{ inputs['allow-path'] }}
         FINAL_ANSWER_MODE: ${{ inputs['final-answer-mode'] }}
+        RESULT_ALIGNMENT: ${{ inputs['result-alignment'] }}
       run: |
         set -euo pipefail
         mkdir -p "$(dirname "$REPORT")"
@@ -78,6 +83,9 @@ runs:
         fi
         if [[ -n "$FINAL_ANSWER_MODE" ]]; then
           args+=(--final-answer-mode "$FINAL_ANSWER_MODE")
+        fi
+        if [[ -n "$RESULT_ALIGNMENT" ]]; then
+          args+=(--result-alignment "$RESULT_ALIGNMENT")
         fi
         set +e
         agent-regression "${args[@]}" --format junit --out "$REPORT"

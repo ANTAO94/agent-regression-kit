@@ -11,12 +11,14 @@ class CiIntegrationTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("final-answer-mode:", action)
+        self.assertIn("result-alignment:", action)
         self.assertIn("config:", action)
         self.assertIn("allow-path:", action)
         self.assertIn("json-report:", action)
         self.assertIn('agent-regression "${args[@]}" --format json --out "$JSON_REPORT"', action)
         self.assertIn('args+=(--final-answer-mode "$FINAL_ANSWER_MODE")', action)
         self.assertIn('args+=(--allow-path "$path")', action)
+        self.assertIn('args+=(--result-alignment "$RESULT_ALIGNMENT")', action)
         self.assertIn('args=(compare --config "$CONFIG")', action)
         coverage_action = (ROOT / ".github/actions/agent-coverage/action.yml").read_text(
             encoding="utf-8"

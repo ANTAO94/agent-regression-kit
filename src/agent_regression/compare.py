@@ -16,10 +16,13 @@ class ComparisonPolicy:
     allowed_paths: Set[str] = field(default_factory=set)
     final_answer_mode: str = "exact"
     contract: ContractPolicy | None = None
+    result_alignment: str = "call_id"
 
     def __post_init__(self) -> None:
         if self.final_answer_mode not in {"exact", "claims-only"}:
             raise ValueError("final_answer_mode must be 'exact' or 'claims-only'")
+        if self.result_alignment not in {"call_id", "order"}:
+            raise ValueError("result_alignment must be 'call_id' or 'order'")
 
     def allows(self, difference: Dict[str, Any]) -> bool:
         return (
@@ -33,6 +36,7 @@ class ComparisonPolicy:
             "allowed_categories": sorted(self.allowed_categories),
             "allowed_paths": sorted(self.allowed_paths),
             "final_answer_mode": self.final_answer_mode,
+            "result_alignment": self.result_alignment,
             "contract": self.contract.to_dict() if self.contract else {},
         }
 
@@ -56,6 +60,7 @@ def _compare_event_list(
     candidate: Iterable[Dict[str, Any]],
     event_type: str,
     contract: ContractPolicy | None = None,
+    result_alignment: str = "order",
 ) -> None:
     baseline_list = list(baseline)
     candidate_list = list(candidate)
@@ -66,7 +71,29 @@ def _compare_event_list(
         len(baseline_list),
         len(candidate_list),
     )
-    for index, (left, right) in enumerate(zip(baseline_list, candidate_list)):
+    pairs = []
+    if event_type == "tool_result" and result_alignment == "call_id":
+        candidate_by_call_id = {
+            event.get("call_id"): event for event in candidate_list
+        }
+        for index, left in enumerate(baseline_list):
+            right = candidate_by_call_id.get(left.get("call_id"))
+            if right is None:
+                _add_diff(
+                    diffs,
+                    "result_association",
+                    f"tool_results[{index}].call_id",
+                    left.get("call_id"),
+                    None,
+                )
+                continue
+            pairs.append((index, left, right))
+    else:
+        pairs = [
+            (index, left, right)
+            for index, (left, right) in enumerate(zip(baseline_list, candidate_list))
+        ]
+    for index, left, right in pairs:
         if event_type == "tool_call":
             _add_diff(diffs, "tool_name", f"tool_calls[{index}].tool", left["tool"], right["tool"])
             path = f"tool_calls[{index}].arguments"
@@ -139,6 +166,7 @@ def compare_traces(
             _events(candidate, "tool_result"),
             "tool_result",
             contract,
+            active_policy.result_alignment,
         )
     elif same_call_shape:
         _compare_event_list(
@@ -147,6 +175,7 @@ def compare_traces(
             _events(candidate, "tool_result"),
             "tool_result",
             contract,
+            active_policy.result_alignment,
         )
 
     baseline_answer = _events(baseline, "final_answer")[0]

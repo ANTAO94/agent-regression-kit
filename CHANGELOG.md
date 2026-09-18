@@ -7,6 +7,15 @@
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
 - Correct conflicting MCP limitations and stale adapter-template test instructions.
 
+## 3.7.0 - 2026-09-19
+
+- Align tool results by `call_id` by default to avoid false regressions when
+  parallel result events arrive in a different order.
+- Add `result_alignment=order` as an explicit legacy compatibility mode.
+- Extend `path_rules.any_of` entries with exact result and `is_error` checks,
+  making accepted paths constrain both the action and its observed outcome.
+- Expose result alignment in project config, CLI and the reusable Action.
+
 ## 3.6.0 - 2026-09-18
 
 - Add strict `CassetteToolExecutor` and `replay_agent_run` APIs for replaying

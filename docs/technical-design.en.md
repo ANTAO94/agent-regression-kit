@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v3.6.0 source. Package version 3.6.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
+Based on v3.7.0 source. Package version 3.7.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -94,7 +94,8 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | equals / contains / exists | Candidate field assertions |
 | must_call / must_not_call | Required or forbidden tools and optional arguments |
 | max_steps | Maximum number of tool calls |
-| path_rules.any_of | Explicit accepted tool paths; changes strict path alignment behavior |
+| path_rules.any_of | Explicit accepted tool paths, optionally constraining result and is_error |
+| result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | timestamp / sort | Fixed marker or repr-based list ordering, no user code execution |
 

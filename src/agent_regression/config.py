@@ -46,6 +46,8 @@ def _load_config(path: str | Path, required_paths: tuple[str, ...]) -> Dict[str,
         raise ValueError("config.format must be 'json', 'junit', or 'markdown'")
     if "final_answer_mode" in result and result["final_answer_mode"] not in {"exact", "claims-only"}:
         raise ValueError("config.final_answer_mode must be 'exact' or 'claims-only'")
+    if "result_alignment" in result and result["result_alignment"] not in {"call_id", "order"}:
+        raise ValueError("config.result_alignment must be 'call_id' or 'order'")
     for key in ("allow_categories", "allow_paths", "secret_values"):
         if key in result and (
             not isinstance(result[key], list)

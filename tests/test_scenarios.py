@@ -154,6 +154,44 @@ class ScenarioTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn("behavior_path", {item["category"] for item in report["differences"]})
 
+    def test_path_contract_can_require_a_result_and_error_state(self):
+        baseline = AgentTrace.from_dict(
+            {
+                "schema_version": "0.1",
+                "run_id": "result-path-baseline",
+                "agent": {"name": "path-agent"},
+                "events": [
+                    {"sequence": 1, "type": "tool_call", "call_id": "1", "tool": "get_order", "arguments": {}},
+                    {"sequence": 2, "type": "tool_result", "call_id": "1", "result": {"status": "paid"}, "is_error": False},
+                    {"sequence": 3, "type": "final_answer", "text": "paid", "claims": {"status": "paid"}},
+                ],
+            }
+        )
+        policy = ComparisonPolicy(
+            contract=ContractPolicy(
+                path_rules={
+                    "any_of": [
+                        [{"tool": "get_order", "result": {"status": "paid"}, "is_error": False}]
+                    ]
+                }
+            )
+        )
+        self.assertTrue(compare_traces(baseline, baseline, policy)["passed"])
+        bad = AgentTrace.from_dict(
+            {
+                **baseline.to_dict(),
+                "run_id": "result-path-bad",
+                "events": [
+                    baseline.events[0],
+                    {"sequence": 2, "type": "tool_result", "call_id": "1", "result": {"status": "cancelled"}, "is_error": False},
+                    {"sequence": 3, "type": "final_answer", "text": "paid", "claims": {"status": "paid"}},
+                ],
+            }
+        )
+        report = compare_traces(baseline, bad, policy)
+        self.assertFalse(report["passed"])
+        self.assertIn("behavior_path", {item["category"] for item in report["differences"]})
+
 
 if __name__ == "__main__":
     unittest.main()

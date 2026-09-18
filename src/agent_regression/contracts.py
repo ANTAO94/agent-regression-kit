@@ -172,6 +172,12 @@ class ContractPolicy:
                     raise ValueError("path rules must contain tool names")
                 if "arguments" in rule and not isinstance(rule["arguments"], dict):
                     raise ValueError("path rule arguments must be an object")
+                if "result" in rule and not isinstance(
+                    rule["result"], (dict, list, str, int, float, bool, type(None))
+                ):
+                    raise ValueError("path rule result must be JSON-compatible")
+                if "is_error" in rule and not isinstance(rule["is_error"], bool):
+                    raise ValueError("path rule is_error must be a boolean")
         if "ordered" in self.path_rules and not isinstance(self.path_rules["ordered"], bool):
             raise ValueError("contract.path_rules.ordered must be a boolean")
         for effect in self.side_effects:
@@ -327,6 +333,11 @@ class ContractPolicy:
                 )
 
         candidate_calls = [event for event in candidate.events if event["type"] == "tool_call"]
+        candidate_results = {
+            event["call_id"]: event
+            for event in candidate.events
+            if event["type"] == "tool_result"
+        }
         for raw_rule in self.must_call:
             rule = {"tool": raw_rule} if isinstance(raw_rule, str) else raw_rule
             if not any(self._tool_rule_matches(rule, event) for event in candidate_calls):
@@ -352,7 +363,7 @@ class ContractPolicy:
                         "message": "forbidden tool call was observed",
                     }
                 )
-        if self.has_path_rules and not self._path_matches(candidate_calls):
+        if self.has_path_rules and not self._path_matches(candidate_calls, candidate_results):
             differences.append(
                 {
                     "category": "behavior_path",
@@ -410,11 +421,22 @@ class ContractPolicy:
             )
         return differences
 
-    def _path_matches(self, candidate_calls: Sequence[Mapping[str, Any]]) -> bool:
-        observed = [
-            {"tool": event.get("tool"), "arguments": event.get("arguments", {})}
-            for event in candidate_calls
-        ]
+    def _path_matches(
+        self,
+        candidate_calls: Sequence[Mapping[str, Any]],
+        candidate_results: Mapping[str, Mapping[str, Any]],
+    ) -> bool:
+        observed = []
+        for event in candidate_calls:
+            observed_event = {
+                "tool": event.get("tool"),
+                "arguments": event.get("arguments", {}),
+            }
+            result = candidate_results.get(event.get("call_id"))
+            if result is not None:
+                observed_event["result"] = result.get("result")
+                observed_event["is_error"] = result.get("is_error", False)
+            observed.append(observed_event)
         ordered = self.path_rules.get("ordered", True)
         for alternative in self.path_rules.get("any_of", []):
             expected = [
@@ -425,7 +447,7 @@ class ContractPolicy:
             ]
             if ordered:
                 if len(expected) == len(observed) and all(
-                    self._tool_rule_matches(rule, event)
+                    self._path_rule_matches(rule, event)
                     for rule, event in zip(expected, observed)
                 ):
                     return True
@@ -435,7 +457,7 @@ class ContractPolicy:
                     for rule in expected:
                         match_index = next(
                             (index for index, event in enumerate(remaining)
-                             if self._tool_rule_matches(rule, event)),
+                             if self._path_rule_matches(rule, event)),
                             None,
                         )
                         if match_index is None:
@@ -450,3 +472,11 @@ class ContractPolicy:
         return event.get("tool") == rule.get("tool") and (
             "arguments" not in rule or event.get("arguments") == rule["arguments"]
         )
+
+    @staticmethod
+    def _path_rule_matches(rule: Mapping[str, Any], event: Mapping[str, Any]) -> bool:
+        if not ContractPolicy._tool_rule_matches(rule, event):
+            return False
+        if "result" in rule and event.get("result") != rule["result"]:
+            return False
+        return "is_error" not in rule or event.get("is_error", False) == rule["is_error"]

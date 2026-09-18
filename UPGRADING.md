@@ -173,6 +173,32 @@ No Trace schema migration is required. A cassette does not prove that a live
 tool still behaves the same; use normal recording against an isolated test
 environment when validating tool implementations.
 
+## v3.6.0 → v3.7.0
+
+This release makes tool-result comparison correlation-aware. Results are
+matched by their recorded `call_id` by default, which prevents a different
+completion order from being reported as a different business result. Existing
+order-based behavior remains available with `result_alignment: "order"` or
+`--result-alignment order`.
+
+Path rules can now include exact `result` and `is_error` fields:
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "any_of": [[
+        {"tool": "get_order", "result": {"status": "paid"}, "is_error": false}
+      ]]
+    }
+  }
+}
+```
+
+No Trace schema migration is required. If a downstream consumer depends on
+the old positional result diff paths, set `result_alignment` to `order` during
+the migration and remove it after the consumer is updated.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

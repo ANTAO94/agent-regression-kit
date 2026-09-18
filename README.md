@@ -12,7 +12,7 @@
 
 改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
-当前版本：[v3.6.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.6.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+当前版本：[v3.7.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.7.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
 
 ### 从这里开始
 
@@ -45,7 +45,7 @@ Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际�
 macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
 
 ```bash
-git clone --branch v3.6.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v3.7.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -87,6 +87,7 @@ agent-regression compare \
 | SDK | Python 同步/异步 Adapter 与模板 | 无现成 Java/TypeScript SDK |
 | CI / Viewer | JSON、Markdown、JUnit、报告索引、配置导出 | 页面是本地静态工具，无账号/远程执行 |
 | Controlled replay | 用审核过的工具结果重跑 Agent 并严格检查调用 | 不证明真实工具实现仍然正确 |
+| Path/result correlation | 按 call_id 关联结果，路径规则可约束结果和错误状态 | 需要 Trace 保留稳定 call_id |
 
 **replay 只检查已有 Trace，不重新运行 Agent 或工具。** 需要让 Agent 在不触碰真实工具的情况下运行时，使用 v3.6 的 `replay_agent_run`/`CassetteToolExecutor`；它会阻断漏调用、多调用和参数变化。claims-only 允许措辞变化，但需要有意义的 claims 和业务断言。
 
@@ -120,7 +121,7 @@ v3.6.0 的发布验收：
 
 After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
 
-Release: [v3.6.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.6.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+Release: [v3.7.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.7.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
 
 ### Documentation
 
@@ -138,7 +139,7 @@ Release: [v3.6.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v
 Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
 
 ```bash
-git clone --branch v3.6.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v3.7.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -190,7 +191,7 @@ Use **compare --config** for custom contracts in CI, or pass `config` to the v3.
 
 ### Verification and maintenance
 
-Recorded v3.6.0 evidence is maintained by the main regression, framework compatibility and release workflows; each release also includes local full-test, wheel-build and clean-install checks.
+Recorded v3.7.0 evidence is maintained by the main regression, framework compatibility and release workflows; each release also includes local full-test, wheel-build and clean-install checks.
 
 These checks cover implemented paths; production integrations need their own scenarios. The [optional MCP workflow](.github/workflows/mcp-compatibility.yml) is separate and does not certify every protocol behavior. Main contains documentation updates; published tags are fixed snapshots.
 

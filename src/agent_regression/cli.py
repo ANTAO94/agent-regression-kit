@@ -309,6 +309,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="compare final prose exactly or compare only structured claims",
     )
     compare.add_argument(
+        "--result-alignment",
+        choices=["call_id", "order"],
+        default=None,
+        help="align tool results by call_id (default) or event order",
+    )
+    compare.add_argument(
         "--secret-value", action="append", default=None, help="literal secret value to redact; repeatable"
     )
     compare.add_argument(
@@ -343,6 +349,11 @@ def build_parser() -> argparse.ArgumentParser:
     batch_compare.add_argument(
         "--final-answer-mode",
         choices=["exact", "claims-only"],
+        default=None,
+    )
+    batch_compare.add_argument(
+        "--result-alignment",
+        choices=["call_id", "order"],
         default=None,
     )
     batch_compare.add_argument("--secret-value", action="append", default=None)
@@ -745,6 +756,9 @@ def main(argv: list[str] | None = None) -> int:
             final_answer_mode = args.final_answer_mode or batch_config.get(
                 "final_answer_mode", "exact"
             )
+            result_alignment = args.result_alignment or batch_config.get(
+                "result_alignment", "call_id"
+            )
             allowed_categories = (
                 set(args.allow_category)
                 if args.allow_category is not None
@@ -764,6 +778,7 @@ def main(argv: list[str] | None = None) -> int:
                     allowed_categories=allowed_categories,
                     allowed_paths=allowed_paths,
                     final_answer_mode=final_answer_mode,
+                    result_alignment=result_alignment,
                     contract=contract,
                 ),
                 redaction_policy=redaction_policy,
@@ -888,6 +903,9 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("compare requires --baseline and --candidate, or --config with both")
         output_format = args.format or compare_config.get("format", "json")
         final_answer_mode = args.final_answer_mode or compare_config.get("final_answer_mode", "exact")
+        result_alignment = args.result_alignment or compare_config.get(
+            "result_alignment", "call_id"
+        )
         allowed_categories = (
             set(args.allow_category)
             if args.allow_category is not None
@@ -909,6 +927,7 @@ def main(argv: list[str] | None = None) -> int:
                 allowed_categories=allowed_categories,
                 allowed_paths=allowed_paths,
                 final_answer_mode=final_answer_mode,
+                result_alignment=result_alignment,
                 contract=contract,
             ),
             redaction_policy,

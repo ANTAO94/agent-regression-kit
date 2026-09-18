@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v3.6.0 源码整理；产品版本 3.6.0、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
+依据 v3.7.0 源码整理；产品版本 3.7.0、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
 
 ## 1. 目标和适用场景
 
@@ -94,7 +94,8 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | equals / contains / exists | 对 candidate 做显式字段断言 |
 | must_call / must_not_call | 限定工具调用及可选参数 |
 | max_steps | 限定工具调用总数 |
-| path_rules.any_of | 接受显式列举的多条工具路径，改变严格路径对齐语义 |
+| path_rules.any_of | 接受显式列举的多条工具路径，可同时约束结果和 is_error |
+| result_alignment | 默认按 call_id 关联工具结果；`order` 是旧的按事件位置对齐模式 |
 | side_effects | 约束已录制状态的 from/to 变化 |
 | required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
 | timestamp / sort | 固定时间标记或按 repr 排序列表，不执行用户脚本 |

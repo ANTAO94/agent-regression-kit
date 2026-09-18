@@ -244,6 +244,22 @@ class CliTests(unittest.TestCase):
             self.assertIn('"kind": "single"', rendered)
             self.assertIn('"kind": "batch"', rendered)
 
+    def test_config_rejects_unknown_result_alignment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "config.json"
+            config.write_text(
+                json.dumps(
+                    {
+                        "baseline": "baseline.json",
+                        "candidate": "candidate.json",
+                        "result_alignment": "position",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(2, main(["config", "validate", "--config", str(config)]))
+
     def test_mcp_record_replay_compare_flow(self):
         with tempfile.TemporaryDirectory() as directory:
             baseline = Path(directory) / "baseline.json"

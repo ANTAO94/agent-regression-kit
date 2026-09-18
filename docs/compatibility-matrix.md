@@ -9,7 +9,7 @@ automatically captured.
 | --- | --- | --- | --- |
 | Python | 3.9, 3.11, 3.13 | Core tests and framework workflow | The package uses no required third-party runtime dependency. |
 | Package | source install and wheel install | Release workflow + clean venv | Viewer assets and MCP fixture are checked after install. |
-| AgentTrace | schema `0.1` | runtime validation + compatibility tests | Product version and evidence schema are independent. |
+| AgentTrace | schema `0.1` | runtime validation + compatibility tests | Product version and evidence schema are independent; tool results retain call_id association. |
 | AgentSession | schema `0.1` | session tests | State continuity is explicit, not inferred. |
 | MCP stdio | protocol `2025-11-25`; newline and Content-Length framing | offline fixture + official Everything Server smoke | The client is synchronous at lifecycle level. |
 | MCP Streamable HTTP | JSON/SSE responses, session GET SSE, headers, pagination, cancellation, reconnect | HTTP fixture + official Everything Server smoke | OAuth negotiation and every optional capability are not promised. |
