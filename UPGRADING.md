@@ -152,6 +152,27 @@ No Trace schema migration is required. Review existing contracts that use
 silently omitted. In the Report Index Action, use comma-separated
 `required-reports` values when missing artifacts should fail the job.
 
+## v3.5.0 → v3.6.0
+
+This feature release adds controlled tool replay. `replay` keeps its previous
+read-only meaning. Use `CassetteToolExecutor.from_trace()` or
+`replay_agent_run()` when an Agent should execute against recorded tool
+results without network or business side effects. The strict cassette reports
+changed arguments, changed tool names, extra calls and unconsumed calls.
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.6.0
+agent-regression replay --trace baselines/order-123.trace.json
+agent-regression replay-run \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/candidate-ok.scenario.json \
+  --out work/replay-candidate.trace.json
+```
+
+No Trace schema migration is required. A cassette does not prove that a live
+tool still behaves the same; use normal recording against an isolated test
+environment when validating tool implementations.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

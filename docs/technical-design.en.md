@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v3.5.0 source. Package version 3.5.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
+Based on v3.6.0 source. Package version 3.6.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -102,7 +102,11 @@ Empty claims and broad ignores weaken coverage. When accepting alternative paths
 
 ## 6. Replay versus re-execution
 
-replay_trace validates existing evidence and returns paired calls/results plus the answer. It never invokes the executor or Agent. Regression requires a new candidate recorded from changed code.
+`replay_trace` validates existing evidence and returns paired calls/results plus the answer. It never invokes the executor or Agent. v3.6 adds `CassetteToolExecutor` and `replay_agent_run`: they turn a reviewed Trace into a strict cassette, let the Agent code execute again, require each call to match the next recorded tool name and JSON arguments, and serve results from the cassette without touching live tools. The executor also checks that the Agent consumed every recorded call. Regression can therefore use a cassette for safe Agent logic checks, while live tool behavior still requires a new candidate recorded in an isolated environment.
+
+The existing `replay` command remains read-only evidence inspection. `replay-run`
+is a deterministic scripted acceptance entry point; production integrations
+should use the Python API with their own adapter.
 
 ScriptedAgentAdapter executes a fixed plan, including potentially prewritten answers. It validates the testing mechanism, not real model interpretation. Real integrations must derive or expose conclusions and claims from actual results.
 

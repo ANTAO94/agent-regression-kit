@@ -15,6 +15,7 @@ from .adapters import (
 )
 from .async_record import AsyncToolExecutor, async_record_run, record_async_run
 from .batch import compare_trace_batch
+from .cassette import CassetteEntry, CassetteToolExecutor, ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioBatchResult, ScenarioCase, ScenarioResult, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
 from .coverage import (
@@ -105,6 +106,8 @@ __all__ = [
     "record_async_run",
     "CallableAgentAdapter",
     "AgentTrace",
+    "CassetteEntry",
+    "CassetteToolExecutor",
     "AgentSession",
     "compare_trace_batch",
     "record_scenario_batch",
@@ -163,6 +166,8 @@ __all__ = [
     "build_report_index",
     "run_compatibility_smoke",
     "record_run",
+    "ReplayMismatchError",
+    "replay_agent_run",
     "record_session",
     "isolated_record_run",
     "isolated_record_session",

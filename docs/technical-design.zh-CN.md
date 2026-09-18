@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v3.5.0 源码整理；产品版本 3.5.0、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
+依据 v3.6.0 源码整理；产品版本 3.6.0、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
 
 ## 1. 目标和适用场景
 
@@ -103,7 +103,28 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 
 ## 6. “回放”与真实重新执行
 
-replay_trace 校验 Trace，将调用与已记录结果配对后返回摘要。它不调用 executor，也不执行 Agent。真正的回归链路是：审核 baseline → 修改 Agent → 重新运行生成 candidate → compare。
+`replay_trace` 校验 Trace，将调用与已记录结果配对后返回摘要。它不调用
+executor，也不执行 Agent。v3.6 新增 `CassetteToolExecutor` 和
+`replay_agent_run`：它们把审核过的 Trace 转成严格 cassette，允许 Agent
+代码再次执行，但每次 `call_tool` 都必须按顺序匹配工具名和 JSON 参数，结果
+直接来自 cassette，不会触碰真实工具。执行结束后还会检查是否漏掉了 cassette
+中的调用。真正的回归链路是：审核 baseline → 修改 Agent → 重新运行/录制
+candidate → compare。
+
+```python
+from agent_regression import AgentTrace, replay_agent_run
+
+candidate = replay_agent_run(
+    my_adapter,
+    request,
+    AgentTrace.from_dict(json.loads(Path("baselines/order.trace.json").read_text())),
+    run_id="candidate-cassette",
+)
+```
+
+`replay` 仍然只读查看证据；`replay-run` 只是项目自带脚本场景的 CLI
+验收入口。生产框架应使用 Python API，把自己的 adapter 传给
+`replay_agent_run`。
 
 ScriptedAgentAdapter 按固定 plan 执行，最终答案也可能是脚本预设；它证明记录/比较机制可测，不等价于验证真实模型解释能力。业务 Agent 的答案应从工具结果计算，真实模型的结果需通过适配器显式输出 claims。
 

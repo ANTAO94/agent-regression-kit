@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from .adapters import AsyncScriptedAgentAdapter, ScriptedAgentAdapter, ScriptedSessionAdapter
 from .batch import compare_trace_batch
+from .cassette import ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioCase, record_scenario_batch
 from .async_record import record_async_run
 from .compare import ComparisonPolicy, compare_traces
@@ -283,6 +284,14 @@ def build_parser() -> argparse.ArgumentParser:
     replay = subparsers.add_parser("replay", help="validate and inspect recorded evidence")
     replay.add_argument("--trace", required=True)
     replay.add_argument("--out")
+
+    replay_run = subparsers.add_parser(
+        "replay-run",
+        help="run a scripted Agent against a strict recorded tool cassette",
+    )
+    replay_run.add_argument("--baseline", required=True, help="Trace used as the tool cassette")
+    replay_run.add_argument("--scenario", required=True, help="scripted Agent scenario JSON")
+    replay_run.add_argument("--out", required=True)
 
     validate = subparsers.add_parser("validate", help="validate an AgentTrace document")
     validate.add_argument("--trace", required=True)
@@ -813,6 +822,19 @@ def main(argv: list[str] | None = None) -> int:
             _write_output(report, args.out)
             return 0
 
+        if args.command == "replay-run":
+            scenario = _read_json(args.scenario)
+            trace = replay_agent_run(
+                ScriptedAgentAdapter(scenario["agent"], scenario["plan"]),
+                scenario.get("input"),
+                AgentTrace.from_dict(_read_json(args.baseline)),
+                run_id=scenario["run_id"],
+                metadata=scenario.get("metadata"),
+                redaction_policy=redaction_policy,
+            )
+            _write_output(trace.to_dict(), args.out)
+            return 0
+
         if args.command == "mcp-smoke":
             if args.url:
                 client = StreamableHttpMcpClient(
@@ -898,6 +920,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             _write_output(report, output_path)
         return 0 if report["passed"] else 1
+    except ReplayMismatchError as exc:
+        _write_output({"ok": False, "error": redaction_policy.redact(str(exc)), "replay": exc.to_dict()})
+        return 1
     except (KeyError, OSError, ValueError, TraceValidationError, McpTransportError) as exc:
         _write_output({"ok": False, "error": redaction_policy.redact(str(exc))})
         return 2

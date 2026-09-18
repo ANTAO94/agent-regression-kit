@@ -7,6 +7,15 @@
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
 - Correct conflicting MCP limitations and stale adapter-template test instructions.
 
+## 3.6.0 - 2026-09-18
+
+- Add strict `CassetteToolExecutor` and `replay_agent_run` APIs for replaying
+  an Agent against recorded tool results without calling live tools.
+- Add structured mismatch diagnostics for changed tool names/arguments,
+  extra calls, and Agents that stop before consuming the cassette.
+- Add `replay-run` for a deterministic scripted acceptance path while keeping
+  the existing `replay` command read-only and evidence-only.
+
 ## 3.5.0 - 2026-09-18
 
 - Add `required_claims` contract checks so a candidate cannot pass by omitting
