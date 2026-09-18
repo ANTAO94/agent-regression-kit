@@ -53,6 +53,7 @@ flowchart LR
 - 框架桥接与并行场景：`CallableAgentAdapter` 可以包住任意框架的 `invoke` 回调；`record_scenario_batch` 和 `batch-record` 可以并行录制独立场景，并按 case ID 稳定输出结果。
 - 重复运行稳定性评测：`record_stability` 和 `stability` 可以隔离重复执行同一个场景，统计通过率、claims 一致率、工具错误率和工具路径变体，并把阈值接入 CI。
 - 异步并行事件 Trace：`AsyncCallableAgentAdapter`、`async_record_run` 和 `async-record` 支持一次 Agent 运行内并发调用多个工具，保留 `call_id`、并行组和稳定事件顺序。
+- 接入 SDK 与模板：`AdapterSpec` 统一同步/异步 Agent 身份和回调边界，`adapter-init` 生成可运行的接入代码、双语说明和离线契约测试。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -61,9 +62,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **99 项通过，0 项失败** |
+| Python 单元与集成测试 | **103 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-2.9.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-3.0.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -352,6 +353,38 @@ trace = record_async_run(
 
 如果调用方本身已经在事件循环中，使用 `await async_record_run(...)`；同步脚本使用 `record_async_run(...)` 即可。并行工具执行器应当自己保证线程/异步安全，工具副作用仍需通过状态隔离或幂等设计管理。完整离线示例见 [`examples/async_parallel_example.py`](examples/async_parallel_example.py)。
 
+### 接入 SDK 与模板（v3.0）
+
+如果你不确定自己的框架应该把代码放在哪里，先生成接入模板：
+
+```bash
+agent-regression adapter-init \
+  --directory my-agent-regression \
+  --name my-order-agent \
+  --mode both
+
+cd my-agent-regression
+PYTHONPATH=.. python -m unittest discover -s tests -v
+```
+
+模板包含三个文件：`adapter.py` 是需要替换框架调用的边界，`tests/test_adapter_contract.py` 是离线契约测试，`README.md` 解释 `context.call_tool` 和 `context.final_answer` 的职责。`--mode sync` 只生成同步模板，`--mode async` 生成并行工具调用模板，`--mode both` 同时提供两种版本。
+
+如果项目已经有自己的目录结构，也可以只使用 SDK 的 `AdapterSpec`：
+
+```python
+from agent_regression import AdapterSpec
+
+SPEC = AdapterSpec(
+    name="my-order-agent",
+    version="1.0.0",
+    metadata={"framework": "your-framework"},
+)
+adapter = SPEC.build_sync(invoke_framework)
+# 异步框架使用：async_adapter = SPEC.build_async(invoke_async_framework)
+```
+
+SDK 不会自动猜测框架内部状态，也不会替你生成业务 claims；它只把身份、同步/异步回调和 Trace 记录边界固定下来。接入 LangChain、Spring AI 或自研框架时，只需要在回调内部把框架的工具调用映射到这两个 context 方法。
+
 ### CI 集成
 
 CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
@@ -428,7 +461,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v2.9**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
+Current release line: **v3.0**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
 ```text
 Agent / MCP Server
@@ -455,9 +488,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **99 passed, 0 failed** |
+| Python unit and integration suite | **103 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-2.9.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-3.0.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -467,7 +500,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 99 tests in 8.4s
+Ran 103 tests in 8.5s
 
 OK
 ```
@@ -753,6 +786,44 @@ If the caller already owns an event loop, `await async_record_run(...)`
 instead. The tool executor remains responsible for async/thread safety and
 idempotency around side effects. See
 [`examples/async_parallel_example.py`](examples/async_parallel_example.py).
+
+### Adapter SDK and templates (v3.0)
+
+If the framework boundary is not obvious yet, generate a runnable starter:
+
+```bash
+agent-regression adapter-init \
+  --directory my-agent-regression \
+  --name my-order-agent \
+  --mode both
+
+cd my-agent-regression
+PYTHONPATH=.. python -m unittest discover -s tests -v
+```
+
+The template contains `adapter.py`, an offline
+`tests/test_adapter_contract.py`, and a bilingual `README.md`. Use `sync` for
+a normal callback, `async` for parallel tool calls, or `both` when a project
+needs to compare the two integration styles.
+
+Existing projects can use the SDK directly:
+
+```python
+from agent_regression import AdapterSpec
+
+SPEC = AdapterSpec(
+    name="my-order-agent",
+    version="1.0.0",
+    metadata={"framework": "your-framework"},
+)
+adapter = SPEC.build_sync(invoke_framework)
+# Async integrations use: SPEC.build_async(invoke_async_framework)
+```
+
+`AdapterSpec` fixes the identity and callback boundary; it does not discover
+framework internals or invent business claims. A LangChain, Spring AI, or
+custom integration only needs to map its tool calls to `context.call_tool` and
+its final structured result to `context.final_answer`.
 
 ## Public API
 

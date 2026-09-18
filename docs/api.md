@@ -177,6 +177,42 @@ executes the existing synchronous `ToolExecutor.call` through `asyncio.to_thread
 Prefer a native async executor for network clients and make shared mutable
 state safe at the tool boundary.
 
+## Adapter SDK and templates
+
+`AdapterSpec` is the small integration SDK for projects that need a stable
+identity in both sync and async adapters:
+
+```python
+from agent_regression import AdapterSpec
+
+spec = AdapterSpec(
+    name="my-agent",
+    version="1.0.0",
+    metadata={"framework": "spring-ai"},
+)
+sync_adapter = spec.build_sync(invoke_framework)
+async_adapter = spec.build_async(invoke_async_framework)
+```
+
+The returned adapters still use the same `RunContext` or `AsyncRunContext`
+contract. The SDK does not inspect framework internals, call an LLM, or infer
+claims. Its job is to keep the identity and adapter construction consistent.
+
+For a new integration, generate the starter files and contract test:
+
+```bash
+agent-regression adapter-init \
+  --directory my-agent-regression \
+  --name my-agent \
+  --mode both
+```
+
+`adapter.py` is the framework boundary, `tests/test_adapter_contract.py` is a
+deterministic offline smoke test, and `README.md` explains what to replace.
+Use `--mode sync`, `--mode async`, or `--mode both`. The template is a starting
+point, not framework auto-discovery; keep framework-specific setup outside the
+core recorder.
+
 ## MCP
 
 - `StdioMcpClient` implements the documented MCP 2025-11-25 subset and accepts newline or Content-Length framing through its `framing` parameter.

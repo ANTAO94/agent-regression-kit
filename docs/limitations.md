@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v2.9 deliberately stays small.
+Agent Regression Kit v3.0 deliberately stays small.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
 - Tool calls are aligned by event order, not by an optimal sequence-matching algorithm.
@@ -30,3 +30,7 @@ Agent Regression Kit v2.9 deliberately stays small.
   thread safety, ordering-sensitive side effects, cancellation, and retries
   remain the integration's responsibility. Completion timestamps are not
   stored as deterministic evidence.
+- `AdapterSpec` and `adapter-init` standardize the observable callback boundary
+  but do not provide framework auto-discovery, lifecycle management, dependency
+  injection, or language-native Spring/Java wrappers. The generated template
+  still requires the project to connect its own Agent and ToolExecutor.

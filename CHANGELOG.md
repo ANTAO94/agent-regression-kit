@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 3.0.0 - 2026-09-18
+
+- Add the `AdapterSpec` integration SDK for building sync and async adapters
+  with one stable Agent identity and the existing context contracts.
+- Add `adapter-init` templates for sync, async, or dual-mode framework
+  integrations, including bilingual instructions and runnable offline contract
+  tests.
+- Add template and SDK tests, CLI generation checks, and package exports.
+- Update package, CLI, MCP client identity, scaffold Action tag, and bilingual
+  documentation to v3.0.0.
+
 ## 2.9.0 - 2026-09-18
 
 - Add `AsyncAgentAdapter`, `AsyncCallableAgentAdapter`, and explicit async

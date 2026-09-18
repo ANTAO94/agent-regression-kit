@@ -398,6 +398,39 @@ are preferred for network clients, and the integration remains responsible
 for shared-state safety and side-effect idempotency. A changed parallel-group
 shape is reported as `execution_concurrency`.
 
+### Connect a framework with the SDK and template (v3.0)
+
+Generate a starter with an offline contract test:
+
+```bash
+agent-regression adapter-init \
+  --directory my-agent-regression \
+  --name my-order-agent \
+  --mode both
+cd my-agent-regression
+PYTHONPATH=.. python -m unittest discover -s tests -v
+```
+
+The generated directory contains `adapter.py`,
+`tests/test_adapter_contract.py`, and a bilingual `README.md`. Replace the
+example body with the LangChain, Spring AI, or custom framework call, while
+keeping tool calls on `context.call_tool` and the terminal result on
+`context.final_answer`.
+
+Existing projects can use `AdapterSpec` directly:
+
+```python
+from agent_regression import AdapterSpec
+
+spec = AdapterSpec("my-agent", version="1.0.0", metadata={"framework": "your-framework"})
+sync_adapter = spec.build_sync(invoke_framework)
+async_adapter = spec.build_async(invoke_async_framework)
+```
+
+The SDK fixes adapter identity and the callback contract. It does not inspect
+framework internals or invent business claims; the integration must emit
+structured claims explicitly.
+
 ### Scenario-suite path coverage
 
 Once you have normal, error, permission, or side-effect scenario traces, aggregate them to see which ordered tool paths the Agent has actually exercised:
@@ -432,7 +465,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.9.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.0.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

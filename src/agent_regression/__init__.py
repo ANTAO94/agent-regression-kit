@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.9.0"
+__version__ = "3.0.0"
 
 from .adapters import (
     AgentAdapter,
@@ -74,6 +74,8 @@ from .stability import (
     evaluate_stability,
     record_stability,
 )
+from .sdk import AdapterSpec
+from .templates import initialize_adapter_template
 from .rule_agent import (
     NORMAL,
     PARAMETER_REGRESSION,
@@ -137,6 +139,8 @@ __all__ = [
     "StabilityRun",
     "evaluate_stability",
     "record_stability",
+    "AdapterSpec",
+    "initialize_adapter_template",
     "run_compatibility_smoke",
     "record_run",
     "record_session",

@@ -378,6 +378,33 @@ trace = record_async_run(
 
 如果你的代码已经处在事件循环中，使用 `await async_record_run(...)`；同步脚本使用 `record_async_run(...)`。如果工具没有 `call_async`，工具包会把同步 `call` 放进线程执行；网络型 Agent 更推荐实现原生异步工具，并自行保证共享状态和副作用安全。并行组结构发生变化时，比较报告会给出 `execution_concurrency` 差异。
 
+### 用 SDK 和模板接入框架（v3.0）
+
+第一次接入时，可以先生成一个带契约测试的模板：
+
+```bash
+agent-regression adapter-init \
+  --directory my-agent-regression \
+  --name my-order-agent \
+  --mode both
+cd my-agent-regression
+PYTHONPATH=.. python -m unittest discover -s tests -v
+```
+
+生成目录中有 `adapter.py`、`tests/test_adapter_contract.py` 和双语 `README.md`。你只需要把 `adapter.py` 里的示例逻辑换成自己的 LangChain、Spring AI 或自研框架调用；测试会持续检查工具调用经过 `context.call_tool`，并且最终回答经过 `context.final_answer`。
+
+已有项目可以直接使用 `AdapterSpec`，统一同步和异步 Agent 的身份：
+
+```python
+from agent_regression import AdapterSpec
+
+spec = AdapterSpec("my-agent", version="1.0.0", metadata={"framework": "your-framework"})
+sync_adapter = spec.build_sync(invoke_framework)
+async_adapter = spec.build_async(invoke_async_framework)
+```
+
+这个 SDK 只固定适配器边界，不会自动发现框架内部状态，也不会替你生成业务 claims；业务语义仍由接入回调明确输出。
+
 ### 场景集合覆盖率
 
 当你已经有多份正常、异常、权限或副作用场景 Trace 时，可以统计 Agent 实际走过的工具路径：
@@ -412,7 +439,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.9.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.0.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
