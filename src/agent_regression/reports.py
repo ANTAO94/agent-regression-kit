@@ -4,6 +4,8 @@ import json
 import xml.etree.ElementTree as ET
 from typing import Any, Dict
 
+from .coverage import path_to_string
+
 
 def render_junit(report: Dict[str, Any]) -> str:
     """Render one comparison report as a portable JUnit XML suite."""
@@ -129,4 +131,72 @@ def render_batch_junit(report: Dict[str, Any]) -> str:
         if not case.get("passed"):
             failure = ET.SubElement(testcase, "failure", {"type": "AgentRegressionFailure"})
             failure.text = json.dumps(case, ensure_ascii=False, indent=2)
+    return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
+
+
+def render_coverage_markdown(report: Dict[str, Any]) -> str:
+    """Render a scenario path-coverage summary for a CI job summary."""
+    status = "PASS" if report.get("passed") else "FAIL"
+    lines = [
+        "# Agent Scenario Coverage",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Cases: `{report.get('case_count', 0)}`",
+        f"- Unique tool paths: `{report.get('unique_path_count', 0)}`",
+        f"- Expected paths covered: `{report.get('covered_expected_path_count', 0)}/{report.get('expected_path_count', 0)}`",
+        f"- Coverage: `{report.get('coverage_percent', 100.0)}%`",
+        "",
+        "## Observed paths",
+        "",
+        "| Status | Tool path | Cases |",
+        "| --- | --- | ---: |",
+    ]
+    expected = {
+        tuple(path): True for path in report.get("expected_paths", [])
+    }
+    for entry in report.get("paths", []):
+        signature = tuple(entry.get("path", []))
+        lines.append(
+            f"| covered | `{entry.get('signature')}` | {entry.get('case_count', 0)} |"
+        )
+        expected.pop(signature, None)
+    for path in report.get("missing_paths", []):
+        lines.append(f"| missing | `{ ' -> '.join(path) }` | 0 |")
+    if not report.get("paths") and not report.get("missing_paths"):
+        lines.append("| none | No recorded paths | 0 |")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def render_coverage_junit(report: Dict[str, Any]) -> str:
+    """Render each expected path as a JUnit test case."""
+    expected = report.get("expected_paths", [])
+    missing = {tuple(path) for path in report.get("missing_paths", [])}
+    tests = len(expected) or len(report.get("paths", []))
+    failures = len(missing)
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": "agent-regression-coverage",
+            "tests": str(tests),
+            "failures": str(failures),
+            "errors": "0",
+        },
+    )
+    paths = expected or [entry.get("path", []) for entry in report.get("paths", [])]
+    for path in paths:
+        signature = path_to_string(path)
+        testcase = ET.SubElement(
+            suite,
+            "testcase",
+            {"classname": "agent_regression.coverage", "name": signature},
+        )
+        if tuple(path) in missing:
+            failure = ET.SubElement(
+                testcase,
+                "failure",
+                {"type": "AgentCoverageFailure", "message": "expected tool path was not observed"},
+            )
+            failure.text = signature
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"

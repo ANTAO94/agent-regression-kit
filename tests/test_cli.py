@@ -23,6 +23,7 @@ class CliTests(unittest.TestCase):
                 "baselines/README.md",
                 "scripts/record_agent.py",
                 ".github/workflows/agent-regression.yml",
+                ".github/workflows/agent-coverage.yml",
             ]
             for relative in expected:
                 self.assertTrue((root / relative).exists(), relative)

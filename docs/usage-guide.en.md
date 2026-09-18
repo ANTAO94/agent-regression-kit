@@ -61,6 +61,7 @@ The template contains:
 - `scripts/record_agent.py`: a runnable deterministic Agent example;
 - `baselines/README.md`: baseline review guidance;
 - `.github/workflows/agent-regression.yml`: a CI example.
+- `.github/workflows/agent-coverage.yml`: a scenario path coverage gate example.
 
 Generate a candidate:
 
@@ -177,7 +178,7 @@ This ignores only `final_answer.text`. It still checks claims, tool calls, argum
 
 ### Baseline checks and noise filtering
 
-In v2.2, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
+In v2.3, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
 
 ```json
 {
@@ -236,6 +237,31 @@ A normal Trace says which tools the Agent called. A stateful scenario also prove
 
 The comparator emits field-level `state_change` differences, while `side_effects` turns an allowed business transition into an explicit contract. Create a new `StatefulFixtureTools` for each case, or call `.fresh()`, so a cancellation in one case cannot leak into the next case.
 
+### Scenario-suite path coverage
+
+Once you have normal, error, permission, or side-effect scenario traces, aggregate them to see which ordered tool paths the Agent has actually exercised:
+
+```bash
+agent-regression coverage \
+  --trace-dir work/scenarios \
+  --expected-path "get_order" \
+  --expected-path "get_order -> cancel_order" \
+  --expected-path "get_order -> refund" \
+  --format markdown \
+  --out outputs/coverage.md
+```
+
+An `expected-path` is a complete ordered tool path. If any expected path is absent from the directory, the command returns exit code `1` and can fail CI. Without expected paths, it only summarizes what was observed. This measures scenario-evidence coverage, not source-code coverage or model quality.
+
+GitHub Actions can reuse the built-in gate:
+
+```yaml
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.3.0
+  with:
+    trace-dir: work/scenarios
+    expected-paths: get_order,get_order->cancel_order,get_order->refund
+```
+
 ## 6. Multiple cases and CI
 
 For multiple cases, use matching relative paths in two directories:
@@ -280,7 +306,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.2 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.3 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 

@@ -13,6 +13,7 @@ from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
 from .config import load_batch_compare_config, load_compare_config
 from .contracts import ContractPolicy
+from .coverage import compare_trace_coverage
 from .model import AgentTrace, TraceValidationError
 from .mcp import (
     McpTransportError,
@@ -23,12 +24,19 @@ from .mcp import (
 )
 from .record import FixtureTools, record_run
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
-from .reports import render_batch_junit, render_batch_markdown, render_junit, render_markdown
+from .reports import (
+    render_batch_junit,
+    render_batch_markdown,
+    render_coverage_junit,
+    render_coverage_markdown,
+    render_junit,
+    render_markdown,
+)
 from .replay import replay_trace
 from .scaffold import initialize_project
 
 
-VERSION = "2.2.0"
+VERSION = "2.3.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -207,6 +215,19 @@ def build_parser() -> argparse.ArgumentParser:
     batch_compare.add_argument("--allow-category", action="append", default=None)
     batch_compare.add_argument("--allow-path", action="append", default=None)
 
+    coverage = subparsers.add_parser(
+        "coverage", help="report observed and missing Agent tool paths"
+    )
+    coverage.add_argument("--trace-dir", required=True)
+    coverage.add_argument(
+        "--expected-path",
+        action="append",
+        default=[],
+        help="expected tool path such as 'get_order -> cancel_order'; repeatable",
+    )
+    coverage.add_argument("--out")
+    coverage.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+
     config = subparsers.add_parser("config", help="validate project comparison configuration")
     config_actions = config.add_subparsers(dest="config_action", required=True)
     config_validate = config_actions.add_parser("validate", help="validate a JSON config file")
@@ -251,6 +272,20 @@ def main(argv: list[str] | None = None) -> int:
             loaded = loader(args.config)
             _write_output({"ok": True, "kind": args.kind, "config": loaded})
             return 0
+
+        if args.command == "coverage":
+            report = compare_trace_coverage(
+                args.trace_dir,
+                expected_paths=args.expected_path,
+                redaction_policy=redaction_policy,
+            )
+            if args.format == "junit":
+                _write_text(render_coverage_junit(report), args.out)
+            elif args.format == "markdown":
+                _write_text(render_coverage_markdown(report), args.out)
+            else:
+                _write_output(report, args.out)
+            return 0 if report["passed"] else 1
 
         if args.command == "batch-compare":
             baseline_dir = args.baseline_dir or batch_config.get("baseline_dir")

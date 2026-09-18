@@ -48,6 +48,10 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   running an Agent or comparing traces.
 - `compare_traces(baseline, candidate, policy=None)` returns a JSON-serializable report.
 - `compare_trace_batch(baseline_dir, candidate_dir, policy=None)` compares matching nested `*.trace.json` cases and reports missing files.
+- `trace_tool_path(trace)` returns the ordered tool-name path for one trace.
+- `compare_trace_coverage(trace_dir, expected_paths=...)` aggregates scenario
+  traces, reports observed and missing paths, and sets `passed` to `false` when
+  an expected path was not covered.
 - `ComparisonPolicy(allowed_categories=..., allowed_paths=..., final_answer_mode=..., contract=...)` changes which differences block while retaining all differences in the report. `final_answer_mode="exact"` compares final prose; `final_answer_mode="claims-only"` ignores only `final_answer.text` while continuing to require matching structured claims.
 - `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
@@ -57,6 +61,8 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `replay_trace(trace)` validates and renders recorded evidence without executing tools.
 - `render_junit(report)` renders one comparison as JUnit XML.
 - `render_batch_junit(report)` and `render_batch_markdown(report)` render aggregate batch results.
+- `render_coverage_junit(report)` and `render_coverage_markdown(report)` render
+  scenario-path coverage reports for CI.
 - `render_markdown(report)` renders a compact human-readable comparison summary for CI job summaries.
 
 Default comparison is strict and deterministic. No public API invokes an LLM judge.

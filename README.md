@@ -46,6 +46,7 @@ flowchart LR
 - 稳定配置契约：`config validate` 可在 CI 比较前预检单用例或批量配置。
 - Agent Contract Testing：支持字段断言、动态字段忽略/归一化、必须/禁止工具调用和最大步骤约束。
 - Stateful Scenario Testing：支持每个用例独立的 world state、业务副作用断言、状态差异报告和多条合法工具路径。
+- Scenario Path Coverage：汇总多份 Trace 的工具调用路径，发现缺失的正常、异常或副作用分支，并可直接作为 CI 门禁。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -54,9 +55,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **66 项通过，0 项失败** |
+| Python 单元与集成测试 | **70 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-2.2.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-2.3.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -270,7 +271,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v2.2**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in the reusable GitHub Action.
+Current release line: **v2.3**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
 ```text
 Agent / MCP Server
@@ -297,9 +298,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **66 passed, 0 failed** |
+| Python unit and integration suite | **70 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-2.2.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-2.3.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -309,7 +310,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 66 tests in 8.2s
+Ran 70 tests in 8.1s
 
 OK
 ```
@@ -521,14 +522,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v2.2. In addition to
+The HTTP client is intentionally synchronous in v2.3. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v2.2.
+supported. The generic AgentTrace recorder remains sequential in v2.3.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned
 task with `get_task` and fetch its final value with `get_task_result`. When an
@@ -626,6 +627,21 @@ For repeatable multi-case CI, use a config such as
 ```bash
 agent-regression batch-compare --config .agent-regression/batch.json
 ```
+
+To check whether a scenario suite covers the business paths you care about:
+
+```bash
+agent-regression coverage \
+  --trace-dir work/scenarios \
+  --expected-path "get_order" \
+  --expected-path "get_order -> cancel_order" \
+  --expected-path "get_order -> refund" \
+  --format markdown \
+  --out outputs/coverage.md
+```
+
+The command returns `1` when any expected path is missing. The reusable
+`.github/actions/agent-coverage` action applies the same gate in GitHub Actions.
 
 For Agent-specific behavior rules, add a `contract` object to the same config.
 It supports required/forbidden tools, field assertions, nested `ignore_paths`,

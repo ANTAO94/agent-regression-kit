@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v2.2. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework?
+This document describes Agent Regression Kit v2.3. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework?
 
 ```mermaid
 flowchart TD
@@ -13,6 +13,8 @@ flowchart TD
     Recorder -->|redacted AgentTrace v0.1| Trace[(Trace JSON)]
     Trace -->|baseline and candidate| Compare[Structural comparator]
     Compare -->|JSON or JUnit plus exit code| CI[CI gate]
+    Trace -->|scenario suite| Coverage[Path coverage]
+    Coverage -->|missing branches + exit code| CI
 ```
 
 The recorder is the stable center: adapters produce actions, executors isolate tool effects, and downstream comparison consumes only redacted AgentTrace documents.
@@ -26,6 +28,7 @@ The recorder is the stable center: adapters produce actions, executors isolate t
 - `StdioMcpClient` owns the pinned MCP lifecycle and newline-delimited JSON-RPC transport. It does not know about comparison policy.
 - `StreamableHttpMcpClient` owns synchronous Streamable HTTP request/response transport, session propagation, JSON/SSE decoding, and explicit GET event-stream iteration. It shares the same lifecycle surface as the stdio client.
 - `compare_traces` performs deterministic structural comparison. `ComparisonPolicy` can allow named categories, exact paths, or explicitly compare only structured final-answer claims without an LLM.
+- `compare_trace_coverage` aggregates ordered tool paths across a directory of traces. It is a scenario-suite gate, not a statement about internal model neuron or code coverage.
 - `ContractPolicy` adds explicit behavior constraints: required and forbidden tools, field assertions, nested noise paths, deterministic normalizers, maximum tool-call steps, multiple allowed tool paths, and side-effect transitions.
 - The CLI configuration layer resolves project-level baseline, candidate, report, and policy defaults while keeping direct command-line flags authoritative.
 - The reusable GitHub Action forwards the same final-answer mode and allow-list controls, so local and CI policy decisions do not diverge.
@@ -62,4 +65,4 @@ The same tool-result event shape records success, MCP tool errors, protocol erro
 
 ## Version boundaries
 
-Agent Regression Kit v2.2 writes AgentTrace schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots are optional metadata, so v2.1 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v2.3 writes AgentTrace schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots and coverage metadata are optional, so v2.2 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

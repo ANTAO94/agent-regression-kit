@@ -61,6 +61,7 @@ agent-regression init
 - `scripts/record_agent.py`：可以直接运行的确定性 Agent 示例；
 - `baselines/README.md`：baseline 审核说明；
 - `.github/workflows/agent-regression.yml`：CI 示例。
+- `.github/workflows/agent-coverage.yml`：场景路径覆盖率门禁示例。
 
 生成一次 candidate：
 
@@ -177,7 +178,7 @@ agent-regression compare \
 
 ### baseline 检查项和噪音过滤
 
-v2.2 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
+v2.3 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
 
 ```json
 {
@@ -236,6 +237,31 @@ v2.2 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以
 
 比较器会把变化报告成 `state_change`，而 `side_effects` 可以把允许的业务变化写成明确契约。每个用例都应创建新的 `StatefulFixtureTools`，或调用 `.fresh()`，避免上一个用例取消的订单污染下一个用例。
 
+### 场景集合覆盖率
+
+当你已经有多份正常、异常、权限或副作用场景 Trace 时，可以统计 Agent 实际走过的工具路径：
+
+```bash
+agent-regression coverage \
+  --trace-dir work/scenarios \
+  --expected-path "get_order" \
+  --expected-path "get_order -> cancel_order" \
+  --expected-path "get_order -> refund" \
+  --format markdown \
+  --out outputs/coverage.md
+```
+
+这里的 `expected-path` 是完整的工具调用路径。只要其中一条路径没有在目录中出现，命令就返回退出码 `1`，可以直接阻断 CI；没有配置期望路径时，命令只汇总实际观察到的路径。它衡量的是场景证据覆盖，不是代码覆盖率，也不是模型评分。
+
+GitHub Actions 还可以直接复用：
+
+```yaml
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.3.0
+  with:
+    trace-dir: work/scenarios
+    expected-paths: get_order,get_order->cancel_order,get_order->refund
+```
+
 ## 6. 多用例和 CI
 
 多用例时，两个目录中的 Trace 使用相同相对路径：
@@ -280,7 +306,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.2 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.3 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 

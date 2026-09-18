@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2.3.0 - 2026-09-18
+
+- Add `coverage` reporting for observed and missing ordered Agent tool paths.
+- Add JSON, Markdown, and JUnit coverage output with a non-zero exit code for
+  missing expected branches.
+- Add a reusable GitHub Action for scenario-path coverage gates.
+- Add API and bilingual documentation for scenario-suite coverage.
+
 ## 2.2.0 - 2026-09-18
 
 - Add state-isolated `WorldState` and `StatefulFixtureTools` for deterministic

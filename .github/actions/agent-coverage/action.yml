@@ -1,0 +1,48 @@
+name: Agent Scenario Coverage
+description: Fail CI when expected Agent tool paths are not represented by recorded traces.
+inputs:
+  trace-dir:
+    description: Directory containing recorded *.trace.json scenario files.
+    required: true
+  expected-paths:
+    description: Comma-separated expected paths, for example get_order->cancel_order,get_order.
+    required: true
+  report:
+    description: Path for the JUnit coverage report.
+    required: false
+    default: outputs/agent-coverage.junit.xml
+  summary:
+    description: Path for the Markdown coverage summary.
+    required: false
+    default: outputs/agent-coverage.md
+runs:
+  using: composite
+  steps:
+    - name: Check Agent scenario coverage
+      shell: bash
+      env:
+        TRACE_DIR: ${{ inputs.trace-dir }}
+        EXPECTED_PATHS: ${{ inputs.expected-paths }}
+        REPORT: ${{ inputs.report }}
+        SUMMARY: ${{ inputs.summary }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$(dirname "$REPORT")" "$(dirname "$SUMMARY")"
+        args=(coverage --trace-dir "$TRACE_DIR")
+        IFS=',' read -r -a paths <<< "$EXPECTED_PATHS"
+        for path in "${paths[@]}"; do
+          args+=(--expected-path "$path")
+        done
+        set +e
+        agent-regression "${args[@]}" --format junit --out "$REPORT"
+        coverage_status=$?
+        agent-regression "${args[@]}" --format markdown --out "$SUMMARY"
+        markdown_status=$?
+        set -e
+        if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "$SUMMARY" ]]; then
+          cat "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        if [[ "$coverage_status" -ne 0 ]]; then
+          exit "$coverage_status"
+        fi
+        exit "$markdown_status"

@@ -104,6 +104,29 @@ jobs:
           name: agent-regression-report
           path: outputs/my-agent.junit.xml
 ''',
+    ".github/workflows/agent-coverage.yml": '''name: agent-scenario-coverage
+
+on:
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Agent Regression Kit
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
+      - name: Record scenario traces
+        run: python scripts/record_agent.py --out work/scenarios/order.trace.json
+      - name: Check expected Agent paths
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.3.0
+        with:
+          trace-dir: work/scenarios
+          expected-paths: get_order
+''',
 }
 
 
