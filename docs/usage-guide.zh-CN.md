@@ -178,7 +178,7 @@ agent-regression compare \
 
 ### baseline 检查项和噪音过滤
 
-v2.3 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
+v2.5 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
 
 ```json
 {
@@ -258,18 +258,25 @@ agent-regression coverage \
 ```bash
 agent-regression coverage \
   --trace-dir work/scenarios \
+  --branch-path final_answer.claims.order_status \
   --include-outcomes \
   --expected-path "get_order[error]" \
+  --expected-branch paid \
+  --expected-branch cancelled \
   --format markdown
 ```
+
+`--branch-path` 指向结构化 claims 中代表业务结果的字段；配合 `--expected-branch` 可以检查 `paid`、`cancelled`、`not_found` 等结果是否都被场景覆盖。工具路径覆盖和业务分支覆盖可以同时配置。
 
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.4.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.5.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
+    branch-paths: final_answer.claims.order_status
+    expected-branches: paid,cancelled,not_found
 ```
 
 ### 多轮 Agent Session
@@ -289,6 +296,8 @@ agent-regression session-compare \
 ```
 
 `record_session` 会复用同一个 Agent Adapter 和 Tool Executor，因此多轮之间可以保留 world state；比较器会逐轮报告差异，并在候选轮数变化时失败。真实 Agent 接入时，把示例中的 `ScriptedSessionAdapter` 换成你的 Adapter 即可。
+
+如果录制结果中存在 world snapshot，比较器还会检查第 2 轮的初始状态是否等于第 1 轮的最终状态；不连续时会报告 `session_state_discontinuity`，防止测试环境偷偷重置或污染状态。
 
 ## 6. 多用例和 CI
 
@@ -334,7 +343,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.4 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.5 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 

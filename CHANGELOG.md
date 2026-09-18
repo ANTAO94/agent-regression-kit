@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 2.5.0 - 2026-09-18
+
+- Add multi-turn world-state continuity checks with explicit
+  `session_state_discontinuity` failures.
+- Add business-branch coverage from structured claims with expected branch
+  gates and report summaries.
+- Extend coverage JSON, Markdown, JUnit, CLI, and API outputs for business
+  result branches.
+- Add tests and documentation for state continuity and claims-based coverage.
+
 ## 2.4.0 - 2026-09-18
 
 - Add validated multi-turn `AgentSession` evidence and session comparison.

@@ -11,6 +11,7 @@ from agent_regression import (
     FixtureTools,
     ScriptedSessionAdapter,
     StatefulFixtureTools,
+    check_session_state_continuity,
     compare_sessions,
     record_session,
 )
@@ -113,6 +114,27 @@ class SessionTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn(
             "session_turn_count",
+            {difference["category"] for difference in report["differences"]},
+        )
+
+    def test_compare_sessions_blocks_state_discontinuity_between_turns(self):
+        baseline = make_session()
+        candidate_value = baseline.to_dict()
+        candidate_value["turns"][0]["metadata"]["world_state"] = {
+            "initial": {"orders": {"123": {"status": "paid"}}},
+            "final": {"orders": {"123": {"status": "paid"}}},
+        }
+        candidate_value["turns"][1]["metadata"]["world_state"] = {
+            "initial": {"orders": {"123": {"status": "refunded"}}},
+            "final": {"orders": {"123": {"status": "refunded"}}},
+        }
+        candidate = AgentSession.from_dict(candidate_value)
+        self.assertEqual(1, len(check_session_state_continuity(candidate)))
+        report = compare_sessions(baseline, candidate)
+        self.assertFalse(report["passed"])
+        self.assertFalse(report["state_continuity"]["candidate_passed"])
+        self.assertIn(
+            "session_state_discontinuity",
             {difference["category"] for difference in report["differences"]},
         )
 

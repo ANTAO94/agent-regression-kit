@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Mapping, Sequence
 
 from .compare import ComparisonPolicy, compare_traces
+from .contracts import _IGNORED
 from .model import AgentTrace, TraceValidationError
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 
@@ -71,6 +72,39 @@ class AgentSession:
         }
 
 
+def check_session_state_continuity(
+    session: AgentSession,
+    policy: ComparisonPolicy | None = None,
+) -> List[Dict[str, Any]]:
+    """Find gaps between one turn's final world and the next turn's initial world."""
+    session.validate()
+    contract = (policy or ComparisonPolicy()).contract
+    differences: List[Dict[str, Any]] = []
+    for index, (previous, current) in enumerate(zip(session.turns, session.turns[1:]), start=1):
+        previous_world = previous.metadata.get("world_state", {})
+        current_world = current.metadata.get("world_state", {})
+        previous_final = previous_world.get("final") if isinstance(previous_world, dict) else None
+        current_initial = current_world.get("initial") if isinstance(current_world, dict) else None
+        if previous_final is None or current_initial is None:
+            continue
+        if contract:
+            previous_final = contract.sanitize(previous_final, "world_state.final")
+            current_initial = contract.sanitize(current_initial, "world_state.initial")
+        if previous_final is _IGNORED or current_initial is _IGNORED:
+            continue
+        if previous_final != current_initial:
+            differences.append(
+                {
+                    "category": "session_state_discontinuity",
+                    "path": f"turns[{index + 1}].world_state.initial",
+                    "baseline": previous_final,
+                    "candidate": current_initial,
+                    "message": "next turn did not start from the previous turn's final world state",
+                }
+            )
+    return differences
+
+
 def compare_sessions(
     baseline: AgentSession,
     candidate: AgentSession,
@@ -83,6 +117,12 @@ def compare_sessions(
     active_redaction = redaction_policy or DEFAULT_REDACTION_POLICY
     active_policy = policy or ComparisonPolicy()
     differences: List[Dict[str, Any]] = []
+    baseline_continuity = check_session_state_continuity(baseline, active_policy)
+    candidate_continuity = check_session_state_continuity(candidate, active_policy)
+    differences.extend(
+        {"session": "candidate", **difference}
+        for difference in candidate_continuity
+    )
     if len(baseline.turns) != len(candidate.turns):
         differences.append(
             {
@@ -122,6 +162,12 @@ def compare_sessions(
         "difference_count": len(differences),
         "blocking_difference_count": len(differences),
         "policy": active_policy.to_dict(),
+        "state_continuity": {
+            "baseline_passed": not baseline_continuity,
+            "candidate_passed": not candidate_continuity,
+            "baseline_differences": active_redaction.redact(baseline_continuity),
+            "candidate_differences": active_redaction.redact(candidate_continuity),
+        },
         "turns": turns,
         "differences": differences,
     }

@@ -178,7 +178,7 @@ This ignores only `final_answer.text`. It still checks claims, tool calls, argum
 
 ### Baseline checks and noise filtering
 
-In v2.3, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
+In v2.5, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
 
 ```json
 {
@@ -258,18 +258,25 @@ To distinguish successful and failed tool calls, add `--include-outcomes`; paths
 ```bash
 agent-regression coverage \
   --trace-dir work/scenarios \
+  --branch-path final_answer.claims.order_status \
   --include-outcomes \
   --expected-path "get_order[error]" \
+  --expected-branch paid \
+  --expected-branch cancelled \
   --format markdown
 ```
+
+`--branch-path` points to the structured claim that represents a business result. Combined with `--expected-branch`, it can require coverage for results such as `paid`, `cancelled`, and `not_found`. Tool-path coverage and business-branch coverage can be gated together.
 
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.4.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.5.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
+    branch-paths: final_answer.claims.order_status
+    expected-branches: paid,cancelled,not_found
 ```
 
 ### Multi-turn Agent Sessions
@@ -289,6 +296,8 @@ agent-regression session-compare \
 ```
 
 `record_session` reuses the same Agent Adapter and Tool Executor, so world state can carry across turns. The comparator reports differences per turn and fails when the candidate changes the number of turns. For a real Agent, replace the example `ScriptedSessionAdapter` with your own Adapter.
+
+When world snapshots are present, the comparator also checks that turn 2 starts from turn 1's final state. A reset or leaked state is reported as `session_state_discontinuity`.
 
 ## 6. Multiple cases and CI
 
@@ -334,7 +343,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.4 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.5 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 

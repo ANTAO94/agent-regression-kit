@@ -1,14 +1,15 @@
-# Agent Regression Kit v2.4 verification
+# Agent Regression Kit v2.5 verification
 
 Verified on 2026-09-18 with Python 3.9.6.
 
 ## Results
 
 - Runtime: Python 3.9.6.
-- Unit and integration tests: 77 passed, 0 failed.
-- Wheel build: `agent_regression_kit-2.4.0-py3-none-any.whl` succeeded.
+- Unit and integration tests: 79 passed, 0 failed.
+- Wheel build: `agent_regression_kit-2.5.0-py3-none-any.whl` succeeded.
 - Scenario path coverage: observed and missing branch reports passed.
 - Multi-turn session record/compare and outcome-aware path coverage passed.
+- Session state continuity and claims-based business branch coverage passed.
 - Agent Contract Testing: passed assertions, nested ignore paths, normalizers, required/forbidden tools, step limits, allowed paths, isolated world state, and side-effect checks.
 - Config preflight validation: passed for single-case and batch config shapes.
 - Documentation QA: bilingual getting-started guides, Mermaid onboarding flow,
@@ -37,4 +38,4 @@ The implementation contains AgentTrace v0.1, deterministic and MCP stdio/HTTP ad
 
 ## Remaining compatibility boundary
 
-The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v2.4 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Contract assertions, state snapshots, session comparison, path coverage, and normalizers are deterministic; claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator.
+The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v2.5 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Contract assertions, state snapshots, session continuity, path coverage, business branch coverage, and normalizers are deterministic; claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator.

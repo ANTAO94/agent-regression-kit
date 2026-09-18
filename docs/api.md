@@ -52,13 +52,18 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `compare_trace_batch(baseline_dir, candidate_dir, policy=None)` compares matching nested `*.trace.json` cases and reports missing files.
 - `trace_tool_path(trace)` returns the ordered tool-name path for one trace.
 - `trace_outcome_path(trace)` returns the ordered path with `[ok]` or `[error]` result annotations.
+- `trace_business_branch(trace, branch_paths)` projects selected structured
+  claims into one business-result branch.
 - `compare_trace_coverage(trace_dir, expected_paths=...)` aggregates scenario
   traces, reports observed and missing paths, and sets `passed` to `false` when
   an expected path was not covered. Pass `include_outcomes=True` to distinguish
-  successful and failed tool results.
+  successful and failed tool results; pass `branch_paths` and
+  `expected_branches` to gate structured business outcomes.
 - `AgentSession` validates a sequence of AgentTrace turns, and
   `compare_sessions(baseline, candidate, policy=None)` compares each matching
   turn while preserving turn-level differences.
+- `check_session_state_continuity(session, policy=None)` reports when one
+  turn's final world snapshot differs from the next turn's initial snapshot.
 - `ComparisonPolicy(allowed_categories=..., allowed_paths=..., final_answer_mode=..., contract=...)` changes which differences block while retaining all differences in the report. `final_answer_mode="exact"` compares final prose; `final_answer_mode="claims-only"` ignores only `final_answer.text` while continuing to require matching structured claims.
 - `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and

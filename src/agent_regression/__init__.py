@@ -1,11 +1,16 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 
 from .adapters import AgentAdapter, RunContext, ScriptedAgentAdapter, ScriptedSessionAdapter
 from .batch import compare_trace_batch
 from .compare import ComparisonPolicy, compare_traces
-from .coverage import compare_trace_coverage, trace_outcome_path, trace_tool_path
+from .coverage import (
+    compare_trace_coverage,
+    trace_business_branch,
+    trace_outcome_path,
+    trace_tool_path,
+)
 from .compat import run_compatibility_smoke
 from .contracts import ContractPolicy
 from .mcp import (
@@ -41,7 +46,7 @@ from .reports import (
     render_session_markdown,
 )
 from .scenario import StatefulFixtureTools, WorldState
-from .session import AgentSession, compare_sessions
+from .session import AgentSession, check_session_state_continuity, compare_sessions
 from .rule_agent import (
     NORMAL,
     PARAMETER_REGRESSION,
@@ -80,10 +85,12 @@ __all__ = [
     "ToolExecutor",
     "trace_tool_path",
     "trace_outcome_path",
+    "trace_business_branch",
     "WorldStateProvider",
     "WorldState",
     "compare_traces",
     "compare_sessions",
+    "check_session_state_continuity",
     "run_compatibility_smoke",
     "record_run",
     "record_session",

@@ -39,7 +39,7 @@ from .scaffold import initialize_project
 from .session import AgentSession, compare_sessions
 
 
-VERSION = "2.4.0"
+VERSION = "2.5.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -76,6 +76,37 @@ def _parse_headers(values: list[str]) -> Dict[str, str]:
             raise ValueError(f"header must use 'Name: value' syntax: {value!r}")
         headers[name.strip()] = header_value.strip()
     return headers
+
+
+def _parse_branch_values(values: list[str], branch_paths: list[str]) -> list[Dict[str, Any]]:
+    """Parse scalar branches or JSON objects for coverage gating."""
+    if values and not branch_paths:
+        raise ValueError("--expected-branch requires at least one --branch-path")
+    parsed: list[Dict[str, Any]] = []
+    for raw in values:
+        if len(branch_paths) == 1 and not raw.lstrip().startswith("{"):
+            key = branch_paths[0]
+            value_text = raw
+            if "=" in raw:
+                possible_key, value_text = raw.split("=", 1)
+                if possible_key.strip():
+                    key = possible_key.strip()
+            try:
+                value: Any = json.loads(value_text)
+            except json.JSONDecodeError:
+                value = value_text
+            parsed.append({key: value})
+            continue
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "expected branch must be a scalar with one --branch-path or a JSON object"
+            ) from exc
+        if not isinstance(value, dict):
+            raise ValueError("JSON expected branch must be an object")
+        parsed.append(value)
+    return parsed
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -233,6 +264,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="annotate each tool with [ok] or [error] in the path",
     )
+    coverage.add_argument(
+        "--branch-path",
+        action="append",
+        default=[],
+        help="structured claim path used for business branch coverage; repeatable",
+    )
+    coverage.add_argument(
+        "--expected-branch",
+        action="append",
+        default=[],
+        help="expected branch value or JSON object; repeatable",
+    )
     coverage.add_argument("--out")
     coverage.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
 
@@ -302,6 +345,10 @@ def main(argv: list[str] | None = None) -> int:
                 args.trace_dir,
                 expected_paths=args.expected_path,
                 include_outcomes=args.include_outcomes,
+                branch_paths=args.branch_path,
+                expected_branches=_parse_branch_values(
+                    args.expected_branch, args.branch_path
+                ),
                 redaction_policy=redaction_policy,
             )
             if args.format == "junit":

@@ -82,6 +82,29 @@ class CoverageTests(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual("tool_outcome", report["path_mode"])
 
+    def test_coverage_can_gate_on_business_claim_branches(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paid = make_trace("paid", ["get_order"])
+            paid.events[-1]["claims"] = {"order_status": "paid"}
+            (root / "paid.trace.json").write_text(
+                json.dumps(paid.to_dict()), encoding="utf-8"
+            )
+            report = compare_trace_coverage(
+                root,
+                branch_paths=["final_answer.claims.order_status"],
+                expected_branches=[
+                    {"final_answer.claims.order_status": "paid"},
+                    {"final_answer.claims.order_status": "cancelled"},
+                ],
+            )
+        self.assertFalse(report["passed"])
+        self.assertEqual(1, report["covered_expected_branch_count"])
+        self.assertEqual(
+            [{"final_answer.claims.order_status": "cancelled"}],
+            report["missing_branches"],
+        )
+
     def test_coverage_reports_observed_and_missing_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

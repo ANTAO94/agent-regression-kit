@@ -7,6 +7,18 @@ inputs:
   expected-paths:
     description: Comma-separated expected paths, for example get_order->cancel_order,get_order.
     required: true
+  branch-paths:
+    description: Comma-separated structured claim paths for business branch coverage.
+    required: false
+    default: ""
+  expected-branches:
+    description: Comma-separated expected scalar business branch values.
+    required: false
+    default: ""
+  include-outcomes:
+    description: Annotate tool paths with [ok] and [error] outcomes.
+    required: false
+    default: "false"
   report:
     description: Path for the JUnit coverage report.
     required: false
@@ -23,6 +35,9 @@ runs:
       env:
         TRACE_DIR: ${{ inputs.trace-dir }}
         EXPECTED_PATHS: ${{ inputs.expected-paths }}
+        BRANCH_PATHS: ${{ inputs.branch-paths }}
+        EXPECTED_BRANCHES: ${{ inputs.expected-branches }}
+        INCLUDE_OUTCOMES: ${{ inputs.include-outcomes }}
         REPORT: ${{ inputs.report }}
         SUMMARY: ${{ inputs.summary }}
       run: |
@@ -33,6 +48,21 @@ runs:
         for path in "${paths[@]}"; do
           args+=(--expected-path "$path")
         done
+        if [[ "$INCLUDE_OUTCOMES" == "true" ]]; then
+          args+=(--include-outcomes)
+        fi
+        if [[ -n "$BRANCH_PATHS" ]]; then
+          IFS=',' read -r -a branch_paths <<< "$BRANCH_PATHS"
+          for path in "${branch_paths[@]}"; do
+            args+=(--branch-path "$path")
+          done
+        fi
+        if [[ -n "$EXPECTED_BRANCHES" ]]; then
+          IFS=',' read -r -a branches <<< "$EXPECTED_BRANCHES"
+          for branch in "${branches[@]}"; do
+            args+=(--expected-branch "$branch")
+          done
+        fi
         set +e
         agent-regression "${args[@]}" --format junit --out "$REPORT"
         coverage_status=$?

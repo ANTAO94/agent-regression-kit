@@ -146,6 +146,8 @@ def render_coverage_markdown(report: Dict[str, Any]) -> str:
         f"- Unique tool paths: `{report.get('unique_path_count', 0)}`",
         f"- Expected paths covered: `{report.get('covered_expected_path_count', 0)}/{report.get('expected_path_count', 0)}`",
         f"- Coverage: `{report.get('coverage_percent', 100.0)}%`",
+        f"- Business branches covered: `{report.get('covered_expected_branch_count', 0)}/{report.get('expected_branch_count', 0)}`",
+        f"- Business branch coverage: `{report.get('business_branch_coverage_percent', 100.0)}%`",
         "",
         "## Observed paths",
         "",
@@ -163,6 +165,9 @@ def render_coverage_markdown(report: Dict[str, Any]) -> str:
         expected.pop(signature, None)
     for path in report.get("missing_paths", []):
         lines.append(f"| missing | `{ ' -> '.join(path) }` | 0 |")
+    for branch in report.get("missing_branches", []):
+        branch_text = json.dumps(branch, ensure_ascii=False, sort_keys=True)
+        lines.append(f"| missing business branch | `{branch_text}` | 0 |")
     if not report.get("paths") and not report.get("missing_paths"):
         lines.append("| none | No recorded paths | 0 |")
     lines.append("")
@@ -173,8 +178,15 @@ def render_coverage_junit(report: Dict[str, Any]) -> str:
     """Render each expected path as a JUnit test case."""
     expected = report.get("expected_paths", [])
     missing = {tuple(path) for path in report.get("missing_paths", [])}
-    tests = len(expected) or len(report.get("paths", []))
-    failures = len(missing)
+    expected_branches = report.get("expected_branches", [])
+    missing_branches = [
+        json.dumps(branch, ensure_ascii=False, sort_keys=True)
+        for branch in report.get("missing_branches", [])
+    ]
+    tests = len(expected) + len(expected_branches)
+    if not tests:
+        tests = len(report.get("paths", [])) + len(report.get("business_branches", [])) or 1
+    failures = len(missing) + len(missing_branches)
     suite = ET.Element(
         "testsuite",
         {
@@ -199,6 +211,20 @@ def render_coverage_junit(report: Dict[str, Any]) -> str:
                 {"type": "AgentCoverageFailure", "message": "expected tool path was not observed"},
             )
             failure.text = signature
+    for branch in expected_branches:
+        branch_signature = json.dumps(branch, ensure_ascii=False, sort_keys=True)
+        testcase = ET.SubElement(
+            suite,
+            "testcase",
+            {"classname": "agent_regression.coverage", "name": f"branch-{branch_signature}"},
+        )
+        if branch_signature in missing_branches:
+            failure = ET.SubElement(
+                testcase,
+                "failure",
+                {"type": "AgentCoverageFailure", "message": "expected business branch was not observed"},
+            )
+            failure.text = branch_signature
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
 
 
@@ -214,6 +240,7 @@ def render_session_markdown(report: Dict[str, Any]) -> str:
         f"- Candidate session: `{report.get('candidate_session_id')}`",
         f"- Turns compared: `{report.get('turn_count', 0)}`",
         f"- Blocking differences: `{report.get('blocking_difference_count', 0)}`",
+        f"- Candidate state continuity: `{'PASS' if report.get('state_continuity', {}).get('candidate_passed', True) else 'FAIL'}`",
         "",
         "| Status | Turn | Differences |",
         "| --- | ---: | ---: |",
