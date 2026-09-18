@@ -198,6 +198,37 @@ The returned adapters still use the same `RunContext` or `AsyncRunContext`
 contract. The SDK does not inspect framework internals, call an LLM, or infer
 claims. Its job is to keep the identity and adapter construction consistent.
 
+For a framework integration's first executable smoke test, use the diagnostic
+helpers. They return JSON-serializable evidence instead of hiding the useful
+failure behind a generic assertion:
+
+```python
+from agent_regression import FixtureTools, check_adapter_contract
+
+report = check_adapter_contract(
+    sync_adapter,
+    {"order_id": "123"},
+    FixtureTools({"get_order": {"status": "paid"}}),
+    expected_tool_path=["get_order"],
+    expected_claims={"order_status": "paid"},
+)
+assert report["ok"], report
+```
+
+The report identifies the identity, Trace validity, observed tool path, and
+required claims. `check_async_adapter_contract` provides the same contract for
+an async adapter. These helpers are integration diagnostics, not a semantic
+judge; the framework callback must still emit the claims explicitly.
+
+### Public compatibility contract
+
+`PUBLIC_API_VERSION` identifies the documented Python import surface. The
+supported names are the symbols in `agent_regression.__all__`; additions are
+backward-compatible, while removals or behavior changes require a deprecation
+entry and an API-version decision. `public_api_manifest()` exposes this data
+to release checks. Trace schema compatibility is independent and currently
+reports `SUPPORTED_TRACE_SCHEMA_VERSIONS == ("0.1",)`.
+
 For a new integration, generate the starter files and contract test:
 
 ```bash

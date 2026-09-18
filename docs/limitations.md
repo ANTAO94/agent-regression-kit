@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v3.1 deliberately stays small. The local v3.2 Viewer MVP
+Agent Regression Kit v3.2 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.

@@ -78,6 +78,12 @@ from .stability import (
     record_stability,
 )
 from .sdk import AdapterSpec
+from .adapter_contract import check_adapter_contract, check_async_adapter_contract
+from .public_api import (
+    PUBLIC_API_VERSION,
+    SUPPORTED_TRACE_SCHEMA_VERSIONS,
+    public_api_manifest,
+)
 from .templates import initialize_adapter_template
 from .rule_agent import (
     NORMAL,
@@ -143,6 +149,11 @@ __all__ = [
     "evaluate_stability",
     "record_stability",
     "AdapterSpec",
+    "check_adapter_contract",
+    "check_async_adapter_contract",
+    "PUBLIC_API_VERSION",
+    "SUPPORTED_TRACE_SCHEMA_VERSIONS",
+    "public_api_manifest",
     "initialize_adapter_template",
     "HistoryPoint",
     "HistoryReport",

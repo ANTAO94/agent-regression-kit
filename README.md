@@ -55,7 +55,9 @@ flowchart LR
 - 框架桥接与并行场景：`CallableAgentAdapter` 可以包住任意框架的 `invoke` 回调；`record_scenario_batch` 和 `batch-record` 可以并行录制独立场景，并按 case ID 稳定输出结果。
 - 重复运行稳定性评测：`record_stability` 和 `stability` 可以隔离重复执行同一个场景，统计通过率、claims 一致率、工具错误率和工具路径变体，并把阈值接入 CI。
 - 异步并行事件 Trace：`AsyncCallableAgentAdapter`、`async_record_run` 和 `async-record` 支持一次 Agent 运行内并发调用多个工具，保留 `call_id`、并行组和稳定事件顺序。
-- 接入 SDK 与模板：`AdapterSpec` 统一同步/异步 Agent 身份和回调边界，`adapter-init` 生成可运行的接入代码、双语说明和离线契约测试。
+- 接入 SDK 与模板：`AdapterSpec` 统一同步/异步 Agent 身份和回调边界，`adapter-init` 生成可运行的接入代码、双语说明和离线契约测试；`check_adapter_contract` 提供结构化的接入失败诊断。
+- 公共兼容边界：`PUBLIC_API_VERSION`、`public_api_manifest()` 和 `SUPPORTED_TRACE_SCHEMA_VERSIONS` 明确 Python API 与 Trace schema 的版本策略。
+- 可选真实框架示例：`examples/langchain_core_callback_example.py` 使用 LangChain Core 的 `RunnableLambda`，不需要模型密钥；依赖单独放在 `examples/optional-requirements.txt`，不会污染默认测试。
 - 历史趋势与长期回归：`build_history_report` 和 `history` 聚合多次 stability、compare、batch 或 coverage 报告，展示最新状态、指标首末变化和历史失败点。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
@@ -65,9 +67,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **117 项通过，0 项失败** |
+| Python 单元与集成测试 | **124 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-3.1.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-3.2.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -516,9 +518,9 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v3.1**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
+Current release line: **v3.2**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, Adapter Contract Diagnostics, explicit public API and Trace schema boundaries, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, local Trace Viewer and configuration center, optional framework compatibility checks, and matching policy controls in reusable GitHub Actions.
 
-The local v3.2 MVP also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
+The v3.2 release also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
 
 ```text
 Agent / MCP Server
@@ -545,9 +547,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **117 passed, 0 failed** |
+| Python unit and integration suite | **124 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-3.1.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-3.2.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -557,7 +559,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 117 tests in 8.6s
+Ran 124 tests in 8.6s
 
 OK
 ```
@@ -881,6 +883,25 @@ adapter = SPEC.build_sync(invoke_framework)
 framework internals or invent business claims. A LangChain, Spring AI, or
 custom integration only needs to map its tool calls to `context.call_tool` and
 its final structured result to `context.final_answer`.
+
+For an actionable first smoke test, use the diagnostic helper instead of only
+asserting that recording did not raise:
+
+```python
+from agent_regression import FixtureTools, check_adapter_contract
+
+report = check_adapter_contract(
+    adapter,
+    {"order_id": "123"},
+    FixtureTools({"get_order": {"status": "paid"}}),
+    expected_tool_path=["get_order"],
+    expected_claims={"order_status": "paid"},
+)
+assert report["ok"], report
+```
+
+The report identifies whether identity, Trace validity, tool path, or final
+claims failed. Use `check_async_adapter_contract` for an async integration.
 
 ### Historical trends and long-term reports (v3.1)
 

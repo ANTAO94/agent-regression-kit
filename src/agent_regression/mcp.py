@@ -16,6 +16,7 @@ from .adapters import AgentAdapter
 from .model import AgentTrace
 from .record import ToolExecutionResult, record_run
 from .redaction import RedactionPolicy
+from .version import __version__
 
 
 PROTOCOL_VERSION = "2025-11-25"
@@ -222,7 +223,7 @@ class StdioMcpClient:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": deepcopy(self.client_capabilities),
-                "clientInfo": {"name": "agent-regression-kit", "version": "3.1.0"},
+                "clientInfo": {"name": "agent-regression-kit", "version": __version__},
             },
         )
         _validate_initialize(result)
@@ -466,7 +467,7 @@ class StreamableHttpMcpClient:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": deepcopy(self.client_capabilities),
-                "clientInfo": {"name": "agent-regression-kit", "version": "3.1.0"},
+                "clientInfo": {"name": "agent-regression-kit", "version": __version__},
             },
         )
         _validate_initialize(result)

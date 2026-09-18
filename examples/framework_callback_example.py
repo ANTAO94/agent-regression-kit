@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agent_regression import CallableAgentAdapter, FixtureTools, record_run
+from agent_regression import CallableAgentAdapter, FixtureTools, check_adapter_contract
 
 
 def invoke_framework(request, context):
@@ -28,12 +28,17 @@ def build_trace():
         {"name": "framework-callback-example", "version": "1.0.0"},
         invoke_framework,
     )
-    return record_run(
+    report = check_adapter_contract(
         adapter,
         {"order_id": "123"},
         FixtureTools({"get_order": {"order_id": "123", "status": "not_shipped"}}),
         run_id="framework-callback-order-123",
+        expected_tool_path=["get_order"],
+        expected_claims={"order_status": "not_shipped"},
     )
+    if not report["ok"]:
+        raise RuntimeError(json.dumps(report, ensure_ascii=False, indent=2))
+    return report["trace"]
 
 
 if __name__ == "__main__":
@@ -41,7 +46,7 @@ if __name__ == "__main__":
     destination = Path("work/framework-callback.trace.json")
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
-        json.dumps(trace.to_dict(), ensure_ascii=False, indent=2) + "\n",
+        json.dumps(trace, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print(destination)

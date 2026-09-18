@@ -124,7 +124,7 @@ jobs:
       - name: Record scenario traces
         run: python scripts/record_agent.py --out work/scenarios/order.trace.json
       - name: Check expected Agent paths
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.1.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.2.0
         with:
           trace-dir: work/scenarios
           expected-paths: get_order

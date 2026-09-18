@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No unreleased changes.
+
+## 3.2.0 - 2026-09-18
+
 - Add a loopback-only `agent-regression ui` command for the local Trace
   Inspector and configuration viewer.
 - Package the static Viewer assets with source distributions and wheel data
@@ -12,6 +16,14 @@
   inputs, batch file-set symmetry, and AgentTrace schema before comparison.
 - Add a dependency-free framework callback example and make `agent-regression
   init` place the preflight step before the generated CI comparison.
+- Add sync/async Adapter Contract Diagnostic helpers with structured identity,
+  Trace, tool-path, and claims failure details.
+- Add an explicit public API manifest and independent Trace schema compatibility
+  boundary, with tests that protect all declared public exports.
+- Add an optional LangChain Core callback example that runs without model
+  credentials and is isolated from the default dependency-free test suite.
+- Add a Python 3.9/3.11/3.13 framework-compatibility workflow and schedule the
+  official MCP compatibility smoke workflow weekly.
 
 ## 3.1.0 - 2026-09-18
 

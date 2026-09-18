@@ -1,0 +1,2 @@
+# Optional reference integration; the core test suite does not install this.
+langchain-core>=0.3,<2

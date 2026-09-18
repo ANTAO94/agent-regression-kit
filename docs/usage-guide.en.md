@@ -459,6 +459,38 @@ The SDK fixes adapter identity and the callback contract. It does not inspect
 framework internals or invent business claims; the integration must emit
 structured claims explicitly.
 
+For actionable integration failures, use the structured diagnostic helper:
+
+```python
+from agent_regression import FixtureTools, check_adapter_contract
+
+report = check_adapter_contract(
+    sync_adapter,
+    {"order_id": "123"},
+    FixtureTools({"get_order": {"status": "paid"}}),
+    expected_tool_path=["get_order"],
+    expected_claims={"order_status": "paid"},
+)
+assert report["ok"], report
+```
+
+The result tells you whether identity, Trace validity, tool path, or final
+claims failed. Use `check_async_adapter_contract` for an async integration.
+This is an integration diagnostic, not an LLM judge.
+
+The repository also includes an optional real-framework reference using
+LangChain Core's `RunnableLambda`. It needs no model key and is kept outside
+the default dependency-free suite:
+
+```bash
+python -m pip install -r examples/optional-requirements.txt
+python examples/langchain_core_callback_example.py
+agent-regression validate --trace work/langchain-core.trace.json
+```
+
+This proves the framework callback and observation boundary, not coverage of
+every provider or a complete production Agent orchestration.
+
 ### Historical trends and long-term regression (v3.1)
 
 Save stability, compare, batch, or coverage JSON reports in one directory and

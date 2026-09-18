@@ -1,8 +1,9 @@
 import configparser
+import sys
 import unittest
 from pathlib import Path
 
-from agent_regression import __version__
+from agent_regression import StdioMcpClient, __version__
 from agent_regression.cli import VERSION
 
 
@@ -20,4 +21,17 @@ class VersionTests(unittest.TestCase):
         self.assertEqual(
             parser.get("metadata", "version"),
             "attr: agent_regression.version.__version__",
+        )
+
+    def test_mcp_client_identity_uses_the_single_version_source(self):
+        client = StdioMcpClient(
+            [sys.executable, "-m", "agent_regression.fixtures.mcp_stdio_server"],
+            timeout_seconds=5,
+        )
+        with client:
+            client.initialize()
+        initialize = client.transcript[0]["message"]
+        self.assertEqual(
+            __version__,
+            initialize["params"]["clientInfo"]["version"],
         )

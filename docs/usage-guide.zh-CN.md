@@ -429,6 +429,33 @@ async_adapter = spec.build_async(invoke_async_framework)
 
 这个 SDK 只固定适配器边界，不会自动发现框架内部状态，也不会替你生成业务 claims；业务语义仍由接入回调明确输出。
 
+如果希望接入失败时直接看到原因，可以用结构化诊断辅助方法：
+
+```python
+from agent_regression import FixtureTools, check_adapter_contract
+
+report = check_adapter_contract(
+    sync_adapter,
+    {"order_id": "123"},
+    FixtureTools({"get_order": {"status": "paid"}}),
+    expected_tool_path=["get_order"],
+    expected_claims={"order_status": "paid"},
+)
+assert report["ok"], report
+```
+
+返回结果会分别说明身份信息、Trace 合法性、实际工具路径和最终 claims 哪一项失败；异步接入使用 `check_async_adapter_contract`。它是接入诊断，不是 LLM Judge。
+
+仓库还提供一个可选的真实框架参考：它用 LangChain Core 的 `RunnableLambda` 跑一个不需要模型密钥的离线链路。核心包默认不安装第三方框架；需要验证时执行：
+
+```bash
+python -m pip install -r examples/optional-requirements.txt
+python examples/langchain_core_callback_example.py
+agent-regression validate --trace work/langchain-core.trace.json
+```
+
+这个示例只证明框架回调和观测边界能接通，不代表任何模型供应商或完整 Agent 编排已经被覆盖。
+
 ### 历史趋势和长期回归（v3.1）
 
 把每个版本的 stability、compare、batch 或 coverage JSON 保存到同一个目录，就可以生成长期报告：
