@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 2.2.0 - 2026-09-18
+
+- Add state-isolated `WorldState` and `StatefulFixtureTools` for deterministic
+  business scenarios with mutable external state.
+- Capture initial and final world snapshots in recorded traces when the tool
+  executor exposes `snapshot()`.
+- Add field-level `state_change` reporting, side-effect contracts, and
+  `path_rules.any_of` for multiple valid Agent tool paths.
+- Add scenario tests covering state isolation, mutations, allowed alternatives,
+  and dangerous-path rejection.
+
 ## 2.1.0 - 2026-09-18
 
 - Add `ContractPolicy` for deterministic Agent behavior contracts.

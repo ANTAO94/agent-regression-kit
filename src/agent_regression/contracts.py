@@ -124,6 +124,8 @@ class ContractPolicy:
     normalizers: List[Dict[str, Any]] = field(default_factory=list)
     must_call: List[Dict[str, Any]] = field(default_factory=list)
     must_not_call: List[Dict[str, Any]] = field(default_factory=list)
+    path_rules: Dict[str, Any] = field(default_factory=dict)
+    side_effects: List[Dict[str, Any]] = field(default_factory=list)
     max_steps: int | None = None
 
     def __post_init__(self) -> None:
@@ -152,6 +154,29 @@ class ContractPolicy:
                 raise ValueError("contract tool rules must contain a non-empty tool")
             if "arguments" in rule and not isinstance(rule["arguments"], dict):
                 raise ValueError("contract tool rule arguments must be an object")
+        if not isinstance(self.path_rules, dict):
+            raise ValueError("contract.path_rules must be an object")
+        alternatives = self.path_rules.get("any_of", [])
+        if not isinstance(alternatives, list) or not alternatives:
+            if self.path_rules:
+                raise ValueError("contract.path_rules.any_of must be a non-empty array")
+        for path in alternatives:
+            if not isinstance(path, list) or not path:
+                raise ValueError("each contract path alternative must be a non-empty array")
+            for raw_rule in path:
+                rule = {"tool": raw_rule} if isinstance(raw_rule, str) else raw_rule
+                if not isinstance(rule, dict) or not isinstance(rule.get("tool"), str) or not rule["tool"]:
+                    raise ValueError("path rules must contain tool names")
+                if "arguments" in rule and not isinstance(rule["arguments"], dict):
+                    raise ValueError("path rule arguments must be an object")
+        if "ordered" in self.path_rules and not isinstance(self.path_rules["ordered"], bool):
+            raise ValueError("contract.path_rules.ordered must be a boolean")
+        for effect in self.side_effects:
+            if not isinstance(effect, dict) or not isinstance(effect.get("path"), str):
+                raise ValueError("contract.side_effects must contain path objects")
+            _tokens(effect["path"])
+            if "from" not in effect and "to" not in effect:
+                raise ValueError("a side effect needs at least one of from or to")
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any] | None) -> "ContractPolicy":
@@ -181,12 +206,20 @@ class ContractPolicy:
         normalizers = value.get("normalizers", [])
         if not isinstance(normalizers, list) or not all(isinstance(item, dict) for item in normalizers):
             raise ValueError("contract.normalizers must be an array of objects")
+        path_rules = value.get("path_rules", {})
+        if not isinstance(path_rules, dict):
+            raise ValueError("contract.path_rules must be an object")
+        side_effects = value.get("side_effects", [])
+        if not isinstance(side_effects, list) or not all(isinstance(item, dict) for item in side_effects):
+            raise ValueError("contract.side_effects must be an array of objects")
         return cls(
             assertions=rules("assertions"),
             ignore_paths=list(ignore_paths),
             normalizers=[dict(item) for item in normalizers],
             must_call=rules("must_call"),
             must_not_call=forbidden_rules,
+            path_rules=deepcopy(path_rules),
+            side_effects=[dict(item) for item in side_effects],
             max_steps=value.get("max_steps"),
         )
 
@@ -203,8 +236,14 @@ class ContractPolicy:
             "normalizers": deepcopy(self.normalizers),
             "must_call": tool_rules(self.must_call),
             "must_not_call": tool_rules(self.must_not_call),
+            "path_rules": deepcopy(self.path_rules),
+            "side_effects": deepcopy(self.side_effects),
             "max_steps": self.max_steps,
         }
+
+    @property
+    def has_path_rules(self) -> bool:
+        return bool(self.path_rules.get("any_of"))
 
     def _patterns(self) -> List[List[str]]:
         return [_tokens(path) for path in self.ignore_paths]
@@ -232,6 +271,7 @@ class ContractPolicy:
                 "final_answer": next(
                     event for event in candidate.events if event["type"] == "final_answer"
                 ),
+                "world_state": candidate.metadata.get("world_state", {}),
             }
         )
         for assertion in self.assertions:
@@ -289,6 +329,52 @@ class ContractPolicy:
                         "message": "forbidden tool call was observed",
                     }
                 )
+        if self.has_path_rules and not self._path_matches(candidate_calls):
+            differences.append(
+                {
+                    "category": "behavior_path",
+                    "path": "tool_calls.path",
+                    "baseline": deepcopy(self.path_rules),
+                    "candidate": [
+                        {"tool": event.get("tool"), "arguments": event.get("arguments", {})}
+                        for event in candidate_calls
+                    ],
+                    "message": "observed tool path is not one of the allowed paths",
+                }
+            )
+        for effect in self.side_effects:
+            initial_values = _lookup(
+                candidate_data.get("world_state", {}).get("initial", {}),
+                _tokens(effect["path"]),
+            )
+            final_values = _lookup(
+                candidate_data.get("world_state", {}).get("final", {}),
+                _tokens(effect["path"]),
+            )
+            if "from" in effect and (
+                not initial_values or any(value != effect["from"] for value in initial_values)
+            ):
+                differences.append(
+                    {
+                        "category": "side_effect",
+                        "path": f"world_state.initial.{effect['path']}",
+                        "baseline": effect["from"],
+                        "candidate": initial_values or None,
+                        "message": "side-effect initial state did not match",
+                    }
+                )
+            if "to" in effect and (
+                not final_values or any(value != effect["to"] for value in final_values)
+            ):
+                differences.append(
+                    {
+                        "category": "side_effect",
+                        "path": f"world_state.final.{effect['path']}",
+                        "baseline": effect["to"],
+                        "candidate": final_values or None,
+                        "message": "side-effect final state did not match",
+                    }
+                )
         if self.max_steps is not None and len(candidate_calls) > self.max_steps:
             differences.append(
                 {
@@ -300,6 +386,41 @@ class ContractPolicy:
                 }
             )
         return differences
+
+    def _path_matches(self, candidate_calls: Sequence[Mapping[str, Any]]) -> bool:
+        observed = [
+            {"tool": event.get("tool"), "arguments": event.get("arguments", {})}
+            for event in candidate_calls
+        ]
+        ordered = self.path_rules.get("ordered", True)
+        for alternative in self.path_rules.get("any_of", []):
+            expected = [
+                {"tool": rule}
+                if isinstance(rule, str)
+                else rule
+                for rule in alternative
+            ]
+            if ordered:
+                if len(expected) == len(observed) and all(
+                    self._tool_rule_matches(rule, event)
+                    for rule, event in zip(expected, observed)
+                ):
+                    return True
+            else:
+                remaining = list(observed)
+                if len(expected) == len(remaining):
+                    for rule in expected:
+                        match_index = next(
+                            (index for index, event in enumerate(remaining)
+                             if self._tool_rule_matches(rule, event)),
+                            None,
+                        )
+                        if match_index is None:
+                            break
+                        remaining.pop(match_index)
+                    else:
+                        return not remaining
+        return False
 
     @staticmethod
     def _tool_rule_matches(rule: Mapping[str, Any], event: Mapping[str, Any]) -> bool:

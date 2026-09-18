@@ -177,7 +177,7 @@ agent-regression compare \
 
 ### baseline 检查项和噪音过滤
 
-v2.1 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
+v2.2 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
 
 ```json
 {
@@ -198,14 +198,43 @@ v2.1 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以
     "normalizers": [
       {"path": "tool_results[*].result.created_at", "type": "timestamp"}
     ],
-    "max_steps": 5
+    "max_steps": 5,
+    "path_rules": {
+      "any_of": [
+        [{"tool": "get_order", "arguments": {"order_id": "123"}}],
+        [
+          {"tool": "get_order", "arguments": {"order_id": "123"}},
+          "get_shipping"
+        ]
+      ]
+    },
+    "side_effects": [
+      {"path": "orders.123.status", "from": "paid", "to": "cancelled"}
+    ]
   }
 }
 ```
 
-`allow_categories` / `allow_paths` 是**放宽 baseline 差异的阻断规则**，所有差异仍会出现在报告里。`contract` 才是候选行为约束：它可以要求必须调用某个工具、禁止调用某个工具、断言 Trace 字段、忽略动态字段、归一化时间戳/排序，并限制最大工具步骤数。`secret_values` 只负责敏感信息脱敏。
+`allow_categories` / `allow_paths` 是**放宽 baseline 差异的阻断规则**，所有差异仍会出现在报告里。`contract` 才是候选行为约束：它可以要求必须调用某个工具、禁止调用某个工具、断言 Trace 字段、忽略动态字段、归一化时间戳/排序，并限制最大工具步骤数。`path_rules.any_of` 表示多条都合法的工具调用路径，候选 Trace 必须完整匹配其中一条；字符串工具规则只检查工具名，对参数不设限。`side_effects` 检查候选运行前后的业务状态，例如订单必须从 `paid` 变成 `cancelled`。`secret_values` 只负责敏感信息脱敏。
 
 `allow-path` 匹配比较器已经产生的完整差异路径；`contract.ignore_paths` 才支持深入嵌套 JSON，并支持 `[*]` 通配。例如 `tool_results[*].result.request_id` 可以忽略每个工具结果里的 request ID，而不会放宽整个工具结果。
+
+### 有状态场景和副作用检查
+
+普通 Trace 只能说明 Agent 调用了什么工具；有状态场景还要说明这些调用有没有把订单、库存或权限状态改坏。实现一个带 `snapshot()` 的工具执行器即可让录制器自动写入：
+
+```json
+{
+  "metadata": {
+    "world_state": {
+      "initial": {"orders": {"123": {"status": "paid"}}},
+      "final": {"orders": {"123": {"status": "cancelled"}}}
+    }
+  }
+}
+```
+
+比较器会把变化报告成 `state_change`，而 `side_effects` 可以把允许的业务变化写成明确契约。每个用例都应创建新的 `StatefulFixtureTools`，或调用 `.fresh()`，避免上一个用例取消的订单污染下一个用例。
 
 ## 6. 多用例和 CI
 
@@ -251,7 +280,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.1 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.2 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 

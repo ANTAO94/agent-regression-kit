@@ -89,6 +89,30 @@ def _compare_event_list(
             )
 
 
+def _compare_nested(
+    diffs: List[Dict[str, Any]],
+    baseline: Any,
+    candidate: Any,
+    path: str,
+) -> None:
+    """Emit field-level state changes instead of one opaque JSON mismatch."""
+    if isinstance(baseline, dict) and isinstance(candidate, dict):
+        for key in sorted(set(baseline) | set(candidate)):
+            child_path = f"{path}.{key}"
+            if key not in baseline or key not in candidate:
+                _add_diff(diffs, "state_change", child_path, baseline.get(key), candidate.get(key))
+            else:
+                _compare_nested(diffs, baseline[key], candidate[key], child_path)
+        return
+    if isinstance(baseline, list) and isinstance(candidate, list):
+        if len(baseline) != len(candidate):
+            _add_diff(diffs, "state_change", f"{path}.count", len(baseline), len(candidate))
+        for index, (left, right) in enumerate(zip(baseline, candidate)):
+            _compare_nested(diffs, left, right, f"{path}[{index}]")
+        return
+    _add_diff(diffs, "state_change", path, baseline, candidate)
+
+
 def compare_traces(
     baseline: AgentTrace,
     candidate: AgentTrace,
@@ -100,12 +124,30 @@ def compare_traces(
     diffs: List[Dict[str, Any]] = []
     active_policy = policy or ComparisonPolicy()
     contract = active_policy.contract
-    _compare_event_list(
-        diffs, _events(baseline, "tool_call"), _events(candidate, "tool_call"), "tool_call", contract
-    )
-    _compare_event_list(
-        diffs, _events(baseline, "tool_result"), _events(candidate, "tool_result"), "tool_result", contract
-    )
+    baseline_calls = _events(baseline, "tool_call")
+    candidate_calls = _events(candidate, "tool_call")
+    same_call_shape = [event.get("tool") for event in baseline_calls] == [
+        event.get("tool") for event in candidate_calls
+    ]
+    # An explicit path contract owns the allowed tool sequence.  Do not make
+    # an alternative valid path fail merely because its event counts differ.
+    if not contract or not contract.has_path_rules:
+        _compare_event_list(diffs, baseline_calls, candidate_calls, "tool_call", contract)
+        _compare_event_list(
+            diffs,
+            _events(baseline, "tool_result"),
+            _events(candidate, "tool_result"),
+            "tool_result",
+            contract,
+        )
+    elif same_call_shape:
+        _compare_event_list(
+            diffs,
+            _events(baseline, "tool_result"),
+            _events(candidate, "tool_result"),
+            "tool_result",
+            contract,
+        )
 
     baseline_answer = _events(baseline, "final_answer")[0]
     candidate_answer = _events(candidate, "final_answer")[0]
@@ -122,6 +164,16 @@ def compare_traces(
             _add_diff(diffs, "final_answer", text_path, baseline_text, candidate_text)
     if contract:
         diffs.extend(contract.check(baseline, candidate))
+    baseline_world = baseline.metadata.get("world_state")
+    candidate_world = candidate.metadata.get("world_state")
+    if baseline_world is not None or candidate_world is not None:
+        left_world = baseline_world or {}
+        right_world = candidate_world or {}
+        if contract:
+            left_world = contract.sanitize(left_world, "world_state")
+            right_world = contract.sanitize(right_world, "world_state")
+        if left_world is not _IGNORED and right_world is not _IGNORED:
+            _compare_nested(diffs, left_world, right_world, "world_state")
     diffs = (redaction_policy or DEFAULT_REDACTION_POLICY).redact(diffs)
     for difference in diffs:
         difference["allowed"] = active_policy.allows(difference)

@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 from .adapters import AgentAdapter, RunContext, ScriptedAgentAdapter
 from .batch import compare_trace_batch
@@ -19,10 +19,11 @@ from .mcp import (
     record_mcp_run,
 )
 from .model import AgentTrace, TraceValidationError
-from .record import FixtureTools, ToolExecutionResult, ToolExecutor, record_run
+from .record import FixtureTools, ToolExecutionResult, ToolExecutor, WorldStateProvider, record_run
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 from .replay import replay_trace
 from .reports import render_batch_junit, render_batch_markdown, render_junit, render_markdown
+from .scenario import StatefulFixtureTools, WorldState
 from .rule_agent import (
     NORMAL,
     PARAMETER_REGRESSION,
@@ -50,11 +51,14 @@ __all__ = [
     "RunContext",
     "RuleBasedOrderAgentAdapter",
     "ScriptedAgentAdapter",
+    "StatefulFixtureTools",
     "StdioMcpClient",
     "StreamableHttpMcpClient",
     "TraceValidationError",
     "ToolExecutionResult",
     "ToolExecutor",
+    "WorldStateProvider",
+    "WorldState",
     "compare_traces",
     "run_compatibility_smoke",
     "record_run",

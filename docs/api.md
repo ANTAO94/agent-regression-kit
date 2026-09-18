@@ -14,6 +14,8 @@ The supported imports are exported from `agent_regression`.
 - `ScriptedAgentAdapter` is the deterministic reference adapter.
 - `FixtureTools` supplies fixed offline results.
 - `ToolExecutionResult` lets an executor preserve explicit error state and execution metadata.
+- `WorldState` provides a detached mutable state object for deterministic scenario fixtures.
+- `StatefulFixtureTools(initial_state, handlers)` executes tools against one owned world and exposes `snapshot()`, `reset()`, and `fresh()` for case isolation. A recorder automatically stores `metadata.world_state.initial` and `metadata.world_state.final` when an executor exposes `snapshot()`.
 - `RedactionPolicy` controls sensitive keys and literal value removal. Default key redaction is always active unless a caller explicitly supplies another policy.
 
 An adapter must expose an `identity` mapping and implement `run(request, context)`. It must route calls through `context.call_tool` and finish exactly once with `context.final_answer`.
@@ -49,7 +51,8 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `ComparisonPolicy(allowed_categories=..., allowed_paths=..., final_answer_mode=..., contract=...)` changes which differences block while retaining all differences in the report. `final_answer_mode="exact"` compares final prose; `final_answer_mode="claims-only"` ignores only `final_answer.text` while continuing to require matching structured claims.
 - `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
-  `sort`), `must_call`, `must_not_call`, and `max_steps`. Put it under the
+  `sort`), `must_call`, `must_not_call`, `path_rules.any_of`, `side_effects`,
+  and `max_steps`. Put it under the
   config file's `contract` object and pass it through `ComparisonPolicy`.
 - `replay_trace(trace)` validates and renders recorded evidence without executing tools.
 - `render_junit(report)` renders one comparison as JUnit XML.

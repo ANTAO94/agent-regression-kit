@@ -177,7 +177,7 @@ This ignores only `final_answer.text`. It still checks claims, tool calls, argum
 
 ### Baseline checks and noise filtering
 
-In v2.1, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
+In v2.2, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
 
 ```json
 {
@@ -198,14 +198,43 @@ In v2.1, a complete AgentTrace can be combined with an executable Agent Contract
     "normalizers": [
       {"path": "tool_results[*].result.created_at", "type": "timestamp"}
     ],
-    "max_steps": 5
+    "max_steps": 5,
+    "path_rules": {
+      "any_of": [
+        [{"tool": "get_order", "arguments": {"order_id": "123"}}],
+        [
+          {"tool": "get_order", "arguments": {"order_id": "123"}},
+          "get_shipping"
+        ]
+      ]
+    },
+    "side_effects": [
+      {"path": "orders.123.status", "from": "paid", "to": "cancelled"}
+    ]
   }
 }
 ```
 
-`allow_categories` and `allow_paths` **relax baseline blocking rules**; every detected difference remains in the report. `contract` constrains candidate behavior: it can require or forbid tool calls, assert Trace fields, ignore dynamic fields, normalize timestamps/lists, and cap tool-call steps. `secret_values` only provides redaction.
+`allow_categories` and `allow_paths` **relax baseline blocking rules**; every detected difference remains in the report. `contract` constrains candidate behavior: it can require or forbid tool calls, assert Trace fields, ignore dynamic fields, normalize timestamps/lists, and cap tool-call steps. `path_rules.any_of` declares multiple valid complete tool paths; the candidate must match one of them. A string tool rule checks only the tool name. `side_effects` checks a business-state transition such as an order changing from `paid` to `cancelled`. `secret_values` only provides redaction.
 
 `allow-path` matches a complete difference path already produced by the comparator. `contract.ignore_paths` is the nested JSON filter and supports `[*]`; for example, `tool_results[*].result.request_id` ignores each result's request ID without allowing the entire tool result to change.
+
+### Stateful scenarios and side effects
+
+A normal Trace says which tools the Agent called. A stateful scenario also proves that those calls did not corrupt an order, inventory, or permission state. Give the tool executor a `snapshot()` method and the recorder automatically stores the state before and after the run:
+
+```json
+{
+  "metadata": {
+    "world_state": {
+      "initial": {"orders": {"123": {"status": "paid"}}},
+      "final": {"orders": {"123": {"status": "cancelled"}}}
+    }
+  }
+}
+```
+
+The comparator emits field-level `state_change` differences, while `side_effects` turns an allowed business transition into an explicit contract. Create a new `StatefulFixtureTools` for each case, or call `.fresh()`, so a cancellation in one case cannot leak into the next case.
 
 ## 6. Multiple cases and CI
 
@@ -251,7 +280,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.1 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.2 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 

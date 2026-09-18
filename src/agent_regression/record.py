@@ -23,6 +23,10 @@ class ToolExecutor(Protocol):
     def call(self, tool: str, arguments: Dict[str, Any]) -> Any: ...
 
 
+class WorldStateProvider(Protocol):
+    def snapshot(self) -> Dict[str, Any]: ...
+
+
 class FixtureTools:
     """Offline tool executor keyed by tool name."""
 
@@ -114,16 +118,22 @@ def record_run(
     redaction_policy: RedactionPolicy | None = None,
 ) -> AgentTrace:
     active_redaction = redaction_policy or DEFAULT_REDACTION_POLICY
+    snapshot = getattr(tools, "snapshot", None)
+    initial_world = snapshot() if callable(snapshot) else None
     context = _RecordingContext(tools, active_redaction)
     adapter.run(request, context)
+    final_world = snapshot() if callable(snapshot) else None
+    run_metadata = {"input": deepcopy(request), **dict(metadata or {})}
+    if initial_world is not None or final_world is not None:
+        run_metadata["world_state"] = active_redaction.redact(
+            {"initial": initial_world or {}, "final": final_world or {}}
+        )
     trace = AgentTrace(
         schema_version=SUPPORTED_SCHEMA_VERSION,
         run_id=run_id,
         agent=active_redaction.redact(dict(adapter.identity)),
         events=context.events,
-        metadata=active_redaction.redact(
-            {"input": deepcopy(request), **dict(metadata or {})}
-        ),
+        metadata=active_redaction.redact(run_metadata),
     )
     trace.validate()
     return trace

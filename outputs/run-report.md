@@ -1,13 +1,13 @@
-# Agent Regression Kit v2.1 verification
+# Agent Regression Kit v2.2 verification
 
 Verified on 2026-09-18 with Python 3.9.6.
 
 ## Results
 
 - Runtime: Python 3.9.6.
-- Unit and integration tests: 63 passed, 0 failed.
-- Wheel build: `agent_regression_kit-2.1.0-py3-none-any.whl` succeeded.
-- Agent Contract Testing: passed assertions, nested ignore paths, normalizers, required/forbidden tools, and step limits.
+- Unit and integration tests: 66 passed, 0 failed.
+- Wheel build: `agent_regression_kit-2.2.0-py3-none-any.whl` succeeded.
+- Agent Contract Testing: passed assertions, nested ignore paths, normalizers, required/forbidden tools, step limits, allowed paths, isolated world state, and side-effect checks.
 - Config preflight validation: passed for single-case and batch config shapes.
 - Documentation QA: bilingual getting-started guides, Mermaid onboarding flow,
   and README navigation added.
@@ -35,4 +35,4 @@ The implementation contains AgentTrace v0.1, deterministic and MCP stdio/HTTP ad
 
 ## Remaining compatibility boundary
 
-The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v2.1 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Contract assertions and normalizers are deterministic; claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator.
+The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v2.2 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Contract assertions, state snapshots, and normalizers are deterministic; claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator.

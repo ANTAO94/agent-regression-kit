@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml)
 [![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression-kit)](https://github.com/ANTAO94/agent-regression-kit/releases)
-[![License](https://img.shields.io/github/license/ANTAO94/agent-regression)](LICENSE)
+[![License](https://img.shields.io/github/license/ANTAO94/agent-regression-kit)](LICENSE)
 
 [中文说明](#中文说明) | [English](#english)
 
@@ -45,6 +45,7 @@ flowchart LR
 - 批量配置：`batch-compare --config` 支持多用例目录的可复用配置。
 - 稳定配置契约：`config validate` 可在 CI 比较前预检单用例或批量配置。
 - Agent Contract Testing：支持字段断言、动态字段忽略/归一化、必须/禁止工具调用和最大步骤约束。
+- Stateful Scenario Testing：支持每个用例独立的 world state、业务副作用断言、状态差异报告和多条合法工具路径。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -53,9 +54,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **63 项通过，0 项失败** |
+| Python 单元与集成测试 | **66 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-2.1.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-2.2.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -191,7 +192,7 @@ agent-regression compare \
 # 4. 在 CI 中使用同一个 compare 命令；退出码 1 就表示检测到阻断性回归
 ```
 
-如果你的 MCP Server 是 Streamable HTTP，只需将 `record_mcp_run` 换成 `record_mcp_http_run` 并传入 `/mcp` 地址；如果你的 Agent 已经有自己的工具执行层，也可以直接使用通用的 `record_run`。仓库中的 `examples/rule_agent_mcp_example.py` 是可以直接运行的完整参考，`examples/order-123/` 则是 CLI 演示数据，不是用户必须采用的 Agent 格式。
+如果你的 MCP Server 是 Streamable HTTP，只需将 `record_mcp_run` 换成 `record_mcp_http_run` 并传入 `/mcp` 地址；如果你的 Agent 已经有自己的工具执行层，也可以直接使用通用的 `record_run`。仓库中的 `examples/rule_agent_mcp_example.py` 是可以直接运行的完整参考，`examples/stateful_order_example.py` 展示了状态快照、副作用和多路径契约，`examples/order-123/` 则是 CLI 演示数据，不是用户必须采用的 Agent 格式。
 
 ### CI 集成
 
@@ -269,7 +270,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v2.1**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in the reusable GitHub Action.
+Current release line: **v2.2**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in the reusable GitHub Action.
 
 ```text
 Agent / MCP Server
@@ -296,9 +297,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **63 passed, 0 failed** |
+| Python unit and integration suite | **66 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-2.1.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-2.2.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -308,7 +309,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 63 tests in 8.2s
+Ran 66 tests in 8.2s
 
 OK
 ```
@@ -520,14 +521,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v2.1. In addition to
+The HTTP client is intentionally synchronous in v2.2. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v2.1.
+supported. The generic AgentTrace recorder remains sequential in v2.2.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned
 task with `get_task` and fetch its final value with `get_task_result`. When an
@@ -628,7 +629,8 @@ agent-regression batch-compare --config .agent-regression/batch.json
 
 For Agent-specific behavior rules, add a `contract` object to the same config.
 It supports required/forbidden tools, field assertions, nested `ignore_paths`,
-timestamp/list normalizers, and `max_steps`. See the [中文接入指南](docs/usage-guide.zh-CN.md#baseline-检查项和噪音过滤)
+timestamp/list normalizers, `max_steps`, multiple allowed tool paths, and
+stateful side-effect checks. See the [中文接入指南](docs/usage-guide.zh-CN.md#baseline-检查项和噪音过滤)
 or [English guide](docs/usage-guide.en.md#baseline-checks-and-noise-filtering)
 for a complete example.
 
