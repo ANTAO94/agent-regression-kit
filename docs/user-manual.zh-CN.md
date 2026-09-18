@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v3.9.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认示例无需模型 API Key。
+适用：v4.0.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v3.9.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.0.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -177,7 +177,7 @@ tool_calls、tool_results、final_answer 是比较器提供的投影视图，不
 
 路径规则：配置放在 .agent-regression/ 下时相对项目根目录解析；放在其他位置时相对配置文件所在目录解析。命令行参数优先于文件配置。
 
-可运行的比较策略示例位于 v3.9.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
+可运行的比较策略示例位于 v4.0.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -271,7 +271,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.9.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.0.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -294,7 +294,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v3.9.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.0.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -330,7 +330,38 @@ Action 中传 `required-reports: compare.json,coverage.json`。
 
 命令和完整示例见[高级使用指南](usage-guide.zh-CN.md)与[API 参考](api.md)。history 的退出码跟随最后一个识别的历史点；report-index 则要求收集到的报告全部通过。它们不是相同门禁语义。
 
-## 8. 排错与维护
+## 8. v4 兼容检查与迁移
+
+v4 把升级前检查做成 CLI，而不是只靠阅读变更记录。它会分别检查公共
+Python API 代际、Trace、Session、Contract/config 和 Report 的 schema 边界：
+
+```bash
+agent-regression compatibility \
+  --public-api-version 4 \
+  --trace baselines/order-123.trace.json \
+  --config .agent-regression/config.json \
+  --report outputs/compare.json \
+  --out outputs/compatibility.json
+```
+
+退出码 `0` 表示输入兼容，`1` 表示版本/schema 不支持，`2` 表示文件或
+JSON 输入错误。v3 公共 API 会返回 `status=deprecated` 和
+`migration_required=true`，不会被悄悄当成当前版本。
+
+Trace schema 0.1 在 v4 没有改变，但仍提供显式迁移入口，源文件不会覆盖：
+
+```bash
+agent-regression migrate trace \
+  --trace baselines/order-123.trace.json \
+  --out work/order-123.v4.trace.json \
+  --report outputs/order-123.migration.json
+agent-regression validate --trace work/order-123.v4.trace.json
+```
+
+迁移报告只记录迁移状态和 schema 版本，不复制 Trace 事件。完整的 v4 验收
+清单见 [v4.0 验收说明](v4-acceptance.md)。
+
+## 9. 排错与维护
 
 | 现象 | 先检查 |
 | --- | --- |

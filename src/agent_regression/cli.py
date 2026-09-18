@@ -18,6 +18,11 @@ from .config import load_batch_compare_config, load_compare_config
 from .contracts import ContractPolicy
 from .coverage import compare_trace_coverage
 from .history import build_history_report
+from .migration import (
+    build_compatibility_report,
+    build_trace_migration_report,
+    migrate_trace,
+)
 from .model import AgentTrace, TraceValidationError
 from .mcp import (
     McpTransportError,
@@ -297,6 +302,33 @@ def build_parser() -> argparse.ArgumentParser:
     validate = subparsers.add_parser("validate", help="validate an AgentTrace document")
     validate.add_argument("--trace", required=True)
 
+    compatibility = subparsers.add_parser(
+        "compatibility",
+        help="check v4 public API and Trace/Session/Contract/Report compatibility",
+    )
+    compatibility.add_argument(
+        "--public-api-version",
+        help="declared integration API generation (defaults to the current v4 generation)",
+    )
+    compatibility.add_argument("--trace", help="Trace JSON to check")
+    compatibility.add_argument("--session", help="Session JSON to check")
+    compatibility.add_argument("--config", help="comparison config/contract JSON to check")
+    compatibility.add_argument("--report", help="report JSON to check")
+    compatibility.add_argument("--out")
+
+    migrate = subparsers.add_parser(
+        "migrate", help="write an explicitly migrated document without overwriting the source"
+    )
+    migrate_actions = migrate.add_subparsers(dest="migrate_action", required=True)
+    migrate_trace_parser = migrate_actions.add_parser(
+        "trace", help="validate and canonicalize a Trace into the current schema"
+    )
+    migrate_trace_parser.add_argument("--trace", required=True)
+    migrate_trace_parser.add_argument("--out", required=True)
+    migrate_trace_parser.add_argument(
+        "--report", help="optional migration report path; stdout always receives the report"
+    )
+
     compare = subparsers.add_parser("compare", help="compare candidate evidence to a baseline")
     compare.add_argument("--baseline")
     compare.add_argument("--candidate")
@@ -555,6 +587,27 @@ def main(argv: list[str] | None = None) -> int:
                 open_browser=args.open_browser,
             )
             return 0
+
+        if args.command == "compatibility":
+            report = build_compatibility_report(
+                trace=_read_json(args.trace) if args.trace else None,
+                session=_read_json(args.session) if args.session else None,
+                config=_read_json(args.config) if args.config else None,
+                report=_read_json(args.report) if args.report else None,
+                public_api_version=args.public_api_version,
+            )
+            _write_output(report, args.out)
+            return 0 if report["ok"] else 1
+
+        if args.command == "migrate":
+            if args.migrate_action != "trace":
+                raise ValueError(f"unsupported migrate action: {args.migrate_action}")
+            source = _read_json(args.trace)
+            migrated = migrate_trace(source)
+            _write_json_file(migrated, Path(args.out))
+            _write_output(build_trace_migration_report(source, migrated), args.report)
+            return 0
+
         if args.command == "init":
             root = Path(args.directory).resolve()
             root.mkdir(parents=True, exist_ok=True)

@@ -21,6 +21,8 @@ class WorkspaceTests(unittest.TestCase):
                 json.dumps({"secret": "must not be embedded"}), encoding="utf-8"
             )
             (root / "work/candidate.trace.json").write_text("candidate", encoding="utf-8")
+            (root / "work/test-venv/bin").mkdir(parents=True)
+            (root / "work/test-venv/bin/python").write_text("generated", encoding="utf-8")
             (root / "outputs/compare.json").write_text(
                 json.dumps({"passed": True}), encoding="utf-8"
             )
@@ -34,6 +36,7 @@ class WorkspaceTests(unittest.TestCase):
             entries = {entry["source"]: entry for entry in manifest["files"]}
             self.assertEqual("baseline", entries["baselines/order.trace.json"]["role"])
             self.assertEqual(64, len(entries["work/candidate.trace.json"]["sha256"]))
+            self.assertNotIn("work/test-venv/bin/python", entries)
 
     def test_cli_workspace_manifest_and_baseline_review_do_not_mutate_baseline(self):
         with tempfile.TemporaryDirectory() as directory:

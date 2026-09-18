@@ -222,12 +222,14 @@ judge; the framework callback must still emit the claims explicitly.
 
 ### Public compatibility contract
 
-`PUBLIC_API_VERSION` identifies the documented Python import surface. The
-supported names are the symbols in `agent_regression.__all__`; additions are
-backward-compatible, while removals or behavior changes require a deprecation
-entry and an API-version decision. `public_api_manifest()` exposes this data
-to release checks. Trace schema compatibility is independent and currently
-reports `SUPPORTED_TRACE_SCHEMA_VERSIONS == ("0.1",)`.
+`PUBLIC_API_VERSION` identifies the documented Python import surface. In v4 it
+is `"4"`; the v3 generation remains readable but is marked deprecated by the
+compatibility checker. The supported names are the symbols in
+`agent_regression.__all__`; additions are backward-compatible, while removals
+or behavior changes require a deprecation entry and an API-version decision.
+`public_api_manifest()` exposes this data to release checks. Trace, Session,
+Contract and Report schema compatibility is independent and currently reports
+`"0.1"` for each boundary.
 
 For a new integration, generate the starter files and contract test:
 
@@ -243,6 +245,38 @@ deterministic offline smoke test, and `README.md` explains what to replace.
 Use `--mode sync`, `--mode async`, or `--mode both`. The template is a starting
 point, not framework auto-discovery; keep framework-specific setup outside the
 core recorder.
+
+## v4 compatibility and migration
+
+Use the read-only compatibility command before changing a baseline or
+upgrading a CI runner:
+
+```bash
+agent-regression compatibility \
+  --public-api-version 4 \
+  --trace baselines/order-123.trace.json \
+  --config .agent-regression/config.json \
+  --report outputs/compare.json \
+  --out outputs/compatibility.json
+```
+
+It checks the public API generation and the independent Trace, Contract/config
+and Report boundaries. A v3 public API declaration is accepted as deprecated
+and carries `migration_required=true`; an unknown generation or schema fails.
+The command never executes an Agent and never writes source documents.
+
+Trace schema `0.1` is unchanged in v4, but an explicit migration entry point
+is available for future schema changes:
+
+```bash
+agent-regression migrate trace \
+  --trace baselines/order-123.trace.json \
+  --out work/order-123.v4.trace.json \
+  --report outputs/order-123.migration.json
+```
+
+The source is not overwritten. The output is validated and canonicalized, while
+the migration report contains only status and schema versions, not Trace events.
 
 ## Framework event ingestion
 

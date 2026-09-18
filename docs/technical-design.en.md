@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v3.9.0 source. Package version 3.9.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
+Based on v4.0.0 source. Package version 4.0.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -40,6 +40,7 @@ Adapters supply observable events; comparison consumes Trace and policy; reports
 | Entry points | cli.py, config.py, preflight.py | Config precedence, paths, validation and exit codes |
 | UI | ui.py, viewer/*.html | Static local file inspection and config export |
 | Workspace review | workspace.py, workspace.html | Project directory to relative paths and fingerprints |
+| Compatibility | public_api.py, migration.py | Version checks, deprecation status and explicit Trace migration |
 
 Python modules live in src/agent_regression/. The core has no required third-party runtime dependencies. LangChain Core is an optional example dependency. There is no separate database or application backend.
 
@@ -152,10 +153,31 @@ ui defaults to 127.0.0.1 but allows --host overrides. It is a static server with
 
 Default redaction recognizes common keys; free text needs explicit secret_values. Filenames, paths, summaries and external logs may remain sensitive. Review artifacts before upload. MCP subprocesses run with the current user's permissions; use trusted tools and isolated test data.
 
-## 11. Acceptance and evolution
+## 11. Compatibility, acceptance and evolution
 
-The v3.9.0 release gate includes the repository test suite, Python 3.9/3.11/3.13 core CI, LangChain Core callback checks, wheel/source builds, clean installation, and explicit workspace-review checks. This demonstrates covered paths, not years of production usage or automatic support for every Agent.
+v4 makes the compatibility boundaries executable. `PUBLIC_API_VERSION=4` is the
+stable documented Python import generation. Trace, Session, Contract/config and
+Report schemas remain independently versioned at `0.1`; the package does not
+silently reinterpret an older document. v3 public API integrations remain
+readable as deprecated and are reported as requiring migration.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.9.0)
+```bash
+agent-regression compatibility \
+  --public-api-version 4 \
+  --trace baselines/order-123.trace.json \
+  --config .agent-regression/config.json \
+  --report outputs/compare.json
+agent-regression migrate trace \
+  --trace baselines/order-123.trace.json \
+  --out work/order-123.v4.trace.json
+```
+
+The v4.0 release gate includes the repository test suite, Python 3.9/3.11/3.13
+core CI, LangChain Core event checks, wheel/source builds, clean installation,
+compatibility and migration commands, workspace manifest checks and Viewer
+asset checks. This demonstrates covered paths, not years of production usage or
+automatic support for every Agent.
+
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.0.0) · [v4.0 acceptance](v4-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

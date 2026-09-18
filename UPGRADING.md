@@ -238,6 +238,43 @@ The manifest contains relative paths, byte sizes and SHA-256 fingerprints only.
 The Viewer requires an explicit file selection and never accepts a baseline or
 executes an Agent. No Trace schema migration is required.
 
+## v3.9.0 → v4.0.0
+
+This is the stable compatibility release. The documented public Python API
+generation is now `4`; v3 remains readable as a deprecated generation so an
+integration can check and migrate deliberately. AgentTrace, AgentSession,
+Contract/config and Report schemas remain independently versioned at `0.1`.
+
+Run the compatibility check before changing a baseline:
+
+```bash
+python -m pip install --upgrade agent-regression-kit==4.0.0
+agent-regression --version
+agent-regression compatibility \
+  --public-api-version 4 \
+  --trace baselines/order-123.trace.json \
+  --config .agent-regression/config.json \
+  --report outputs/compare.json \
+  --out outputs/compatibility.json
+```
+
+If the check passes, use the explicit Trace migration entry point when you
+want a canonical v4 output. It never overwrites the source:
+
+```bash
+agent-regression migrate trace \
+  --trace baselines/order-123.trace.json \
+  --out work/order-123.v4.trace.json \
+  --report outputs/order-123.migration.json
+agent-regression validate --trace work/order-123.v4.trace.json
+```
+
+Trace schema `0.1` did not change in v4, so ordinary migration reports are
+`status=no-op`. The command is still the supported seam for future schema
+transforms. Review any `status=deprecated` API warning, run the full project
+CI, and accept baseline changes only through the existing explicit review flow.
+See `docs/v4-acceptance.md` for the complete release and security checklist.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

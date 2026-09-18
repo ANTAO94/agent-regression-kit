@@ -33,6 +33,19 @@ jobs:
           /tmp/agent-regression-release-venv/bin/pip install dist/*.whl
           /tmp/agent-regression-release-venv/bin/agent-regression --version
           /tmp/agent-regression-release-venv/bin/agent-regression ui --help
+          /tmp/agent-regression-release-venv/bin/agent-regression compatibility \
+            --public-api-version 4 \
+            --trace baselines/order-123.trace.json \
+            --config examples/quickstart/compare.config.json \
+            --out /tmp/agent-regression-compatibility.json
+          /tmp/agent-regression-release-venv/bin/agent-regression migrate trace \
+            --trace baselines/order-123.trace.json \
+            --out /tmp/agent-regression-migrated.trace.json \
+            --report /tmp/agent-regression-migration.json
+          /tmp/agent-regression-release-venv/bin/agent-regression validate \
+            --trace /tmp/agent-regression-migrated.trace.json
+          /tmp/agent-regression-release-venv/bin/agent-regression workspace manifest \
+            --directory . --out /tmp/agent-regression-workspace.json
           /tmp/agent-regression-release-venv/bin/python -c \
             'from agent_regression import __version__; print(__version__)'
           DOC_ROOT="$(/tmp/agent-regression-release-venv/bin/python -c 'import sys; print(sys.prefix)')/share/agent-regression-kit/docs"
@@ -42,8 +55,10 @@ jobs:
           test -f "$DOC_ROOT/architecture.md"
           test -f "$DOC_ROOT/limitations.md"
           test -f "$DOC_ROOT/maturity-roadmap.md"
+          test -f "$DOC_ROOT/v4-acceptance.md"
           VIEWER_ROOT="$(/tmp/agent-regression-release-venv/bin/python -c 'import sys; print(sys.prefix)')/share/agent-regression-kit/viewer"
           test -f "$VIEWER_ROOT/reports.html"
+          test -f "$VIEWER_ROOT/workspace.html"
       - name: Create GitHub release for a pushed tag
         if: startsWith(github.ref, 'refs/tags/')
         env:

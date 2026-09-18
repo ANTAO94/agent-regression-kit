@@ -11,6 +11,18 @@ _ROOTS = (".agent-regression", "baselines", "work", "outputs")
 _IGNORED_PARTS = {".git", ".venv", "__pycache__", "build", "dist"}
 
 
+def _is_ignored(parts: tuple[str, ...]) -> bool:
+    """Skip repository-generated environments and build trees."""
+
+    return any(
+        part in _IGNORED_PARTS
+        or part == "venv"
+        or part.endswith("-venv")
+        or part.endswith(".venv")
+        for part in parts
+    )
+
+
 def _role(relative: str) -> str:
     first = relative.split("/", 1)[0]
     if first == ".agent-regression":
@@ -57,7 +69,7 @@ def build_workspace_manifest(directory: str | Path = ".") -> Dict[str, Any]:
             if not path.is_file():
                 continue
             relative = path.relative_to(root).as_posix()
-            if any(part in _IGNORED_PARTS for part in path.relative_to(root).parts):
+            if _is_ignored(path.relative_to(root).parts):
                 continue
             try:
                 files.append(

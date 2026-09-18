@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v3.9.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default examples need no model credentials.
+For v4.0.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v3.9.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.0.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -173,7 +173,7 @@ tool_calls, tool_results and final_answer are comparison projections of events. 
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v3.9.0. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.0.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -262,7 +262,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.9.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.0.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -285,7 +285,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v3.9.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.0.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -323,7 +323,42 @@ The example generates JSON, Markdown and JUnit even on a regression and preserve
 See the [advanced guide](usage-guide.en.md) and [API reference](api.md).
 history follows the last recognized point's status; report-index requires all indexed reports to pass.
 
-## 8. Troubleshooting and maintenance
+## 8. v4 compatibility and migration
+
+v4 makes upgrade checks executable instead of relying only on release notes. The
+command checks the public Python API generation and the independent Trace,
+Session, Contract/config and Report schema boundaries:
+
+```bash
+agent-regression compatibility \
+  --public-api-version 4 \
+  --trace baselines/order-123.trace.json \
+  --config .agent-regression/config.json \
+  --report outputs/compare.json \
+  --out outputs/compatibility.json
+```
+
+Exit `0` means the supplied inputs are compatible, `1` means an unsupported
+generation/schema, and `2` means an unreadable or malformed input. A v3 public
+API declaration is returned as `status=deprecated` with
+`migration_required=true`, rather than being silently treated as current.
+
+Trace schema 0.1 is unchanged in v4, but an explicit non-destructive migration
+entry point is available for future schema changes:
+
+```bash
+agent-regression migrate trace \
+  --trace baselines/order-123.trace.json \
+  --out work/order-123.v4.trace.json \
+  --report outputs/order-123.migration.json
+agent-regression validate --trace work/order-123.v4.trace.json
+```
+
+The migration report contains status and schema versions only; it does not copy
+Trace events. See the [v4.0 acceptance contract](v4-acceptance.md) for the
+complete release checklist.
+
+## 9. Troubleshooting and maintenance
 
 | Symptom | Check |
 | --- | --- |

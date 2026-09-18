@@ -12,7 +12,7 @@
 
 改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
-当前版本：[v3.9.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.9.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+当前版本：[v4.0.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.0.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
 
 ### 从这里开始
 
@@ -24,6 +24,7 @@
 | 同一策略集成 CI | [完整 CI 工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁) |
 | 理解架构、实现和边界 | [技术方案](docs/technical-design.zh-CN.md) |
 | 查 API 与高级场景 | [API](docs/api.md) · [高级指南](docs/usage-guide.zh-CN.md) |
+| 了解 v4.0 验收与升级 | [v4.0 验收](docs/v4-acceptance.md) · [升级说明](UPGRADING.md) |
 | 阅读 HTML 讲解 | [HTML 文档](docs/agent-regression-kit-guide.html)，下载后本地打开 |
 
 ### 工作方式
@@ -45,7 +46,7 @@ Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际�
 macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
 
 ```bash
-git clone --branch v3.9.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.0.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -90,6 +91,7 @@ agent-regression compare \
 | Path/result correlation | 按 call_id 关联结果，路径规则可约束结果和错误状态 | 需要 Trace 保留稳定 call_id |
 | Framework events | 接收真实框架的工具开始/结束和最终答案回调 | 框架仍负责模型、生命周期和工具本身 |
 | Workspace review | manifest、只读 baseline review、本地工作区页面 | 页面不自动读目录、不执行 Agent、不接受 baseline |
+| Compatibility / migration | v4 public API、Trace/Session/Contract/Report 检查、显式迁移 | 不会静默修改源文件 |
 
 **replay 只检查已有 Trace，不重新运行 Agent 或工具。** 需要让 Agent 在不触碰真实工具的情况下运行时，使用 v3.6 的 `replay_agent_run`/`CassetteToolExecutor`；它会阻断漏调用、多调用和参数变化。claims-only 允许措辞变化，但需要有意义的 claims 和业务断言。
 
@@ -104,14 +106,15 @@ agent-regression ui
 
 ### 验证与维护
 
-v3.9.0 的发布验收：
+v4.0.0 的发布验收：
 
 | 检查 | 证据 |
 | --- | --- |
 | 核心测试 | 本地完整测试 + [Python 3.9/3.11/3.13 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml) |
-| 框架回调 | [LangChain Core 三版本矩阵](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647091) |
-| 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647344) |
-| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.9.0) |
+| 框架回调 | [LangChain Core 三版本矩阵](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
+| 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/release.yml) |
+| 兼容与迁移 | [v4.0 验收契约](docs/v4-acceptance.md) |
+| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.0.0) |
 
 这些验证覆盖已实现路径，生产接入仍需要自己的业务用例。官方 MCP 检查是独立的[可选工作流](.github/workflows/mcp-compatibility.yml)，不等于完整协议认证。文档更新以 main 为准，发布 tag 内容固定。
 
@@ -123,7 +126,7 @@ v3.9.0 的发布验收：
 
 After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
 
-Release: [v3.9.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.9.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+Release: [v4.0.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.0.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
 
 ### Documentation
 
@@ -135,13 +138,14 @@ Release: [v3.9.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v
 | Use the same policy in CI | [Complete workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) |
 | Understand architecture and boundaries | [Technical design](docs/technical-design.en.md) |
 | Explore advanced APIs | [API reference](docs/api.md) · [Advanced guide](docs/usage-guide.en.md) |
+| Read the v4.0 acceptance and upgrade contract | [v4.0 acceptance](docs/v4-acceptance.md) · [Upgrade guide](UPGRADING.md) |
 
 ### Quick start
 
 Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
 
 ```bash
-git clone --branch v3.9.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.0.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -184,6 +188,7 @@ A Trace records one run; baseline is reviewed expectation; candidate is new evid
 | MCP | stdio / Streamable HTTP tools and controlled fixtures | Not a complete Agent framework |
 | SDK | Python sync/async adapters and templates | No bundled Java/TypeScript SDK |
 | Reports / UI | JSON, Markdown, JUnit, index and config export | Local static UI, no hosted management backend |
+| Compatibility / migration | v4 public API and document checks, explicit Trace migration | Source files are never silently rewritten |
 
 **replay inspects recorded evidence; it does not re-execute Agents or tools.** Record a new candidate to test changes. claims-only permits prose changes but needs meaningful claims and business assertions.
 
@@ -193,7 +198,7 @@ Use **compare --config** for custom contracts in CI, or pass `config` to the v3.
 
 ### Verification and maintenance
 
-Recorded v3.9.0 evidence is maintained by the main regression, framework compatibility and release workflows; each release also includes local full-test, wheel-build and clean-install checks.
+Recorded v4.0.0 evidence is maintained by the main regression, framework compatibility and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
 
 These checks cover implemented paths; production integrations need their own scenarios. The [optional MCP workflow](.github/workflows/mcp-compatibility.yml) is separate and does not certify every protocol behavior. Main contains documentation updates; published tags are fixed snapshots.
 

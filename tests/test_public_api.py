@@ -11,10 +11,13 @@ from agent_regression import (
 class PublicApiCompatibilityTests(unittest.TestCase):
     def test_manifest_exposes_explicit_api_and_trace_boundaries(self):
         manifest = public_api_manifest()
-        self.assertEqual("3", PUBLIC_API_VERSION)
+        self.assertEqual("4", PUBLIC_API_VERSION)
         self.assertEqual(["0.1"], list(SUPPORTED_TRACE_SCHEMA_VERSIONS))
         self.assertEqual(PUBLIC_API_VERSION, manifest["public_api_version"])
         self.assertEqual(["0.1"], manifest["supported_trace_schema_versions"])
+        self.assertEqual(["3"], manifest["legacy_public_api_versions"])
+        self.assertEqual(["0.1"], manifest["supported_contract_schema_versions"])
+        self.assertEqual(["0.1"], manifest["supported_report_schema_versions"])
         self.assertEqual("semver-with-explicit-deprecation", manifest["compatibility_policy"])
 
     def test_every_declared_public_symbol_is_importable(self):

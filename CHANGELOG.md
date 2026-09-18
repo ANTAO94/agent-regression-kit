@@ -7,6 +7,19 @@
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
 - Correct conflicting MCP limitations and stale adapter-template test instructions.
 
+## 4.0.0 - 2026-09-19
+
+- Promote the documented public Python API generation to v4 and expose explicit
+  Trace, Session, Contract/config and Report compatibility boundaries.
+- Add read-only `compatibility` checks with deprecation reporting for v3
+  integrations and unsupported-schema failures.
+- Add non-destructive `migrate trace` output and migration reports; AgentTrace
+  schema `0.1` remains unchanged and is currently a validated no-op migration.
+- Add the v4 acceptance contract and release-workflow checks for compatibility,
+  migration, workspace manifests, Viewer assets and clean wheel installation.
+- Complete bilingual API, technical-design, user-manual, compatibility and
+  upgrade documentation for the v4 local/CI-first maturity boundary.
+
 ## 3.9.0 - 2026-09-19
 
 - Add `workspace manifest` to fingerprint policy, baseline, candidate/run and

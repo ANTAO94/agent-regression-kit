@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v3.4 完整使用说明、接入指南和技术文档">
-  <title>Agent Regression Kit v3.4 · 完整使用与技术文档</title>
+  <meta name="description" content="Agent Regression Kit v4.0 完整使用说明、接入指南和技术文档">
+  <title>Agent Regression Kit v4.0 · 完整使用与技术文档</title>
   <style>
     :root {
       --ink: #152235;
@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v3.4 · Usage &amp; Technical Guide</small>
+          <small>v4.0 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -250,10 +250,10 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v3.4.3</span>
+            <span class="badge">v4.0.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
-            <span class="badge orange">132 tests passed</span>
+            <span class="badge orange">v4 compatibility gate</span>
             <a class="badge" href="user-manual.zh-CN.md">新版使用手册</a>
             <a class="badge" href="user-manual.en.md">English manual</a>
             <a class="badge" href="technical-design.zh-CN.md">技术方案</a>
@@ -261,6 +261,7 @@
             <a class="badge" href="../viewer/index.html">打开 Trace 查看器 →</a>
             <a class="badge" href="../viewer/reports.html">打开报告索引 →</a>
             <a class="badge" href="../viewer/config.html">打开配置中心 →</a>
+            <a class="badge" href="v4-acceptance.md">v4.0 验收说明 →</a>
           </div>
           <div class="summary-grid">
             <div class="summary-card"><strong>Trace</strong><span>一次运行的结构化证据</span></div>
@@ -364,7 +365,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.3</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.0.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -912,7 +913,7 @@ assert report["ok"], report</code></pre></div>
 python examples/langchain_core_callback_example.py
 .venv/bin/agent-regression validate --trace work/langchain-core.trace.json</code></pre></div>
           <p class="small">这是可选依赖，不会进入默认测试套件；它验证的是框架回调接入，不是某个模型供应商或完整生产 Agent 编排。</p>
-          <div class="callout info"><div class="icon">i</div><div><strong>兼容性边界</strong><code>PUBLIC_API_VERSION</code> 标识 Python 公共导出面，<code>SUPPORTED_TRACE_SCHEMA_VERSIONS</code> 独立标识 Trace schema。公开导出以 <code>agent_regression.__all__</code> 为准；删除或改变行为前需要先写弃用说明。</div></div>
+          <div class="callout info"><div class="icon">i</div><div><strong>v4 兼容性边界</strong><code>PUBLIC_API_VERSION=4</code> 标识稳定的 Python 公共导出面；Trace、Session、Contract 和 Report schema 独立保持 <code>0.1</code>。使用 <code>compatibility</code> 检查升级风险，使用 <code>migrate trace</code> 生成新文件；v3 会被标记为 deprecated，源文件不会被静默覆盖。</div></div>
           <div class="callout warn"><div class="icon">!</div><div><strong>SDK 的边界</strong><code>AdapterSpec</code> 固定 Agent 身份和 callback 形状，但不负责框架启动、依赖注入、生命周期、模型调用、业务 claims 生成或 Java/Spring 原生包装。</div></div>
         </section>
 
@@ -996,11 +997,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.3"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.0.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.4.3
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.0.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1105,7 +1106,7 @@ jobs:
             </tbody>
           </table>
           <h3>17.1 为什么保持 AgentTrace schema v0.1 不轻易变化</h3>
-          <p>产品版本和证据 schema 版本是两条线。v3.1 可以增加历史聚合、SDK 或报告能力，而不必悄悄改变旧 Trace 的解释方式。可选的 world state、session、coverage、stability、async execution metadata 都挂在现有边界上，保证已有证据仍可读取。</p>
+          <p>产品版本和证据 schema 版本是两条线。v4.0 可以增加兼容检查、迁移入口、历史聚合、SDK 或报告能力，而不必悄悄改变旧 Trace 的解释方式。可选的 world state、session、coverage、stability、async execution metadata 都挂在现有边界上，保证已有证据仍可读取。</p>
           <h3>17.2 比较器当前采用的简化</h3>
           <ul>
             <li>工具调用按事件顺序对齐，不做最优序列匹配；顺序变化会被明确报告。</li>
@@ -1214,8 +1215,25 @@ jobs:
               <tr><td><strong>v2.9</strong></td><td>并发工具完成顺序变化会让证据不稳定，或并发降级不易发现。</td><td>AsyncAdapter、稳定 call ID、parallel group、并发形状比较。</td></tr>
               <tr><td><strong>v3.0</strong></td><td>每个框架接入者都重新猜 Adapter 边界。</td><td>AdapterSpec、adapter-init 模板、离线契约测试。</td></tr>
               <tr><td><strong>v3.1</strong></td><td>单次报告看不到长期趋势和版本波动。</td><td>HistoryPoint、HistoryReport、首末/最小/最大/变化量和最新状态门禁。</td></tr>
+              <tr><td><strong>v3.5–v3.9</strong></td><td>业务门禁、工具重放、并发结果、真实框架事件和本地审核仍是分散能力。</td><td>required claims/reports、cassette、call_id 结果关联、FrameworkTraceRecorder、Workspace manifest 与只读 baseline review。</td></tr>
+              <tr><td><strong>v4.0</strong></td><td>团队升级时无法机器确认公共 API 和证据格式是否兼容。</td><td>PUBLIC_API_VERSION=4、四类 schema 兼容检查、deprecated 提示、显式 Trace migration、wheel/clean-install/release gate。</td></tr>
             </tbody>
           </table>
+          <div class="panel tint-blue">
+            <h3>v4.0 升级前先跑两条命令</h3>
+            <p>兼容检查是只读的；迁移会写到明确指定的新文件，不会覆盖 baseline：</p>
+            <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>agent-regression compatibility \
+  --public-api-version 4 \
+  --trace baselines/order-123.trace.json \
+  --config .agent-regression/config.json \
+  --report outputs/compare.json
+
+agent-regression migrate trace \
+  --trace baselines/order-123.trace.json \
+  --out work/order-123.v4.trace.json \
+  --report outputs/order-123.migration.json</code></pre></div>
+            <p class="small">v3 公共 API 会显示 <code>status=deprecated</code> 和 <code>migration_required=true</code>；Trace schema 0.1 在 v4 暂未改变，所以普通迁移报告通常是 <code>status=no-op</code>。</p>
+          </div>
           <div class="panel tint-green">
             <h3>推荐的实际采用顺序</h3>
             <ol>
@@ -1256,7 +1274,7 @@ jobs:
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v3.4.3。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
+          <p>本文档面向 Agent Regression Kit v4.0.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code> 和 <a href="v4-acceptance.md">v4.0 验收说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

@@ -84,9 +84,20 @@ from .stability import (
 from .sdk import AdapterSpec
 from .adapter_contract import check_adapter_contract, check_async_adapter_contract
 from .public_api import (
+    LEGACY_PUBLIC_API_VERSIONS,
     PUBLIC_API_VERSION,
+    SUPPORTED_CONTRACT_SCHEMA_VERSIONS,
+    SUPPORTED_REPORT_SCHEMA_VERSIONS,
+    SUPPORTED_SESSION_SCHEMA_VERSIONS,
     SUPPORTED_TRACE_SCHEMA_VERSIONS,
     public_api_manifest,
+)
+from .migration import (
+    build_compatibility_report,
+    build_trace_migration_report,
+    check_document_compatibility,
+    check_public_api_version,
+    migrate_trace,
 )
 from .templates import initialize_adapter_template
 from .workspace import build_workspace_manifest
@@ -160,8 +171,17 @@ __all__ = [
     "check_adapter_contract",
     "check_async_adapter_contract",
     "PUBLIC_API_VERSION",
+    "LEGACY_PUBLIC_API_VERSIONS",
+    "SUPPORTED_CONTRACT_SCHEMA_VERSIONS",
+    "SUPPORTED_REPORT_SCHEMA_VERSIONS",
+    "SUPPORTED_SESSION_SCHEMA_VERSIONS",
     "SUPPORTED_TRACE_SCHEMA_VERSIONS",
     "public_api_manifest",
+    "build_compatibility_report",
+    "build_trace_migration_report",
+    "check_document_compatibility",
+    "check_public_api_version",
+    "migrate_trace",
     "initialize_adapter_template",
     "HistoryPoint",
     "HistoryReport",

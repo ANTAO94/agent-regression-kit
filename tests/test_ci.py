@@ -62,6 +62,10 @@ class CiIntegrationTests(unittest.TestCase):
         )
         self.assertIn("PYTHONPATH: src", workflow)
         self.assertIn("python -m unittest discover -s tests -v", workflow)
+        self.assertIn("agent-regression compatibility", workflow)
+        self.assertIn("agent-regression migrate trace", workflow)
+        self.assertIn("agent-regression workspace manifest", workflow)
+        self.assertIn("v4-acceptance.md", workflow)
 
 
 if __name__ == "__main__":
