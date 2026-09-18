@@ -4,6 +4,14 @@
 
 No unreleased changes.
 
+## 3.4.3 - 2026-09-18
+
+- Complete the unified CI evidence flow: compare, stability, coverage, and
+  history reports now share `work/ci-reports/` and the Report Index Job
+  Summary handoff in the main workflow.
+- Make `agent_report_index` recognize history aggregate reports with safe
+  summary metrics, and add coverage for this report type.
+
 ## 3.4.2 - 2026-09-18
 
 - Fix the tag-triggered release workflow so its source-tree test suite receives

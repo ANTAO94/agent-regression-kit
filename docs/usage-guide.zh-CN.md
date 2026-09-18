@@ -112,7 +112,7 @@ agent-regression ui --open-browser
 baseline、candidate 和 compare JSON；配置中心可以生成 `.agent-regression/config.json`。
 Python CLI 仍然是比较结果的唯一来源，页面只是只读展示层。
 
-如果一次 CI 产生了多份 compare、batch、stability 或 coverage 报告，可以先生成一个
+如果一次 CI 产生了多份 compare、batch、stability、coverage 或 history 报告，可以先生成一个
 只包含状态、指标和相对路径的索引：
 
 ```bash
@@ -524,7 +524,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.2
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.3
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -532,7 +532,7 @@ GitHub Actions 还可以直接复用：
     expected-branches: paid,cancelled,not_found
 ```
 
-如果同一个工作流还会产生 compare、stability 或 history JSON，可以在门禁之后统一生成索引：
+如果同一个工作流还会产生 compare、stability、coverage 或 history JSON，可以在门禁之后统一生成索引。仓库主回归工作流把四类报告都放在 `work/ci-reports/`，并将 Markdown 索引写入 Job Summary：
 
 ```yaml
 - name: Build report index

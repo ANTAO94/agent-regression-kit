@@ -40,6 +40,10 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("id: install", workflow)
         self.assertIn("work/ci-reports", workflow)
         self.assertIn("steps.install.outcome == 'success'", workflow)
+        self.assertIn("Record stability evidence", workflow)
+        self.assertIn("Record coverage evidence", workflow)
+        self.assertIn("Aggregate history evidence", workflow)
+        self.assertIn("--out work/ci-reports/history.json", workflow)
 
     def test_release_workflow_runs_source_tests_with_package_path(self):
         workflow = (ROOT / ".github/workflows/release.yml").read_text(

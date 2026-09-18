@@ -2,7 +2,7 @@ name: Agent Regression Report Index
 description: Build one JSON and Markdown inventory for a CI report directory.
 inputs:
   report-dir:
-    description: Directory containing compare, batch, stability, or coverage JSON reports.
+    description: Directory containing compare, batch, stability, coverage, or history JSON reports.
     required: false
     default: outputs
   pattern:

@@ -59,7 +59,7 @@ flowchart LR
 - 公共兼容边界：`PUBLIC_API_VERSION`、`public_api_manifest()` 和 `SUPPORTED_TRACE_SCHEMA_VERSIONS` 明确 Python API 与 Trace schema 的版本策略。
 - 可选真实框架示例：`examples/langchain_core_callback_example.py` 使用 LangChain Core 的 `RunnableLambda`，不需要模型密钥；依赖单独放在 `examples/optional-requirements.txt`，不会污染默认测试。
 - 历史趋势与长期回归：`build_history_report` 和 `history` 聚合多次 stability、compare、batch 或 coverage 报告，展示最新状态、指标首末变化和历史失败点。
-- CI 报告索引：`report-index` 为一个输出目录生成安全的相对路径清单；Viewer 的 Report Index 先展示全局通过/失败，再把维护者带到具体 compare、batch、stability 或 coverage 证据。
+- CI 报告索引：`report-index` 为一个输出目录生成安全的相对路径清单；Viewer 的 Report Index 先展示全局通过/失败，再把维护者带到具体 compare、batch、stability、coverage 或 history 证据。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -68,9 +68,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **131 项通过，0 项失败** |
+| Python 单元与集成测试 | **132 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-3.4.2-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-3.4.3-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -470,7 +470,7 @@ agent-regression report-index \
   --out outputs/report-index.md
 ```
 
-它识别 compare、batch、stability 和 coverage 报告，忽略同目录中无法识别的 JSON，并输出 skipped 原因。`--fail-on-regression` 会在存在失败报告时返回 `1`；默认模式只生成索引，不改变当前命令的成功状态。
+它识别 compare、batch、stability、coverage 和 history 报告，忽略同目录中无法识别的 JSON，并输出 skipped 原因。`--fail-on-regression` 会在存在失败报告时返回 `1`；默认模式只生成索引，不改变当前命令的成功状态。
 
 ### CI 集成
 
@@ -539,7 +539,7 @@ agent-regression batch-compare \
 
 这个命令会递归匹配所有 `*.trace.json`，汇总通过、失败和缺失用例；任何 baseline/candidate 缺失都会让 CI 返回 `1`。
 
-如果一个工作流会同时产生 compare、coverage、stability 或 history 报告，可以直接复用报告索引 Action：
+如果一个工作流会同时产生 compare、coverage、stability 或 history 报告，可以直接复用报告索引 Action。仓库自己的主回归工作流会把四类 JSON 都写入 `work/ci-reports/`，再把 Markdown 索引追加到 Job Summary：
 
 ```yaml
 - name: Build report index
@@ -600,9 +600,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **131 passed, 0 failed** |
+| Python unit and integration suite | **132 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-3.4.2-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-3.4.3-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -612,7 +612,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 131 tests in 8.6s
+Ran 132 tests in 8.6s
 
 OK
 ```

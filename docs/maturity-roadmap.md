@@ -61,7 +61,7 @@ v3.4 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 
 ### v3.3：团队 CI 体验
 
-- [ ] 为 compare、stability、coverage、history 统一报告目录和 Job Summary。
+- [x] 为 compare、stability、coverage、history 统一报告目录和 Job Summary。
 - [x] 增加失败报告索引和基于相对路径的批量 Viewer 入口。
 - [x] 增加 release workflow：测试、构建 wheel、检查 manifest、生成 changelog。
 - [x] 对 MCP 官方 Server 和目标框架建立定期兼容性矩阵。

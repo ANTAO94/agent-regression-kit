@@ -51,6 +51,34 @@ jobs:
           report: work/ci-reports/order-123.junit.xml
           summary: work/ci-reports/order-123.md
           json-report: work/ci-reports/order-123.compare.json
+      - name: Record stability evidence
+        if: always() && steps.install.outcome == 'success'
+        run: >-
+          agent-regression stability
+          --baseline baselines/order-123.trace.json
+          --scenario examples/order-123/candidate-ok.scenario.json
+          --repeats 3
+          --workers 2
+          --out work/ci-reports/order-123.stability.json
+      - name: Record coverage evidence
+        if: always() && steps.install.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/scenarios
+          cp work/candidate.trace.json work/scenarios/order-123.trace.json
+          agent-regression coverage \
+            --trace-dir work/scenarios \
+            --expected-path get_order \
+            --format json \
+            --out work/ci-reports/order-123.coverage.json
+      - name: Aggregate history evidence
+        if: always() && steps.install.outcome == 'success'
+        run: >-
+          agent-regression history
+          --report-dir work/ci-reports
+          --format json
+          --out work/ci-reports/history.json
       - name: Build report index for reviewers
         if: always() && steps.install.outcome == 'success'
         uses: ./.github/actions/agent-report-index

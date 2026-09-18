@@ -118,6 +118,18 @@ python -m pip install --upgrade agent-regression-kit==3.4.2
 agent-regression --version
 ```
 
+## v3.4.2 → v3.4.3
+
+This feature release completes the unified CI evidence handoff. The main
+workflow writes compare, stability, coverage, and history JSON into the same
+report directory, and the Report Index includes the history aggregate in the
+Job Summary. No Trace schema or configuration migration is required.
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.4.3
+agent-regression --version
+```
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

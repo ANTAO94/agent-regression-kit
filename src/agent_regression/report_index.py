@@ -82,10 +82,24 @@ def build_report_index(
             # Raw AgentTrace inputs are evidence sources, not derived reports.
             # They commonly sit beside compare output in a CI artifact folder.
             continue
-        report_type = _classify(value)
+        # History is a derived report rather than an input point, so it is
+        # intentionally not part of history._classify(). It is still a
+        # first-class CI artifact and should appear in the handoff index.
+        if value.get("report_type") == "agent_history":
+            report_type = "agent_history"
+        else:
+            report_type = _classify(value)
         if report_type is None:
             skipped.append({"source": relative, "reason": "unrecognized regression report"})
             continue
+        if report_type == "agent_history":
+            metrics = {
+                key: value[key]
+                for key in ("point_count", "passed_point_count", "failed_point_count", "regression_count")
+                if isinstance(value.get(key), (int, float)) and not isinstance(value.get(key), bool)
+            }
+        else:
+            metrics = _metrics(value, report_type)
         summary = {
             key: value[key]
             for key in _SUMMARY_FIELDS
@@ -97,7 +111,7 @@ def build_report_index(
                 "label": active_redaction.redact(_label(value, path)),
                 "report_type": report_type,
                 "passed": bool(value.get("passed")),
-                "metrics": _metrics(value, report_type),
+                "metrics": metrics,
                 "summary": summary,
             }
         )

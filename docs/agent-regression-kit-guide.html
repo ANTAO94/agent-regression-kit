@@ -250,10 +250,10 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v3.4.2</span>
+            <span class="badge">v3.4.3</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
-            <span class="badge orange">131 tests passed</span>
+            <span class="badge orange">132 tests passed</span>
             <a class="badge" href="../viewer/index.html">打开 Trace 查看器 →</a>
             <a class="badge" href="../viewer/reports.html">打开报告索引 →</a>
             <a class="badge" href="../viewer/config.html">打开配置中心 →</a>
@@ -360,7 +360,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.2</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.3</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -950,7 +950,7 @@ cp outputs/stability-v3.0.json reports/agent-history/003-v3.0.json
             </tbody>
           </table>
           <h3>14.1 报告索引：先看全局，再钻取单份证据</h3>
-          <p>当一个 CI 任务同时生成 compare、batch、stability 和 coverage 报告时，逐个打开文件很容易漏掉失败项。<code>report-index</code> 会把这些报告整理成一个安全的索引：只保留状态、类型、标签、指标和相对于报告目录的路径，不复制完整 Trace、差异值或任意 metadata。</p>
+          <p>当一个 CI 任务同时生成 compare、batch、stability、coverage 和 history 报告时，逐个打开文件很容易漏掉失败项。<code>report-index</code> 会把这些报告整理成一个安全的索引：只保留状态、类型、标签、指标和相对于报告目录的路径，不复制完整 Trace、差异值或任意 metadata。</p>
           <div class="mermaid-wrap">
             <pre class="mermaid">flowchart LR
   Outputs[outputs/*.json] --> Index[report-index]
@@ -992,11 +992,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.2"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.3"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.4.2
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.4.3
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1252,7 +1252,7 @@ jobs:
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v3.4.2。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
+          <p>本文档面向 Agent Regression Kit v3.4.3。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

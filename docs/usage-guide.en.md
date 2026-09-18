@@ -116,7 +116,7 @@ Agent. Trace Inspector reads baseline, candidate, and compare JSON files; the
 configuration center generates `.agent-regression/config.json`. The Python CLI
 remains the source of truth for comparison decisions, and the Viewer is read-only.
 
-When one CI run produces several compare, batch, stability, or coverage reports,
+When one CI run produces several compare, batch, stability, coverage, or history reports,
 build a small index containing only status, metrics, and relative paths:
 
 ```bash
@@ -569,7 +569,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.2
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.3
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -577,8 +577,10 @@ GitHub Actions can reuse the built-in gate:
     expected-branches: paid,cancelled,not_found
 ```
 
-If the same workflow also produces compare, stability, or history JSON files,
-build one handoff index after the gates:
+If the same workflow also produces compare, stability, coverage, or history JSON
+files, build one handoff index after the gates. The repository's main
+regression workflow keeps all four report types under `work/ci-reports/` and
+appends the Markdown index to the GitHub Job Summary:
 
 ```yaml
 - name: Build report index

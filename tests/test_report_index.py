@@ -43,13 +43,32 @@ class ReportIndexTests(unittest.TestCase):
                     "path_variant_count": 1,
                 },
             )
+            self._write(
+                root,
+                "history/latest.json",
+                {
+                    "report_type": "agent_history",
+                    "latest_label": "main",
+                    "passed": True,
+                    "point_count": 3,
+                    "passed_point_count": 3,
+                    "failed_point_count": 0,
+                    "regression_count": 0,
+                    "points": [{"source": "secret.trace.json"}],
+                },
+            )
             self._write(root, "ignored.json", {"not": "a regression report"})
             report = build_report_index(root)
             self.assertFalse(report["passed"])
             self.assertNotIn(str(root), json.dumps(report))
-            self.assertEqual(2, report["report_count"])
+            self.assertEqual(3, report["report_count"])
             self.assertEqual("compare/order.json", report["entries"][0]["source"])
             self.assertNotIn("differences", json.dumps(report))
+            history_entry = next(
+                entry for entry in report["entries"] if entry["source"] == "history/latest.json"
+            )
+            self.assertEqual("agent_history", history_entry["report_type"])
+            self.assertEqual(3, history_entry["metrics"]["point_count"])
             self.assertEqual("ignored.json", report["skipped"][0]["source"])
 
     def test_invalid_json_reason_does_not_echo_an_absolute_path(self):
