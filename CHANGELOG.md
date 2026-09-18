@@ -4,6 +4,11 @@
 
 No unreleased changes.
 
+## 3.2.2 - 2026-09-18
+
+- Include the bilingual getting-started guide, upgrade guide, and compatibility
+  matrix in wheel documentation assets and verify them after clean install.
+
 ## 3.2.1 - 2026-09-18
 
 - Add the v3.2 upgrade guide and an explicit Python/framework/MCP compatibility

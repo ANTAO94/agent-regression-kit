@@ -61,6 +61,13 @@ This is a patch release. It adds migration/compatibility release material,
 Python-version CI coverage, and hardens redaction for the `secret_values`
 configuration field. No Trace schema migration is required.
 
+## v3.2.1 → v3.2.2
+
+This is a packaging-only patch release. The wheel now includes the bilingual
+getting-started guide, upgrade guide, and compatibility matrix under
+`share/agent-regression-kit/docs`. No runtime or Trace schema migration is
+required.
+
 ## English release checklist
 
 For each upgrade, record the package version, Trace schema version, test count,
