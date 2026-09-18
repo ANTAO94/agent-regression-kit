@@ -16,6 +16,7 @@ from .compat import run_compatibility_smoke
 from .config import load_batch_compare_config, load_compare_config
 from .contracts import ContractPolicy
 from .coverage import compare_trace_coverage
+from .history import build_history_report
 from .model import AgentTrace, TraceValidationError
 from .mcp import (
     McpTransportError,
@@ -30,6 +31,8 @@ from .reports import (
     render_batch_junit,
     render_batch_markdown,
     render_async_markdown,
+    render_history_junit,
+    render_history_markdown,
     render_coverage_junit,
     render_coverage_markdown,
     render_junit,
@@ -48,7 +51,7 @@ from .stability import StabilityPolicy, record_stability
 from .templates import initialize_adapter_template
 
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -360,6 +363,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
     )
 
+    history = subparsers.add_parser(
+        "history", help="aggregate historical regression reports into a trend"
+    )
+    history.add_argument("--report-dir", required=True)
+    history.add_argument("--pattern", default="*.json")
+    history.add_argument("--out")
+    history.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    history.add_argument(
+        "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
+    )
+
     stability = subparsers.add_parser(
         "stability", help="repeat one scenario and evaluate Agent stability"
     )
@@ -536,6 +550,21 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 _write_output(trace.to_dict(), args.out)
             return 0
+
+        if args.command == "history":
+            report = build_history_report(
+                args.report_dir,
+                pattern=args.pattern,
+                redaction_policy=redaction_policy,
+            )
+            report_value = report.to_dict()
+            if args.format == "junit":
+                _write_text(render_history_junit(report_value), args.out)
+            elif args.format == "markdown":
+                _write_text(render_history_markdown(report_value), args.out)
+            else:
+                _write_output(report_value, args.out)
+            return 0 if report.passed else 1
 
         if args.command == "stability":
             baseline = AgentTrace.from_dict(_read_json(args.baseline))

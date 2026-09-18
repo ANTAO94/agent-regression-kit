@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 
 from .adapters import (
     AgentAdapter,
@@ -26,6 +26,7 @@ from .coverage import (
 from .isolation import SnapshotBackend, StateIsolation
 from .compat import run_compatibility_smoke
 from .contracts import ContractPolicy
+from .history import HistoryPoint, HistoryReport, build_history_report
 from .mcp import (
     McpProtocolError,
     McpEventStream,
@@ -56,6 +57,8 @@ from .reports import (
     render_coverage_junit,
     render_coverage_markdown,
     render_async_markdown,
+    render_history_junit,
+    render_history_markdown,
     render_junit,
     render_markdown,
     render_scenario_batch_junit,
@@ -141,6 +144,9 @@ __all__ = [
     "record_stability",
     "AdapterSpec",
     "initialize_adapter_template",
+    "HistoryPoint",
+    "HistoryReport",
+    "build_history_report",
     "run_compatibility_smoke",
     "record_run",
     "record_session",
@@ -154,6 +160,8 @@ __all__ = [
     "render_batch_junit",
     "render_batch_markdown",
     "render_async_markdown",
+    "render_history_junit",
+    "render_history_markdown",
     "render_scenario_batch_junit",
     "render_scenario_batch_markdown",
     "render_stability_junit",

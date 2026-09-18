@@ -282,6 +282,88 @@ def render_async_markdown(trace: Dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_history_markdown(report: Dict[str, Any]) -> str:
+    """Render a long-term regression history and metric trend summary."""
+    status = "PASS" if report.get("passed") else "FAIL"
+    lines = [
+        "# Agent Regression History",
+        "",
+        f"**Latest status:** `{status}`",
+        "",
+        f"- Points: `{report.get('point_count', 0)}`",
+        f"- Passed points: `{report.get('passed_point_count', 0)}`",
+        f"- Historical regressions: `{report.get('regression_count', 0)}`",
+        f"- Latest: `{report.get('latest_label')}`",
+        "",
+        "## Metric trends",
+        "",
+        "| Metric | First | Latest | Delta | Min | Max |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for metric, values in report.get("metric_trends", {}).items():
+        lines.append(
+            f"| `{metric}` | {values.get('first')} | {values.get('latest')} | "
+            f"{values.get('delta')} | {values.get('min')} | {values.get('max')} |"
+        )
+    if not report.get("metric_trends"):
+        lines.append("| (none) | - | - | - | - | - |")
+    lines.extend(
+        [
+            "",
+            "## Points",
+            "",
+            "| # | Status | Label | Type | Pass rate | Claims | Tool errors | Paths | Blocking |",
+            "| ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for point in report.get("points", []):
+        metrics = point.get("metrics", {})
+        lines.append(
+            f"| {point.get('ordinal')} | {'passed' if point.get('passed') else 'failed'} | "
+            f"`{point.get('label')}` | `{point.get('report_type')}` | "
+            f"{metrics.get('pass_rate', '-')} | {metrics.get('claims_match_rate', '-')} | "
+            f"{metrics.get('tool_error_rate', '-')} | {metrics.get('path_variant_count', '-')} | "
+            f"{metrics.get('blocking_difference_count', '-')} |"
+        )
+    skipped = report.get("skipped", [])
+    if skipped:
+        lines.extend(["", "## Skipped files", ""])
+        for item in skipped:
+            lines.append(f"- `{item.get('source')}`: {item.get('reason')}")
+    return "\n".join(lines) + "\n"
+
+
+def render_history_junit(report: Dict[str, Any]) -> str:
+    """Render one JUnit testcase per historical report point."""
+    points = report.get("points", [])
+    failures = sum(1 for point in points if not point.get("passed"))
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": "agent-regression-history",
+            "tests": str(len(points)),
+            "failures": str(failures),
+            "errors": "0",
+        },
+    )
+    for point in points:
+        testcase = ET.SubElement(
+            suite,
+            "testcase",
+            {
+                "classname": "agent_regression.history",
+                "name": str(point.get("label")),
+            },
+        )
+        if not point.get("passed"):
+            failure = ET.SubElement(testcase, "failure", {"type": "AgentHistoryRegression"})
+            failure.text = json.dumps(point, ensure_ascii=False, indent=2)
+    properties = ET.SubElement(suite, "properties")
+    for key in ("point_count", "passed_point_count", "failed_point_count", "regression_count"):
+        ET.SubElement(properties, "property", {"name": key, "value": str(report.get(key, 0))})
+    return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
+
+
 def render_coverage_markdown(report: Dict[str, Any]) -> str:
     """Render a scenario path-coverage summary for a CI job summary."""
     status = "PASS" if report.get("passed") else "FAIL"

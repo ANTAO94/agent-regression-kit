@@ -213,6 +213,36 @@ Use `--mode sync`, `--mode async`, or `--mode both`. The template is a starting
 point, not framework auto-discovery; keep framework-specific setup outside the
 core recorder.
 
+## Historical trends
+
+Use `build_history_report` to aggregate reports saved by earlier commands:
+
+```python
+from agent_regression import build_history_report
+
+history = build_history_report("reports/agent-history")
+print(history.latest.label)
+print(history.metric_trends["pass_rate"])
+assert history.passed  # follows the latest recognized point
+```
+
+Reports are loaded in sorted relative-path order. Stability reports contribute
+pass, claims-match, tool-error, and path-variant metrics; compare reports
+contribute differences; batch reports contribute aggregate pass rate; coverage
+reports contribute coverage percentage. Unknown JSON files are listed in
+`HistoryReport.skipped` rather than becoming fake trend points.
+
+`HistoryReport.to_dict()` has `report_type="agent_history"`, all normalized
+points, latest-status gating, historical regression count, and per-metric
+first/latest/delta/min/max values. Use the CLI for CI-friendly renderers:
+
+```bash
+agent-regression history \
+  --report-dir reports/agent-history \
+  --format junit \
+  --out outputs/history.junit.xml
+```
+
 ## MCP
 
 - `StdioMcpClient` implements the documented MCP 2025-11-25 subset and accepts newline or Content-Length framing through its `framing` parameter.

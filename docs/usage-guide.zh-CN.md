@@ -405,6 +405,21 @@ async_adapter = spec.build_async(invoke_async_framework)
 
 这个 SDK 只固定适配器边界，不会自动发现框架内部状态，也不会替你生成业务 claims；业务语义仍由接入回调明确输出。
 
+### 历史趋势和长期回归（v3.1）
+
+把每个版本的 stability、compare、batch 或 coverage JSON 保存到同一个目录，就可以生成长期报告：
+
+```bash
+agent-regression history \
+  --report-dir reports/agent-history \
+  --format markdown \
+  --out outputs/history.md
+```
+
+文件名建议使用 `001-v2.8.json`、`002-v2.9.json` 这样的稳定前缀。报告会列出每个历史点、最新通过状态、历史失败数量，以及 `pass_rate`、claims 一致率、工具错误率、路径变体和覆盖率的首值/最新值/变化量/最小值/最大值。命令的退出码跟随最新一个已识别报告：最新通过返回 `0`，最新失败返回 `1`；旧失败仍会显示，不会被覆盖。
+
+仓库中的 [`examples/history/`](../examples/history/) 是可直接运行的最小离线数据。它是文件聚合器，不是在线 Dashboard 或模型质量判断器。
+
 ### 场景集合覆盖率
 
 当你已经有多份正常、异常、权限或副作用场景 Trace 时，可以统计 Agent 实际走过的工具路径：

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v3.0. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, or forcing every integration author to rediscover the adapter boundary?
+This document describes Agent Regression Kit v3.1. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
 
 ```mermaid
 flowchart TD
@@ -31,6 +31,8 @@ flowchart TD
     AsyncRecorder -->|call IDs + parallel groups| Trace
     AdapterSpec[AdapterSpec SDK] -->|sync/async identity + callback| Scenario
     AdapterTemplate[adapter-init template] -->|adapter.py + contract test| AdapterSpec
+    Reports[Versioned JSON reports] -->|sorted history directory| History[History aggregator]
+    History -->|latest gate + metric trends| CI
 ```
 
 The recorder is the stable center: adapters produce actions, executors isolate tool effects, and downstream comparison consumes only redacted AgentTrace documents.
@@ -144,6 +146,27 @@ The integration author owns framework startup and maps only two observable
 responsibilities: tool calls and the terminal structured answer. This keeps
 LangChain, Spring AI, and custom framework details outside the core recorder.
 
+## Long-term history flow
+
+```mermaid
+flowchart LR
+    Stability[stability report] --> HistoryDir[reports/agent-history]
+    Compare[compare report] --> HistoryDir
+    Batch[batch report] --> HistoryDir
+    Coverage[coverage report] --> HistoryDir
+    HistoryDir --> Loader[build_history_report]
+    Loader --> Normalize[normalize metrics]
+    Normalize --> Trend[first/latest/delta/min/max]
+    Normalize --> Latest[latest-status gate]
+    Trend --> Markdown[Markdown / JUnit / JSON]
+    Latest --> Markdown
+```
+
+History is deliberately file-based. Stable filename prefixes define order,
+unknown JSON remains visible in `skipped`, and the exit code follows the
+latest recognized point. Earlier failures are evidence, not silently deleted
+state.
+
 ## Version boundaries
 
-Agent Regression Kit v3.0 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, parallel-run summaries, stability reports, async execution metadata, and adapter-template files are optional, so v2.4-v2.9 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v3.1 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, parallel-run summaries, stability reports, async execution metadata, adapter-template files, and history reports are optional, so v2.4-v3.0 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

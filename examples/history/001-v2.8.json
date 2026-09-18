@@ -1,0 +1,9 @@
+{
+  "report_type": "agent_stability",
+  "label": "v2.8.0",
+  "passed": true,
+  "pass_rate": 1.0,
+  "claims_match_rate": 1.0,
+  "tool_error_rate": 0.0,
+  "path_variant_count": 1
+}

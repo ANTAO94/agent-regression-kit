@@ -54,6 +54,7 @@ flowchart LR
 - 重复运行稳定性评测：`record_stability` 和 `stability` 可以隔离重复执行同一个场景，统计通过率、claims 一致率、工具错误率和工具路径变体，并把阈值接入 CI。
 - 异步并行事件 Trace：`AsyncCallableAgentAdapter`、`async_record_run` 和 `async-record` 支持一次 Agent 运行内并发调用多个工具，保留 `call_id`、并行组和稳定事件顺序。
 - 接入 SDK 与模板：`AdapterSpec` 统一同步/异步 Agent 身份和回调边界，`adapter-init` 生成可运行的接入代码、双语说明和离线契约测试。
+- 历史趋势与长期回归：`build_history_report` 和 `history` 聚合多次 stability、compare、batch 或 coverage 报告，展示最新状态、指标首末变化和历史失败点。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -62,9 +63,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **103 项通过，0 项失败** |
+| Python 单元与集成测试 | **107 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-3.0.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-3.1.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -385,6 +386,28 @@ adapter = SPEC.build_sync(invoke_framework)
 
 SDK 不会自动猜测框架内部状态，也不会替你生成业务 claims；它只把身份、同步/异步回调和 Trace 记录边界固定下来。接入 LangChain、Spring AI 或自研框架时，只需要在回调内部把框架的工具调用映射到这两个 context 方法。
 
+### 历史趋势与长期回归报告（v3.1）
+
+当项目运行了很多版本后，单份 compare 报告无法回答“稳定性是在变好还是变坏”。v3.1 可以读取历史目录中的 JSON 报告，支持 stability、compare、batch 和 coverage 四种报告类型：
+
+```bash
+agent-regression history \
+  --report-dir reports/agent-history \
+  --format markdown \
+  --out outputs/history.md
+```
+
+建议用 `001-v2.8.json`、`002-v2.9.json` 这样的文件名前缀表达时间顺序。报告会展示每个版本的通过状态、`pass_rate`、claims 一致率、工具错误率、路径变体、覆盖率或阻断差异，并计算首个点到最新点的 `delta`、最小值和最大值。历史目录中最新报告通过时命令返回 `0`；最新报告失败时返回 `1`，但旧失败仍会保留在表格里而不会被隐藏。
+
+```text
+历史报告目录
+  ├── 001-v2.8.json  ─┐
+  ├── 002-v2.9.json  ─┼─> history ─> 趋势表 + 最新门禁 + JUnit
+  └── 003-v3.0.json  ─┘
+```
+
+仓库自带 [`examples/history/`](examples/history/) 作为最小示例。它是离线聚合器，不是数据库、在线 Dashboard 或自动判断模型质量的统计系统。
+
 ### CI 集成
 
 CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
@@ -461,7 +484,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v3.0**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
+Current release line: **v3.1**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
 ```text
 Agent / MCP Server
@@ -488,9 +511,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **103 passed, 0 failed** |
+| Python unit and integration suite | **107 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-3.0.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-3.1.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -500,7 +523,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 103 tests in 8.5s
+Ran 107 tests in 8.6s
 
 OK
 ```
@@ -824,6 +847,29 @@ adapter = SPEC.build_sync(invoke_framework)
 framework internals or invent business claims. A LangChain, Spring AI, or
 custom integration only needs to map its tool calls to `context.call_tool` and
 its final structured result to `context.final_answer`.
+
+### Historical trends and long-term reports (v3.1)
+
+After many releases, one comparison report cannot show whether reliability is
+improving or drifting. v3.1 aggregates JSON reports from a history directory;
+it recognizes stability, compare, batch, and coverage reports:
+
+```bash
+agent-regression history \
+  --report-dir reports/agent-history \
+  --format markdown \
+  --out outputs/history.md
+```
+
+Use stable filename prefixes such as `001-v2.8.json` and `002-v2.9.json` to
+define point order. The report keeps each point's status and relevant metrics,
+then calculates first/latest values, `delta`, minimum, and maximum. The CLI
+exit code follows the latest point: `0` when the latest report passes and `1`
+when it fails; older failures remain visible instead of being discarded.
+
+The repository includes [`examples/history/`](examples/history/) as a small
+offline fixture. This is a file-based trend aggregator, not a database, online
+dashboard, or statistical model-quality judge.
 
 ## Public API
 

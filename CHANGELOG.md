@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 3.1.0 - 2026-09-18
+
+- Add `HistoryPoint`, `HistoryReport`, and `build_history_report` for offline
+  aggregation of stability, compare, batch, and coverage reports.
+- Add first/latest/min/max/delta trend metrics, current latest-status gating,
+  skipped-file diagnostics, and Markdown/JUnit historical reports.
+- Add the `history` CLI command and versioned example report fixtures for
+  long-term regression review in CI or release checklists.
+- Update package, CLI, MCP client identity, scaffold Action tag, and bilingual
+  documentation to v3.1.0.
+
 ## 3.0.0 - 2026-09-18
 
 - Add the `AdapterSpec` integration SDK for building sync and async adapters

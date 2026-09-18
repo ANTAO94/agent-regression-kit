@@ -431,6 +431,29 @@ The SDK fixes adapter identity and the callback contract. It does not inspect
 framework internals or invent business claims; the integration must emit
 structured claims explicitly.
 
+### Historical trends and long-term regression (v3.1)
+
+Save stability, compare, batch, or coverage JSON reports in one directory and
+aggregate them into a release-to-release report:
+
+```bash
+agent-regression history \
+  --report-dir reports/agent-history \
+  --format markdown \
+  --out outputs/history.md
+```
+
+Use stable prefixes such as `001-v2.8.json` and `002-v2.9.json` to define
+point order. The report lists every point, the latest status, historical
+failure count, and first/latest/delta/min/max values for pass rate, claims
+match, tool errors, path variants, and coverage. The exit code follows the
+latest recognized report: `0` for latest pass and `1` for latest failure;
+older failures remain visible instead of being overwritten.
+
+[`examples/history/`](../examples/history/) contains a runnable offline
+fixture. This is a file-based aggregator, not an online dashboard or a model
+quality judge.
+
 ### Scenario-suite path coverage
 
 Once you have normal, error, permission, or side-effect scenario traces, aggregate them to see which ordered tool paths the Agent has actually exercised:

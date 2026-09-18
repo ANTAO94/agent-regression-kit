@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v3.0 deliberately stays small.
+Agent Regression Kit v3.1 deliberately stays small.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
 - Tool calls are aligned by event order, not by an optimal sequence-matching algorithm.
@@ -34,3 +34,8 @@ Agent Regression Kit v3.0 deliberately stays small.
   but do not provide framework auto-discovery, lifecycle management, dependency
   injection, or language-native Spring/Java wrappers. The generated template
   still requires the project to connect its own Agent and ToolExecutor.
+- History aggregation is file-based and order is defined by sorted relative
+  paths. It does not deduplicate releases, infer timestamps, persist a
+  database, or statistically estimate model reliability. The gate follows the
+  latest recognized point; earlier failures are reported but do not by
+  themselves make a later passing history command fail.
