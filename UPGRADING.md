@@ -55,6 +55,12 @@ python -m pip install --force-reinstall agent-regression-kit==3.1.0
 
 Do not copy a candidate Trace over a baseline as a rollback mechanism.
 
+## v3.2.0 → v3.2.1
+
+This is a patch release. It adds migration/compatibility release material,
+Python-version CI coverage, and hardens redaction for the `secret_values`
+configuration field. No Trace schema migration is required.
+
 ## English release checklist
 
 For each upgrade, record the package version, Trace schema version, test count,
