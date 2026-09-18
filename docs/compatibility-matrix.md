@@ -16,7 +16,8 @@ automatically captured.
 | Framework callback | sync and async `CallableAgentAdapter` / `AdapterSpec` | 132 core tests | Framework lifecycle and model provider remain integration-owned. |
 | Framework events | `FrameworkTraceRecorder` / `record_framework_run` lifecycle bridge | Core tests + LangChain Core optional workflow | Framework must emit tool-start/end and final-answer callbacks with stable call IDs. |
 | LangChain Core | `RunnableLambda` reference example; `langchain-core>=0.3,<2` | separate Python 3.9/3.11/3.13 workflow | Optional; no model key or provider is required by the example. |
-| Viewer | local read-only Trace/Diff, Report Index, and configuration pages | HTML script/link check + wheel smoke | Python CLI remains the comparison source of truth. |
+| Viewer | local read-only Trace/Diff, Report Index, configuration and Workspace review pages | HTML script/link check + wheel smoke | Python CLI remains the comparison source of truth; workspace files require explicit selection. |
+| Workspace review | `workspace manifest` and `baseline review` | core tests + Viewer asset check | Manifest stores relative paths, sizes and SHA-256 only; review never mutates a baseline. |
 | CI | GitHub composite Actions and package workflows | workflow structure checks + GitHub execution | External official-server workflow is scheduled and manually runnable. |
 
 ## Compatibility policy

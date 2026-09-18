@@ -38,7 +38,10 @@ def find_viewer_directory(directory: str | Path | None = None) -> Path:
         if resolved in seen:
             continue
         seen.add(resolved)
-        if all((resolved / asset).is_file() for asset in ("index.html", "config.html", "reports.html")):
+        if all(
+            (resolved / asset).is_file()
+            for asset in ("index.html", "config.html", "reports.html", "workspace.html")
+        ):
             return resolved
 
     searched = ", ".join(str(path.resolve()) for path in candidates)

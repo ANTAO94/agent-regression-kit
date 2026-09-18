@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v3.8.0 source. Package version 3.8.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
+Based on v3.9.0 source. Package version 3.9.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -39,6 +39,7 @@ Adapters supply observable events; comparison consumes Trace and policy; reports
 | Handoff | history.py, report_index.py, reports.py | File aggregation and rendering |
 | Entry points | cli.py, config.py, preflight.py | Config precedence, paths, validation and exit codes |
 | UI | ui.py, viewer/*.html | Static local file inspection and config export |
+| Workspace review | workspace.py, workspace.html | Project directory to relative paths and fingerprints |
 
 Python modules live in src/agent_regression/. The core has no required third-party runtime dependencies. LangChain Core is an optional example dependency. There is no separate database or application backend.
 
@@ -147,14 +148,14 @@ Use compare --config for custom contracts; v3.5's comparison Action also accepts
 
 ## 10. Security and deployment
 
-ui defaults to 127.0.0.1 but allows --host overrides. It is a static server without authentication, tenancy, remote runners, database or approval service.
+ui defaults to 127.0.0.1 but allows --host overrides. It is a static server without authentication, tenancy, remote runners, database or server-side approval service. Pages require explicit file selection. `workspace manifest` emits only relative paths, sizes and SHA-256 fingerprints; `baseline review` compares and writes a report, while `baseline accept` remains the only explicit save operation.
 
 Default redaction recognizes common keys; free text needs explicit secret_values. Filenames, paths, summaries and external logs may remain sensitive. Review artifacts before upload. MCP subprocesses run with the current user's permissions; use trusted tools and isolated test data.
 
 ## 11. Acceptance and evolution
 
-Recorded v3.4.3 evidence includes 132 local tests, Python 3.9/3.11/3.13 core CI, LangChain Core callback checks, wheel/source builds and clean installation. This demonstrates covered paths, not years of production usage or automatic support for every Agent.
+The v3.9.0 release gate includes the repository test suite, Python 3.9/3.11/3.13 core CI, LangChain Core callback checks, wheel/source builds, clean installation, and explicit workspace-review checks. This demonstrates covered paths, not years of production usage or automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647124) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647091) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.9.0)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

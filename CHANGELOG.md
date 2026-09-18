@@ -7,6 +7,17 @@
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
 - Correct conflicting MCP limitations and stale adapter-template test instructions.
 
+## 3.9.0 - 2026-09-19
+
+- Add `workspace manifest` to fingerprint policy, baseline, candidate/run and
+  report files using relative paths, sizes and SHA-256 without embedding data.
+- Add read-only `baseline review` so teams can compare a candidate explicitly
+  before deciding whether a baseline change is intentional.
+- Add the local Workspace Viewer page with role filtering, path search, theme
+  support and an explicit file-selection security boundary.
+- Package the Workspace Viewer and link it from the Trace, configuration and
+  report pages.
+
 ## 3.8.0 - 2026-09-19
 
 - Add `FrameworkTraceRecorder` and `record_framework_run` for framework-owned

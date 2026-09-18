@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v3.4.3. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default examples need no model credentials.
+For v3.9.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v3.4.3 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v3.9.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -78,7 +78,20 @@ agent-regression ui
 
 Open http://127.0.0.1:8765/index.html and select baseline, candidate and comparison JSON. Select the index on reports.html; generate config on config.html. Ctrl-C stops the local service.
 
-**replay validates and presents existing evidence. It does not rerun an Agent, model or tool.** Generate a new candidate to test changed code. There is no generic cassette engine that automatically injects recorded tool responses into arbitrary Agents.
+**replay validates and presents existing evidence. It does not rerun an Agent, model or tool.** Generate a new candidate to test changed code. When Agent logic must run without touching live tools, use `replay_agent_run` or `CassetteToolExecutor.from_trace()`; the strict cassette checks tool names, arguments, extra calls and unconsumed calls. Live tool behavior still needs a new recording in an isolated environment.
+
+To review the local evidence workspace without mutating a baseline:
+
+```bash
+agent-regression workspace manifest --directory . --out work/workspace-manifest.json
+agent-regression baseline review \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/candidate.trace.json \
+  --format markdown --out outputs/baseline-review.md
+```
+
+The manifest contains relative paths, sizes and SHA-256 fingerprints only. A
+baseline changes only after an explicit `baseline accept` and normal Git review.
 
 The Viewer reads explicitly selected files. Save exported config yourself; the page does not execute Agents, save project files or approve baselines. The index does not automatically load adjacent source reports. GitHub HTML links display source; start ui locally to use the interface.
 
@@ -117,6 +130,18 @@ Store expected evidence in baseline files and policy in a separate config. Examp
       "refund"
     ],
     "max_steps": 1,
+    "required_claims": [
+      "final_answer.claims.order_status"
+    ],
+    "path_rules": {
+      "any_of": [[
+        {
+          "tool": "get_order",
+          "result": {"status": "not_shipped"},
+          "is_error": false
+        }
+      ]]
+    },
     "ignore_paths": [
       "tool_results[*].result.request_id"
     ],
@@ -148,7 +173,7 @@ tool_calls, tool_results and final_answer are comparison projections of events. 
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json on main by this documentation update; it is not in the previously published v3.4.3 tag. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v3.9.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -237,7 +262,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.3"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.9.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -260,7 +285,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v3.4.3
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v3.9.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -273,7 +298,11 @@ jobs:
           path: work/reports/
 ```
 
-Use compare --config for custom contracts. The v3.4.3 agent-regression composite Action accepts paths and selected comparison controls but has **no config/contract input** and does not automatically read your config.
+Use `compare --config` for custom contracts. Since v3.5, the
+agent-regression composite Action also accepts a `config` input; legacy
+baseline/candidate, allow-path, allow-category and final-answer-mode inputs
+remain compatible. Pass `required-reports: compare.json,coverage.json` to the
+Report Index Action when missing artifacts must fail the job.
 
 The example generates JSON, Markdown and JUnit even on a regression and preserves failing exit codes. It appends Markdown to Job Summary and uploads artifacts; uploading JUnit does not automatically create per-test GitHub Checks annotations. Keep each CI report directory separate from old or deliberately failing fixtures. The index supplements command failures; it cannot replace them.
 

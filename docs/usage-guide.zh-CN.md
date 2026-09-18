@@ -526,7 +526,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.4.3
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v3.9.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

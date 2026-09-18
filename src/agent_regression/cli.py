@@ -55,6 +55,7 @@ from .stability import StabilityPolicy, record_stability
 from .templates import initialize_adapter_template
 from .ui import serve_viewer
 from .version import __version__
+from .workspace import build_workspace_manifest
 
 
 VERSION = __version__
@@ -331,6 +332,15 @@ def build_parser() -> argparse.ArgumentParser:
     accept.add_argument("--out", required=True)
     show = baseline_actions.add_parser("show", help="validate and summarize a baseline trace")
     show.add_argument("--baseline", required=True)
+    review = baseline_actions.add_parser(
+        "review", help="compare a candidate without changing the baseline"
+    )
+    review.add_argument("--baseline")
+    review.add_argument("--candidate")
+    review.add_argument("--config", help="project comparison config")
+    review.add_argument("--out")
+    review.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    review.add_argument("--secret-value", action="append", default=None)
     compare.add_argument(
         "--allow-path",
         action="append",
@@ -491,6 +501,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="required report path or glob relative to --report-dir; repeatable",
     )
 
+    workspace = subparsers.add_parser(
+        "workspace", help="build a safe manifest for local baselines, runs and reports"
+    )
+    workspace_actions = workspace.add_subparsers(dest="workspace_action", required=True)
+    workspace_manifest = workspace_actions.add_parser(
+        "manifest", help="fingerprint evidence files without embedding their contents"
+    )
+    workspace_manifest.add_argument("--directory", default=".")
+    workspace_manifest.add_argument("--out")
+
     check = subparsers.add_parser(
         "check", help="preflight config and Trace inputs without comparing behavior"
     )
@@ -567,6 +587,12 @@ def main(argv: list[str] | None = None) -> int:
                 else check_batch_config(args.config)
             )
             _write_output(report)
+            return 0
+
+        if args.command == "workspace":
+            if args.workspace_action != "manifest":
+                raise ValueError(f"unsupported workspace action: {args.workspace_action}")
+            _write_output(build_workspace_manifest(args.directory), args.out)
             return 0
 
         if args.command == "coverage":
@@ -884,6 +910,38 @@ def main(argv: list[str] | None = None) -> int:
                 trace = AgentTrace.from_dict(_read_json(args.trace))
                 _write_output(trace.to_dict(), args.out)
                 return 0
+            if args.baseline_action == "review":
+                review_config = load_compare_config(args.config) if args.config else {}
+                if args.secret_value is None:
+                    redaction_policy = RedactionPolicy(
+                        secret_values=tuple(review_config.get("secret_values", []))
+                    )
+                baseline_path = args.baseline or review_config.get("baseline")
+                candidate_path = args.candidate or review_config.get("candidate")
+                if not baseline_path or not candidate_path:
+                    raise ValueError(
+                        "baseline review requires --baseline and --candidate, or --config with both"
+                    )
+                policy = ComparisonPolicy(
+                    allowed_categories=set(review_config.get("allow_categories", [])),
+                    allowed_paths=set(review_config.get("allow_paths", [])),
+                    final_answer_mode=review_config.get("final_answer_mode", "exact"),
+                    result_alignment=review_config.get("result_alignment", "call_id"),
+                    contract=ContractPolicy.from_dict(review_config.get("contract")),
+                )
+                report = compare_traces(
+                    AgentTrace.from_dict(_read_json(baseline_path)),
+                    AgentTrace.from_dict(_read_json(candidate_path)),
+                    policy,
+                    redaction_policy,
+                )
+                if args.format == "junit":
+                    _write_text(render_junit(report), args.out)
+                elif args.format == "markdown":
+                    _write_text(render_markdown(report), args.out)
+                else:
+                    _write_output(report, args.out)
+                return 0 if report["passed"] else 1
             trace = AgentTrace.from_dict(_read_json(args.baseline))
             report = replay_trace(trace)
             _write_output(

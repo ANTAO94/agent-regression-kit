@@ -89,6 +89,7 @@ from .public_api import (
     public_api_manifest,
 )
 from .templates import initialize_adapter_template
+from .workspace import build_workspace_manifest
 from .rule_agent import (
     NORMAL,
     PARAMETER_REGRESSION,
@@ -166,6 +167,7 @@ __all__ = [
     "HistoryReport",
     "build_history_report",
     "build_report_index",
+    "build_workspace_manifest",
     "run_compatibility_smoke",
     "record_run",
     "record_framework_run",

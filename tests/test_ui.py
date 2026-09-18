@@ -22,6 +22,7 @@ class ViewerTests(unittest.TestCase):
             (ROOT / "viewer").resolve(),
         )
         self.assertTrue((ROOT / "viewer" / "reports.html").is_file())
+        self.assertTrue((ROOT / "viewer" / "workspace.html").is_file())
 
     def test_missing_viewer_directory_has_actionable_error(self):
         with tempfile.TemporaryDirectory() as directory:

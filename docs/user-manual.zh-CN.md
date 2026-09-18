@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v3.4.3。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认示例无需模型 API Key。
+适用：v3.9.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v3.4.3 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v3.9.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -78,6 +78,25 @@ agent-regression ui
 
 replay 只校验、整理已有 Trace，**不会重新执行 Agent、模型或工具**。验证新版本必须重新 record。当前也没有自动把历史工具返回值注入任意 Agent 的通用 cassette 回放引擎。
 
+如果你需要让 Agent 逻辑在不触碰真实工具的情况下重新执行，v3.6 起可以使用
+`replay_agent_run` 或 `CassetteToolExecutor.from_trace()`。它会严格检查工具名、
+参数、额外调用和漏调用，工具结果直接来自已审核 Trace；这与只读的 `replay`
+命令是两种不同能力。真实工具实现仍要在隔离环境中重新 record。
+
+要检查本地项目是否有正确的 baseline、candidate、策略和报告，可以执行：
+
+```bash
+agent-regression workspace manifest --directory . --out work/workspace-manifest.json
+agent-regression baseline review \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/candidate.trace.json \
+  --format markdown --out outputs/baseline-review.md
+```
+
+`baseline review` 只生成比较报告，不修改 baseline；确认是有意的产品变化后，
+仍需人工执行 `baseline accept` 并提交 Git review。`workspace manifest` 只保存
+相对路径、文件大小和 SHA-256 指纹，不复制 Trace 内容。
+
 Viewer 是本地静态页面：需要显式选择文件，配置导出后由你保存到项目中，页面不会自动写入项目、触发测试或审核 baseline。索引不会自动读取相邻的原始报告。GitHub 上的 HTML 文件链接展示源码；请本地启动 ui。
 
 ## 4. 配置断言、噪声过滤与比较范围
@@ -115,6 +134,18 @@ baseline 保存预期证据；检查规则放在独立 config 中，便于代码
       "refund"
     ],
     "max_steps": 1,
+    "required_claims": [
+      "final_answer.claims.order_status"
+    ],
+    "path_rules": {
+      "any_of": [[
+        {
+          "tool": "get_order",
+          "result": {"status": "not_shipped"},
+          "is_error": false
+        }
+      ]]
+    },
     "ignore_paths": [
       "tool_results[*].result.request_id"
     ],
@@ -146,7 +177,7 @@ tool_calls、tool_results、final_answer 是比较器提供的投影视图，不
 
 路径规则：配置放在 .agent-regression/ 下时相对项目根目录解析；放在其他位置时相对配置文件所在目录解析。命令行参数优先于文件配置。
 
-本次文档新增的可运行示例位于 examples/quickstart/compare.config.json（在 main 分支，不在已发布 v3.4.3 tag 内）。已有上节 candidate 后执行：
+可运行的比较策略示例位于 v3.9.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -240,7 +271,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.4.3"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.9.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -263,7 +294,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v3.4.3
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v3.9.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -276,7 +307,10 @@ jobs:
           path: work/reports/
 ```
 
-自定义 contract 必须通过 compare --config 生效。v3.4.3 的 agent-regression composite Action 接收 baseline/candidate、allow-path、allow-category、final-answer-mode，但**没有 config/contract 输入**；不要假定它会自动读取项目配置。
+自定义 contract 可以通过 `compare --config` 生效；v3.5 起 agent-regression
+composite Action 也接受 `config` 输入，旧的 baseline/candidate、allow-path、
+allow-category、final-answer-mode 用法仍兼容。报告完整性可以在 Report Index
+Action 中传 `required-reports: compare.json,coverage.json`。
 
 此示例在差异存在时仍生成三种报告并保留非零退出码。JUnit 是可供 CI 系统读取的测试报告格式；这里上传文件，并不自动创建逐测试用例的 GitHub Checks 注释。索引是汇总导航，不能取代前面各命令的失败状态。每次 CI 用独立目录，别混入旧失败样例。
 

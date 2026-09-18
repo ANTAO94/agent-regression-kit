@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Regression Kit local workspace manifest viewer">
+  <title>Workspace · Agent Regression Kit</title>
+  <style>
+    :root {
+      --ink: #172434; --ink-soft: #45596e; --muted: #738396;
+      --surface: #f4f8fb; --paper: #fff; --paper-2: #edf3f7;
+      --line: #d7e1e9; --line-strong: #b8cbd8; --blue: #176aa9;
+      --blue-soft: #e5f2fb; --teal: #087d77; --teal-soft: #e2f5f1;
+      --amber: #ad5c11; --amber-soft: #fff0dc; --red: #b23c4b;
+      --shadow: 0 18px 55px rgba(24, 51, 76, .1);
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    }
+    [data-theme="dark"] { --ink:#eef6fc; --ink-soft:#bdcedc; --muted:#8da1b2; --surface:#0e1924; --paper:#172634; --paper-2:#203441; --line:#2d4354; --line-strong:#456176; --blue:#6bb7ec; --blue-soft:#1e3b51; --teal:#6bd0c4; --teal-soft:#173e40; --amber:#f0b36d; --amber-soft:#4c351e; --red:#ff9aa8; --shadow:0 18px 55px rgba(0,0,0,.3); }
+    * { box-sizing: border-box; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 8% 2%, rgba(23,106,169,.13), transparent 28rem), radial-gradient(circle at 95% 20%, rgba(8,125,119,.1), transparent 24rem), var(--surface); font-family:var(--sans); line-height:1.5; }
+    a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+    button, input, select { font:inherit; } button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline:3px solid rgba(23,106,169,.35); outline-offset:3px; }
+    code, pre, .mono { font-family:var(--mono); }
+    .topbar { position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:1rem; min-height:70px; padding:.7rem clamp(1rem, 4vw, 4rem); border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter:blur(18px); }
+    .brand { display:flex; align-items:center; gap:.75rem; min-width:0; } .mark { display:grid; width:40px; height:40px; place-items:center; border-radius:12px; color:#fff; background:linear-gradient(145deg,#176aa9,#087d77); box-shadow:0 9px 22px rgba(23,106,169,.24); font-weight:900; letter-spacing:-.08em; } .brand strong { display:block; font-size:.92rem; } .brand small { display:block; color:var(--muted); font: .64rem var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+    .nav { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:.2rem; } .nav a, .nav button { min-height:40px; padding:.5rem .68rem; border:0; border-radius:8px; color:var(--ink-soft); background:transparent; cursor:pointer; font-size:.74rem; font-weight:780; } .nav a:hover, .nav button:hover { color:var(--blue); background:var(--blue-soft); text-decoration:none; }
+    .shell { max-width:1380px; margin:0 auto; padding:1.6rem clamp(1rem, 4vw, 4rem) 4rem; }
+    .hero { display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:1rem; align-items:end; margin-bottom:1rem; padding:1.65rem; border:1px solid #c6dae8; border-radius:22px; background:linear-gradient(135deg,var(--paper),var(--blue-soft)); box-shadow:var(--shadow); overflow:hidden; }
+    .eyebrow { color:var(--teal); font:.67rem var(--mono); font-weight:900; letter-spacing:.14em; text-transform:uppercase; } h1 { margin:.35rem 0 .5rem; font-size:clamp(1.8rem,4vw,3.3rem); line-height:1.05; letter-spacing:-.06em; } h2 { margin:0 0 .35rem; font-size:1.05rem; letter-spacing:-.02em; } h3 { margin:0 0 .25rem; font-size:.9rem; } p { margin:.35rem 0 .75rem; } .lede { max-width:720px; color:var(--ink-soft); font-size:.93rem; }
+    .hero-side { padding:1rem; border:1px solid var(--line-strong); border-radius:13px; background:color-mix(in srgb,var(--paper) 72%,transparent); } .hero-side span { color:var(--muted); font-size:.68rem; } .hero-side strong { display:block; margin:.3rem 0; font:800 1.05rem var(--mono); } .hero-side small { color:var(--ink-soft); font-size:.7rem; }
+    .load { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1rem; padding:1rem 1.1rem; border:1px solid var(--line); border-radius:15px; background:var(--paper); box-shadow:0 5px 20px rgba(24,51,76,.05); } .load-copy strong { display:block; font-size:.82rem; } .load-copy span { color:var(--muted); font-size:.71rem; } .file-label { display:inline-flex; min-height:42px; align-items:center; padding:.55rem .75rem; border:1px dashed var(--line-strong); border-radius:8px; color:var(--blue); background:var(--paper-2); cursor:pointer; font-size:.73rem; font-weight:800; } .file-label:hover { border-color:var(--blue); background:var(--blue-soft); } .file-label input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    .metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.7rem; margin-bottom:1rem; } .metric { padding:.9rem 1rem; border:1px solid var(--line); border-radius:13px; background:var(--paper); } .metric span { display:block; color:var(--muted); font-size:.67rem; font-weight:800; } .metric strong { display:block; margin-top:.15rem; font:800 1.35rem var(--mono); }
+    .workspace-grid { display:grid; grid-template-columns:220px minmax(0,1fr); gap:1rem; align-items:start; } .panel { overflow:hidden; border:1px solid var(--line); border-radius:15px; background:var(--paper); box-shadow:0 5px 20px rgba(24,51,76,.05); } .panel-head { padding:1rem 1.1rem .8rem; border-bottom:1px solid var(--line); } .panel-head p { color:var(--muted); font-size:.7rem; } .filters { padding:.8rem; } .filters label { display:block; margin:.45rem 0 .3rem; color:var(--muted); font-size:.66rem; font-weight:800; } select, input[type=search] { width:100%; min-height:39px; padding:.45rem .55rem; border:1px solid var(--line-strong); border-radius:8px; color:var(--ink); background:var(--paper); font-size:.73rem; } .filter-count { margin-top:.8rem; padding:.7rem; border-radius:9px; color:var(--teal); background:var(--teal-soft); font:700 .7rem var(--mono); }
+    .table-wrap { overflow:auto; } table { width:100%; border-collapse:collapse; min-width:650px; } th, td { padding:.8rem 1rem; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; } th { color:var(--muted); background:var(--paper-2); font:.67rem var(--mono); letter-spacing:.05em; text-transform:uppercase; } td { font-size:.75rem; } tr:last-child td { border-bottom:0; } .role { display:inline-flex; padding:.24rem .45rem; border-radius:999px; color:var(--blue); background:var(--blue-soft); font-size:.65rem; font-weight:800; } .source { color:var(--ink); font-family:var(--mono); font-size:.72rem; word-break:break-all; } .hash { color:var(--muted); font: .62rem var(--mono); word-break:break-all; } .empty { padding:2.5rem 1.2rem; color:var(--muted); text-align:center; font-size:.78rem; }
+    .notes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem; margin-top:1rem; } .note { padding:1rem; border:1px solid var(--line); border-radius:13px; background:var(--paper); } .note p { color:var(--ink-soft); font-size:.72rem; } .note.security { border-color:#a8d8cf; background:var(--teal-soft); } .note.warning { border-color:#eec99a; background:var(--amber-soft); }
+    .footer { margin-top:2rem; color:var(--muted); font-size:.68rem; text-align:center; }
+    @media (max-width:900px) { .hero { grid-template-columns:1fr; } .metrics { grid-template-columns:repeat(3,1fr); } .workspace-grid { grid-template-columns:1fr; } .notes { grid-template-columns:1fr; } }
+    @media (max-width:560px) { .topbar { align-items:flex-start; flex-direction:column; } .nav { justify-content:flex-start; } .load { align-items:flex-start; flex-direction:column; } .metrics { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">AR</span><div><strong>Agent Regression Kit</strong><small>workspace manifest</small></div></div>
+    <nav class="nav" aria-label="工具导航"><a href="index.html">Trace 查看器</a><a href="config.html">配置中心</a><a href="reports.html">报告索引</a><a href="../docs/agent-regression-kit-guide.html#baseline">完整说明</a><button id="theme" type="button" aria-label="切换主题">◐</button></nav>
+  </header>
+  <main class="shell">
+    <section class="hero"><div><div class="eyebrow">local evidence spine / v3.9</div><h1>先确认工作区，<br>再相信报告。</h1><p class="lede">选择 CLI 生成的 workspace manifest，快速确认 baseline、candidate、策略和报告是否存在、来自哪里、是否发生过变化。页面只展示清单和指纹，不会自动读取 Trace 内容，也不会改写任何文件。</p></div><div class="hero-side"><span>当前状态</span><strong id="heroStatus">等待选择 manifest</strong><small id="heroMeta">manifest 是可追溯摘要，不是数据库。</small></div></section>
+    <section class="load"><div class="load-copy"><strong>加载一个 workspace-manifest.json</strong><span>生成：<code>agent-regression workspace manifest --directory . --out work/workspace-manifest.json</code></span></div><label class="file-label">选择 manifest JSON<input id="manifestFile" type="file" accept="application/json,.json"></label></section>
+    <section class="metrics" aria-label="工作区摘要"><div class="metric"><span>文件总数</span><strong id="fileCount">—</strong></div><div class="metric"><span>baseline</span><strong id="baselineCount">—</strong></div><div class="metric"><span>candidate / run</span><strong id="candidateCount">—</strong></div><div class="metric"><span>报告</span><strong id="reportCount">—</strong></div><div class="metric"><span>策略</span><strong id="policyCount">—</strong></div></section>
+    <section class="workspace-grid"><aside class="panel"><div class="panel-head"><h2>筛选清单</h2><p>按角色和路径定位审核对象。</p></div><div class="filters"><label for="roleFilter">角色</label><select id="roleFilter"><option value="all">全部角色</option><option value="baseline">baseline</option><option value="candidate-or-run">candidate / run</option><option value="report">report</option><option value="policy">policy</option></select><label for="search">路径搜索</label><input id="search" type="search" placeholder="例如 order.trace.json" autocomplete="off"><div class="filter-count" id="filterCount">尚未加载</div></div></aside><section class="panel"><div class="panel-head"><h2>Evidence manifest</h2><p id="workspaceName">选择文件后显示相对路径、大小和 SHA-256 指纹。</p></div><div class="table-wrap"><table><thead><tr><th>角色</th><th>相对路径</th><th>大小</th><th>指纹</th></tr></thead><tbody id="fileRows"><tr><td colspan="4" class="empty">还没有 manifest。选择一个由 CLI 生成的 JSON 开始。</td></tr></tbody></table></div></section></section>
+    <section class="notes"><article class="note security"><h3>安全边界</h3><p>manifest 只包含相对路径、文件大小和 SHA-256，不把 Trace、报告差异或密钥复制到浏览器。浏览器也不会自动遍历同目录文件。</p></article><article class="note"><h3>审核顺序</h3><p>先看 baseline 是否是预期版本，再看 candidate 是否来自本次运行，最后确认 compare、coverage、stability 等报告齐全。</p></article><article class="note warning"><h3>明确接受</h3><p>工作区页面是只读的。确认行为变化是有意的之后，仍需显式执行 <code>baseline accept</code> 并走 Git review。</p></article></section>
+    <p class="footer">Agent Regression Kit · workspace viewer · local read-only by design</p>
+  </main>
+  <script>
+    (function () {
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const state = { manifest: null };
+      const esc = (value) => String(value).replace(/[&<>'"]/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[char]));
+      const bytes = (value) => { const size = Number(value) || 0; if (size < 1024) return `${size} B`; if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`; return `${(size / 1024 / 1024).toFixed(1)} MB`; };
+      function setStatus(text, meta, good) { $("heroStatus").textContent = text; $("heroMeta").textContent = meta; $("heroStatus").style.color = good ? "var(--teal)" : "var(--ink)"; }
+      function render() {
+        const manifest = state.manifest;
+        if (!manifest) return;
+        const files = Array.isArray(manifest.files) ? manifest.files : [];
+        const counts = files.reduce((acc, file) => { acc[file.role] = (acc[file.role] || 0) + 1; return acc; }, {});
+        $("fileCount").textContent = String(files.length); $("baselineCount").textContent = String(counts.baseline || 0); $("candidateCount").textContent = String(counts["candidate-or-run"] || 0); $("reportCount").textContent = String(counts.report || 0); $("policyCount").textContent = String(counts.policy || 0);
+        $("workspaceName").textContent = `${manifest.workspace_name || "workspace"} · ${manifest.schema_version || "unknown schema"} · ${manifest.skipped?.length || 0} skipped`;
+        const role = $("roleFilter").value; const query = $("search").value.trim().toLowerCase(); const visible = files.filter((file) => (role === "all" || file.role === role) && (!query || String(file.source).toLowerCase().includes(query)));
+        $("filterCount").textContent = `${visible.length} / ${files.length} files`;
+        $("fileRows").innerHTML = visible.length ? visible.map((file) => `<tr><td><span class="role">${esc(file.role)}</span></td><td><div class="source">${esc(file.source)}</div></td><td class="mono">${bytes(file.size)}</td><td><div class="hash">${esc(file.sha256 || "no fingerprint")}</div></td></tr>`).join("") : `<tr><td colspan="4" class="empty">没有符合筛选条件的文件。</td></tr>`;
+      }
+      $("manifestFile").addEventListener("change", (event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { try { const value = JSON.parse(reader.result); if (value.report_type !== "agent_workspace_manifest" || !Array.isArray(value.files)) throw new Error("不是 workspace manifest"); state.manifest = value; setStatus("manifest 已加载", `${value.file_count || value.files.length} 个证据文件 · 只读`, true); render(); } catch (error) { state.manifest = null; setStatus("无法加载", error.message, false); $("fileRows").innerHTML = `<tr><td colspan="4" class="empty">${esc(error.message)}</td></tr>`; } }; reader.readAsText(file); });
+      $("roleFilter").addEventListener("change", render); $("search").addEventListener("input", render);
+      $("theme").addEventListener("click", () => { const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = next; localStorage.setItem("ark-theme", next); });
+      const saved = localStorage.getItem("ark-theme"); if (saved) document.documentElement.dataset.theme = saved;
+    }());
+  </script>
+</body>
+</html>

@@ -244,6 +244,69 @@ Use `--mode sync`, `--mode async`, or `--mode both`. The template is a starting
 point, not framework auto-discovery; keep framework-specific setup outside the
 core recorder.
 
+## Framework event ingestion
+
+When a framework already owns the Agent loop and tool execution, use
+`FrameworkTraceRecorder` instead of wrapping the framework in a second tool
+executor. The integration forwards lifecycle events and the kit owns only the
+evidence boundary:
+
+```python
+from agent_regression import FrameworkTraceRecorder
+
+recorder = FrameworkTraceRecorder(
+    {"name": "my-agent", "version": "1.0.0"},
+    run_id="order-123",
+)
+recorder.on_tool_start("get_order", {"order_id": "123"}, call_id="call-1")
+result = framework_tool_result()
+recorder.on_tool_end("call-1", result)
+recorder.on_final_answer(
+    "The order is paid.",
+    claims={"order_status": "paid"},
+)
+trace = recorder.finish()
+```
+
+`on_tool_start` and `on_tool_end` may arrive out of completion order, but every
+tool call must close before `finish()`. The recorder rejects duplicate or
+unknown call IDs, requires one final answer, applies the selected redaction
+policy, and returns a validated `AgentTrace`. `record_framework_run` is a
+convenience wrapper for a callback runner that receives the recorder. The
+framework and model provider remain integration-owned.
+
+## Controlled cassette replay
+
+`CassetteToolExecutor.from_trace(baseline)` converts a reviewed Trace into a
+strict, in-memory tool cassette. `replay_agent_run` then lets Agent logic run
+again while the cassette checks the next tool name and JSON arguments and
+returns the recorded result. It raises `ReplayMismatchError` for changed
+arguments, changed names, extra calls or unconsumed calls. This is safe for
+testing Agent interpretation without touching live tools; it is not a test of
+the current live tool implementation.
+
+## Workspace manifest and baseline review
+
+`build_workspace_manifest(directory)` fingerprints files under the conventional
+`.agent-regression/`, `baselines/`, `work/` and `outputs/` roots. It returns a
+JSON-serializable manifest containing relative paths, roles, byte sizes and
+SHA-256 values. It deliberately does not embed Trace or report payloads.
+
+```bash
+agent-regression workspace manifest \
+  --directory . --out work/workspace-manifest.json
+agent-regression baseline review \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/order-123.trace.json \
+  --config .agent-regression/compare.json \
+  --format markdown --out outputs/baseline-review.md
+```
+
+`baseline review` compares without writing the baseline. It returns exit code
+`0` for a passing review, `1` for a blocking difference, and `2` for invalid
+inputs. Accepting a changed baseline remains an explicit `baseline accept`
+operation and should be reviewed in Git.
+
 ## Historical trends
 
 Use `build_history_report` to aggregate reports saved by earlier commands:

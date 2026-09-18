@@ -217,6 +217,27 @@ The LangChain dependency remains optional. Existing `CallableAgentAdapter`,
 `AdapterSpec`, MCP and scripted adapters are unchanged; this is an additive
 integration surface and does not require a Trace schema migration.
 
+## v3.8.0 → v3.9.0
+
+This release adds a local workspace review layer. Generate a manifest without
+embedding evidence content, review a candidate without mutating its baseline,
+and open the manifest in the local Viewer:
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.9.0
+agent-regression workspace manifest \
+  --directory . --out work/workspace-manifest.json
+agent-regression baseline review \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/order-123.trace.json \
+  --format markdown --out outputs/baseline-review.md
+agent-regression ui
+```
+
+The manifest contains relative paths, byte sizes and SHA-256 fingerprints only.
+The Viewer requires an explicit file selection and never accepts a baseline or
+executes an Agent. No Trace schema migration is required.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which
