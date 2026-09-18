@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "3.1.0"
+from .version import __version__
 
 from .adapters import (
     AgentAdapter,

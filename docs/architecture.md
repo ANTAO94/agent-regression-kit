@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v3.1. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
+This document describes Agent Regression Kit v3.1 and the local v3.2 Viewer MVP. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
 
 ```mermaid
 flowchart TD
@@ -37,6 +37,12 @@ flowchart TD
 
 The recorder is the stable center: adapters produce actions, executors isolate tool effects, and downstream comparison consumes only redacted AgentTrace documents.
 
+The Viewer is deliberately outside the evidence core. `agent-regression ui`
+serves static pages on loopback; it reads Trace and compare report files in the
+browser, but it does not execute Agents, recompute policy decisions, mutate
+baselines, or upload evidence. The Python library and CLI remain the source of
+truth for comparison outcomes.
+
 ## Component boundaries
 
 - `AgentAdapter` translates one framework-specific run into `RunContext.call_tool` and `RunContext.final_answer` calls. It does not compare or score.
@@ -59,7 +65,7 @@ The recorder is the stable center: adapters produce actions, executors isolate t
 - `ContractPolicy` adds explicit behavior constraints: required and forbidden tools, field assertions, nested noise paths, deterministic normalizers, maximum tool-call steps, multiple allowed tool paths, and side-effect transitions.
 - The CLI configuration layer resolves project-level baseline, candidate, report, and policy defaults while keeping direct command-line flags authoritative.
 - The reusable GitHub Action forwards the same final-answer mode and allow-list controls, so local and CI policy decisions do not diverge.
-- `config validate` is a side-effect-free preflight boundary: it checks the same config contract used by single-case and batch comparison before CI executes a run.
+- `config validate` is a side-effect-free config preflight boundary; `check` adds the next boundary by reading every configured Trace and validating batch file-set symmetry before CI executes a comparison.
 - CLI and report renderers translate library results into files and process exit codes; they do not change comparison outcomes.
 
 ## MCP call and failure flow

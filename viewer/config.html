@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Regression Kit v3.2 Configuration Center">
+  <title>Configuration Center · Agent Regression Kit</title>
+  <style>
+    :root {
+      --ink: #162333;
+      --ink-soft: #405267;
+      --muted: #738397;
+      --surface: #f5f8fb;
+      --paper: #ffffff;
+      --paper-2: #eef3f7;
+      --line: #d8e1e9;
+      --line-strong: #b9cad7;
+      --blue: #1463a5;
+      --blue-soft: #e7f2fb;
+      --teal: #087e78;
+      --teal-soft: #e3f5f2;
+      --amber: #b15d11;
+      --amber-soft: #fff1dd;
+      --red: #b33f4e;
+      --red-soft: #ffeaed;
+      --code: #142232;
+      --code-text: #deebf5;
+      --shadow-sm: 0 5px 18px rgba(25, 50, 75, .06);
+      --shadow-lg: 0 18px 60px rgba(25, 50, 75, .11);
+      --radius: 15px;
+      --radius-sm: 10px;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      --ink: #eef6fc;
+      --ink-soft: #bacbda;
+      --muted: #8da1b2;
+      --surface: #0f1a25;
+      --paper: #172634;
+      --paper-2: #203342;
+      --line: #2d4355;
+      --line-strong: #456176;
+      --blue: #67b4ec;
+      --blue-soft: #1e3a50;
+      --teal: #6bd0c4;
+      --teal-soft: #173e40;
+      --amber: #f1b36e;
+      --amber-soft: #4c351e;
+      --red: #ff9aa8;
+      --red-soft: #4a2831;
+      --code: #09121b;
+      --code-text: #d9edf9;
+      --shadow-sm: 0 5px 18px rgba(0, 0, 0, .2);
+      --shadow-lg: 0 18px 60px rgba(0, 0, 0, .32);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 9% 2%, rgba(20, 99, 165, .1), transparent 27rem),
+        radial-gradient(circle at 92% 22%, rgba(8, 126, 120, .08), transparent 28rem),
+        var(--surface);
+      font-family: var(--sans);
+      line-height: 1.55;
+      transition: color .2s ease, background .2s ease;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button, input, select, textarea { font: inherit; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
+      outline: 3px solid rgba(20, 99, 165, .34);
+      outline-offset: 2px;
+    }
+    code, pre { font-family: var(--mono); }
+    code { padding: .14em .35em; border: 1px solid var(--line); border-radius: 5px; background: var(--paper-2); font-size: .88em; }
+    .app { min-height: 100vh; }
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      display: flex;
+      min-height: 70px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .7rem clamp(1rem, 3vw, 3.3rem);
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--paper) 91%, transparent);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+    .brand-mark { display: grid; width: 39px; height: 39px; flex: 0 0 auto; place-items: center; border-radius: 11px; color: white; background: linear-gradient(145deg, #1463a5, #087e78); box-shadow: 0 8px 20px rgba(20, 99, 165, .25); font-weight: 850; letter-spacing: -.07em; }
+    .brand-name { display: block; overflow: hidden; color: var(--ink); font-size: .92rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-sub { display: block; color: var(--muted); font-family: var(--mono); font-size: .67rem; letter-spacing: .04em; }
+    .top-actions { display: flex; align-items: center; gap: .45rem; }
+    .icon-button, .text-button, .primary-button, .secondary-button, .danger-button {
+      min-height: 44px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+    .icon-button { display: grid; width: 44px; place-items: center; color: var(--ink-soft); background: transparent; }
+    .icon-button:hover { background: var(--paper-2); }
+    .text-button { padding: .6rem .8rem; color: var(--blue); background: transparent; font-size: .84rem; font-weight: 750; }
+    .text-button:hover { background: var(--blue-soft); }
+    .primary-button { padding: .65rem 1rem; color: white; background: var(--blue); box-shadow: 0 7px 16px rgba(20, 99, 165, .2); font-weight: 800; }
+    .primary-button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(20, 99, 165, .25); }
+    .secondary-button { padding: .65rem 1rem; border-color: var(--line-strong); color: var(--ink-soft); background: var(--paper); font-weight: 750; }
+    .secondary-button:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+    .danger-button { padding: .35rem .52rem; border-color: var(--line); color: var(--red); background: transparent; font-size: .76rem; }
+    .danger-button:hover { border-color: var(--red); background: var(--red-soft); }
+    svg { display: block; }
+    .layout { display: grid; grid-template-columns: 232px minmax(0, 720px) minmax(320px, 390px); gap: 1.25rem; max-width: 1540px; margin: 0 auto; padding: 1.55rem clamp(1rem, 3vw, 3.3rem) 4rem; }
+    .rail { position: sticky; top: 91px; align-self: start; }
+    .rail-card { padding: 1rem .85rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .rail-label { margin: .15rem .65rem .7rem; color: var(--muted); font-size: .66rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .step-nav { display: grid; gap: .22rem; }
+    .step-nav a { display: grid; grid-template-columns: 30px 1fr; align-items: center; min-height: 47px; padding: .35rem .55rem; border-radius: 9px; color: var(--ink-soft); font-size: .79rem; font-weight: 680; }
+    .step-nav a:hover, .step-nav a.active { color: var(--blue); background: var(--blue-soft); text-decoration: none; }
+    .step-no { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--muted); font-family: var(--mono); font-size: .7rem; }
+    .step-nav a.active .step-no { border-color: var(--blue); color: var(--blue); background: var(--paper); }
+    .rail-note { margin: .9rem .3rem 0; padding: .7rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .72rem; }
+    .main-column { min-width: 0; }
+    .page-heading { margin: .35rem 0 1.25rem; }
+    .eyebrow { color: var(--teal); font-family: var(--mono); font-size: .69rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -.025em; }
+    h1 { margin: .35rem 0 .5rem; font-size: clamp(1.8rem, 3.1vw, 2.8rem); }
+    h2 { margin: 0 0 .55rem; font-size: 1.22rem; }
+    h3 { margin: 0 0 .35rem; font-size: 1rem; }
+    p { margin: .4rem 0 .8rem; }
+    .lede { max-width: 650px; color: var(--ink-soft); font-size: .96rem; }
+    .status-row { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+    .status { display: inline-flex; align-items: center; gap: .38rem; padding: .32rem .58rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--paper); font-size: .72rem; font-weight: 750; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+    .status.ok { border-color: #a8d9cf; color: var(--teal); background: var(--teal-soft); }
+    .status.ok .status-dot { background: var(--teal); }
+    .status.warn { border-color: #ecc99b; color: var(--amber); background: var(--amber-soft); }
+    .status.warn .status-dot { background: var(--amber); }
+    .section { scroll-margin-top: 95px; margin: 1.15rem 0; padding: 1.35rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .section-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1.05rem; }
+    .section-heading p { max-width: 520px; color: var(--muted); font-size: .78rem; }
+    .section-number { display: inline-block; margin-right: .35rem; color: var(--blue); font-family: var(--mono); font-size: .75rem; letter-spacing: .08em; }
+    .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+    .field-grid.single { grid-template-columns: 1fr; }
+    .field { min-width: 0; }
+    .field label, .field legend { display: block; margin-bottom: .33rem; color: var(--ink); font-size: .79rem; font-weight: 800; }
+    .required { color: var(--red); }
+    .help { margin: .28rem 0 0; color: var(--muted); font-size: .71rem; line-height: 1.45; }
+    input[type="text"], input[type="number"], input[type="password"], select, textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--paper);
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+    input[type="text"], input[type="number"], input[type="password"], select { min-height: 43px; padding: .58rem .7rem; }
+    textarea { min-height: 92px; padding: .65rem .7rem; resize: vertical; line-height: 1.5; }
+    input:hover, select:hover, textarea:hover { border-color: var(--blue); }
+    input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(20, 99, 165, .12); }
+    input.invalid, select.invalid, textarea.invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(179, 63, 78, .1); }
+    .select-wrap { position: relative; }
+    .select-wrap:after { position: absolute; top: 13px; right: 12px; color: var(--muted); content: "⌄"; pointer-events: none; }
+    select { appearance: none; padding-right: 2rem; }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 47px; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-2); }
+    .switch-copy strong { display: block; font-size: .8rem; }
+    .switch-copy span { display: block; color: var(--muted); font-size: .7rem; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 25px; flex: 0 0 auto; }
+    .switch input { width: 0; height: 0; opacity: 0; }
+    .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--line-strong); cursor: pointer; transition: background .2s ease; }
+    .slider:before { position: absolute; bottom: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: white; box-shadow: 0 2px 5px rgba(0,0,0,.18); content: ""; transition: transform .2s ease; }
+    .switch input:checked + .slider { background: var(--teal); }
+    .switch input:checked + .slider:before { transform: translateX(19px); }
+    .section-note { margin: .95rem 0 0; padding: .75rem .85rem; border-left: 3px solid var(--blue); border-radius: 7px; color: var(--ink-soft); background: var(--blue-soft); font-size: .76rem; }
+    .section-note.warn { border-left-color: var(--amber); background: var(--amber-soft); }
+    .rows { display: grid; gap: .55rem; }
+    .rule-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr) auto; gap: .5rem; align-items: center; }
+    .rule-row.two { grid-template-columns: minmax(0, 1fr) auto; }
+    .rule-row.three { grid-template-columns: minmax(0, 1fr) minmax(130px, .42fr) auto; }
+    .row-empty { padding: .85rem; border: 1px dashed var(--line-strong); border-radius: 9px; color: var(--muted); background: var(--paper-2); font-size: .75rem; text-align: center; }
+    .add-row { margin-top: .65rem; padding: .35rem .5rem; border: 1px dashed var(--line-strong); border-radius: 7px; color: var(--blue); background: transparent; cursor: pointer; font-size: .75rem; font-weight: 800; }
+    .add-row:hover { border-color: var(--blue); background: var(--blue-soft); }
+    .contract-intro { display: grid; grid-template-columns: auto 1fr; gap: .75rem; align-items: start; margin-bottom: 1rem; padding: .75rem .85rem; border: 1px solid #a8d9cf; border-radius: 9px; background: var(--teal-soft); }
+    .contract-icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; color: white; background: var(--teal); font-family: var(--mono); font-weight: 800; }
+    .contract-intro strong { display: block; margin-bottom: .15rem; font-size: .8rem; }
+    .contract-intro p { margin: 0; color: var(--ink-soft); font-size: .75rem; }
+    .subsection { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px solid var(--line); }
+    .subsection-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .55rem; }
+    .subsection-head h3 { margin: 0; }
+    .subsection-head span { color: var(--muted); font-size: .7rem; }
+    .check-card { display: grid; grid-template-columns: 19px 1fr; gap: .6rem; align-items: start; padding: .7rem; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-2); }
+    .check-card input { margin-top: .18rem; accent-color: var(--teal); }
+    .check-card strong { display: block; font-size: .78rem; }
+    .check-card span { display: block; color: var(--muted); font-size: .7rem; }
+    .right-column { position: sticky; top: 91px; align-self: start; min-width: 0; }
+    .preview-card { overflow: hidden; border: 1px solid #29465b; border-radius: var(--radius); background: var(--code); box-shadow: var(--shadow-lg); }
+    .preview-top { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .95rem 1rem; border-bottom: 1px solid #29465b; }
+    .preview-title { color: #edf7ff; font-size: .83rem; font-weight: 800; }
+    .preview-title small { display: block; margin-top: .18rem; color: #8ba4b8; font-family: var(--mono); font-size: .63rem; font-weight: 500; }
+    .preview-actions { display: flex; gap: .3rem; }
+    .preview-action { min-height: 35px; padding: .35rem .55rem; border: 1px solid #41637a; border-radius: 7px; color: #d7e8f4; background: #21384a; cursor: pointer; font-size: .68rem; font-weight: 750; }
+    .preview-action:hover { border-color: #83c8ec; background: #2a4a61; }
+    .json-preview { min-height: 400px; max-height: 59vh; overflow: auto; margin: 0; padding: 1rem; color: var(--code-text); background: var(--code); font-size: .72rem; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+    .preview-foot { display: grid; gap: .55rem; padding: .8rem 1rem 1rem; border-top: 1px solid #29465b; }
+    .preview-status { display: flex; align-items: center; gap: .45rem; color: #a8d9cf; font-size: .72rem; font-weight: 750; }
+    .preview-status.error { color: #ffabb5; }
+    .preview-status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .cli-card, .rules-card { margin-top: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .mini-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .65rem; }
+    .mini-heading strong { font-size: .8rem; }
+    .mini-heading span { color: var(--muted); font-size: .68rem; }
+    .cli-preview { margin: 0; overflow: auto; padding: .8rem; border-radius: 8px; color: var(--code-text); background: var(--code); font-size: .68rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+    .rule-summary { display: grid; gap: .55rem; }
+    .rule-summary-item { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--line); }
+    .rule-summary-item:last-child { padding-bottom: 0; border-bottom: 0; }
+    .rule-summary-item span { color: var(--muted); font-size: .71rem; }
+    .rule-summary-item strong { color: var(--ink); font-family: var(--mono); font-size: .82rem; }
+    .legend { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .75rem; }
+    .legend-item { display: inline-flex; align-items: center; gap: .3rem; color: var(--muted); font-size: .68rem; }
+    .legend-mark { width: 8px; height: 8px; border-radius: 2px; }
+    .legend-mark.blue { background: var(--blue); }
+    .legend-mark.teal { background: var(--teal); }
+    .legend-mark.amber { background: var(--amber); }
+    .bottom-actions { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; justify-content: space-between; margin: 1.25rem 0; padding: 1rem 1.15rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .action-group { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .save-note { color: var(--muted); font-size: .73rem; }
+    .toast { position: fixed; z-index: 100; right: 1.2rem; bottom: 1.2rem; max-width: min(360px, calc(100vw - 2.4rem)); padding: .8rem 1rem; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow-lg); font-size: .78rem; opacity: 0; pointer-events: none; transform: translateY(12px); transition: opacity .2s ease, transform .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { border-color: var(--red); }
+    .hidden { display: none !important; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 1250px) {
+      .layout { grid-template-columns: 205px minmax(0, 1fr); }
+      .right-column { position: static; grid-column: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .72fr); gap: 1rem; align-items: start; }
+      .cli-card, .rules-card { margin-top: 0; }
+    }
+    @media (max-width: 830px) {
+      .topbar { padding-right: 1rem; padding-left: 1rem; }
+      .layout { display: block; padding: 1rem; }
+      .rail { position: static; margin-bottom: 1rem; }
+      .step-nav { display: flex; overflow-x: auto; gap: .35rem; padding-bottom: .2rem; }
+      .step-nav a { min-width: 150px; border: 1px solid var(--line); background: var(--paper); }
+      .rail-note { display: none; }
+      .right-column { display: block; }
+      .preview-card { margin-top: 1rem; }
+      .cli-card, .rules-card { margin-top: 1rem; }
+    }
+    @media (max-width: 560px) {
+      .brand-sub, .top-actions .text-button { display: none; }
+      .field-grid { grid-template-columns: 1fr; }
+      .rule-row, .rule-row.three { grid-template-columns: 1fr auto; }
+      .rule-row input:nth-child(2), .rule-row.three select { grid-column: 1; }
+      .rule-row.three > input, .rule-row.three > .select-wrap { grid-column: 1; }
+      .rule-row[data-row="side-effect"] > input { grid-column: 1; }
+      .rule-row button { grid-column: 2; grid-row: 1 / span 2; }
+      .rule-row.three > button, .rule-row[data-row="side-effect"] > button { grid-column: 2; grid-row: 1 / span 3; }
+      .grid-checks { grid-template-columns: 1fr !important; }
+      .section { padding: 1rem; }
+      .section-heading { display: block; }
+      .section-heading p { margin-top: .45rem; }
+      .bottom-actions { align-items: stretch; }
+      .action-group { width: 100%; }
+      .action-group button { flex: 1 1 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">AR</div>
+        <div>
+          <span class="brand-name">Agent Regression Kit <span style="color: var(--blue)">/</span> Configuration Center</span>
+          <span class="brand-sub">v3.2 MVP · policy before execution</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a class="text-button" href="index.html">Trace 查看器</a>
+        <a class="text-button" href="../docs/agent-regression-kit-guide.html#baseline">查看配置说明</a>
+        <a class="text-button" href="../README.md">README</a>
+        <button class="icon-button" id="themeToggle" type="button" aria-label="切换深色模式" title="切换深色模式">
+          <svg id="themeIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="rail" aria-label="配置步骤">
+        <div class="rail-card">
+          <div class="rail-label">Configuration flow</div>
+          <nav class="step-nav">
+            <a class="active" href="#project"><span class="step-no">01</span><span>项目与输出</span></a>
+            <a href="#comparison"><span class="step-no">02</span><span>比较策略</span></a>
+            <a href="#contract"><span class="step-no">03</span><span>行为契约</span></a>
+            <a href="#noise"><span class="step-no">04</span><span>噪音与脱敏</span></a>
+            <a href="#review"><span class="step-no">05</span><span>检查并导出</span></a>
+          </nav>
+          <p class="rail-note">页面只生成配置文件和命令预览，不会自动调用 Agent、覆盖 baseline 或访问生产服务。</p>
+        </div>
+      </aside>
+
+      <main class="main-column">
+        <div class="page-heading">
+          <div class="eyebrow">Build a policy, not a mystery</div>
+          <h1>配置中心</h1>
+          <p class="lede">用表单把 baseline、候选行为、契约和噪音规则说清楚。页面会实时生成真正可以交给 <code>agent-regression compare</code> 的 JSON。</p>
+          <div class="status-row" aria-live="polite">
+            <span class="status ok" id="validationBadge"><span class="status-dot"></span><span id="validationText">配置可导出</span></span>
+            <span class="status"><span class="status-dot"></span>本地静态模式</span>
+            <span class="status"><span class="status-dot"></span>不保存浏览器草稿</span>
+          </div>
+        </div>
+
+        <section class="section" id="project">
+          <div class="section-heading">
+            <div><h2><span class="section-number">01</span>项目与输出</h2><p>先告诉比较器要读哪一份审核基线、哪一份本次候选结果，以及报告写到哪里。</p></div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="baseline">Baseline 路径 <span class="required">*</span></label>
+              <input id="baseline" type="text" value="baselines/order-123.trace.json" autocomplete="off">
+              <p class="help">经过审核的期望行为。建议提交到 Git，并禁止 CI 自动覆盖。</p>
+            </div>
+            <div class="field">
+              <label for="candidate">Candidate 路径 <span class="required">*</span></label>
+              <input id="candidate" type="text" value="work/order-123.trace.json" autocomplete="off">
+              <p class="help">当前代码、Prompt 或模型生成的新 Trace。</p>
+            </div>
+            <div class="field">
+              <label for="report">报告输出路径 <span class="required">*</span></label>
+              <input id="report" type="text" value="outputs/order-123.diff.md" autocomplete="off">
+              <p class="help">可以输出 Markdown、JSON 或 JUnit 文件。</p>
+            </div>
+            <div class="field">
+              <label for="format">默认报告格式</label>
+              <div class="select-wrap"><select id="format"><option value="markdown" selected>Markdown · 人工审核</option><option value="json">JSON · 自动处理</option><option value="junit">JUnit · CI 测试面板</option></select></div>
+              <p class="help">命令行参数可以覆盖这里的默认值。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="comparison">
+          <div class="section-heading">
+            <div><h2><span class="section-number">02</span>比较策略</h2><p>这一节控制“baseline 发生了什么变化时要阻断”。允许差异仍会显示在报告中，只是不让命令失败。</p></div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="finalAnswerMode">最终答案比较方式</label>
+              <div class="select-wrap"><select id="finalAnswerMode"><option value="exact">exact · 文本也必须一致</option><option value="claims-only" selected>claims-only · 只放宽最终文本</option></select></div>
+              <p class="help"><code>claims-only</code> 仍然严格检查 claims、工具、参数、结果和错误状态。</p>
+            </div>
+            <div class="field">
+              <label for="allowCategories">允许的差异类别</label>
+              <input id="allowCategories" type="text" value="final_answer" autocomplete="off">
+              <p class="help">多个值用逗号分隔，例如 <code>final_answer,tool_result</code>。建议少用。</p>
+            </div>
+            <div class="field">
+              <label for="allowPaths">允许的精确差异路径</label>
+              <textarea id="allowPaths" rows="3" placeholder="tool_calls[0].arguments.request_id
+tool_results[0].result.trace_id"></textarea>
+              <p class="help">每行一条完整差异路径。它只放宽阻断，不会删除报告里的差异。</p>
+            </div>
+            <div class="field">
+              <label>策略提醒</label>
+              <div class="switch-row">
+                <div class="switch-copy"><strong>严格审查模式</strong><span>禁止在没有理由时放宽差异</span></div>
+                <label class="switch"><input id="strictReview" type="checkbox" checked><span class="slider"></span><span class="sr-only">启用严格审查模式</span></label>
+              </div>
+              <p class="help">这里只影响页面提醒，不会改变 Kit 的比较逻辑。</p>
+            </div>
+          </div>
+          <div class="section-note">理解方式：<strong>allow_*</strong> 是“哪些变化不阻断”；下面的 <strong>contract</strong> 是“candidate 必须怎样运行”。不要用 allow-path 掩盖一个应该写成契约的危险行为。</div>
+        </section>
+
+        <section class="section" id="contract">
+          <div class="section-heading">
+            <div><h2><span class="section-number">03</span>行为契约</h2><p>Contract 是 Agent 的可执行规则：它不猜模型想法，只检查你明确记录下来的工具、claims、路径和状态。</p></div>
+          </div>
+          <div class="contract-intro">
+            <div class="contract-icon">C</div>
+            <div><strong>把产品要求写成可以失败的规则</strong><p>例如“查询订单必须调用 get_order，不能调用 delete_order，最终状态必须是 not_shipped，最多调用 5 步”。</p></div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="maxSteps">最大工具调用步数</label>
+              <input id="maxSteps" type="number" min="0" step="1" value="5">
+              <p class="help">留空表示不设置上限；用于防止循环调用和异常成本。</p>
+            </div>
+            <div class="field">
+              <label for="orderedPaths">工具路径是否必须有序</label>
+              <div class="select-wrap"><select id="orderedPaths"><option value="true" selected>是 · 按完整顺序匹配</option><option value="false">否 · 只要求工具集合匹配</option></select></div>
+              <p class="help">路径规则每行一条，使用 <code>-&gt;</code> 连接工具名。</p>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head"><h3>必须调用的工具</h3><span>must_call</span></div>
+            <div id="mustCallRows" class="rows"></div>
+            <button class="add-row" type="button" data-add="must-call">＋ 添加必须调用</button>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head"><h3>禁止调用的工具</h3><span>must_not_call</span></div>
+            <div id="mustNotCallRows" class="rows"></div>
+            <button class="add-row" type="button" data-add="must-not-call">＋ 添加禁止调用</button>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head"><h3>字段断言</h3><span>equals · contains · exists</span></div>
+            <div id="assertionRows" class="rows"></div>
+            <button class="add-row" type="button" data-add="assertion">＋ 添加字段断言</button>
+            <p class="help">路径示例：<code>final_answer.claims.order_status</code>。equals 和 contains 的值支持 JSON；普通文字会按字符串处理。</p>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head"><h3>允许的完整工具路径</h3><span>path_rules.any_of</span></div>
+            <div class="field"><textarea id="pathRules" rows="4">get_order
+get_order -&gt; get_shipping</textarea></div>
+            <p class="help">每行是一条完整合法路径。字符串工具规则只检查工具名，不限制参数；如果参数是产品契约，请用必须调用或 baseline 比较固定下来。</p>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-head"><h3>业务副作用</h3><span>side_effects</span></div>
+            <div id="sideEffectRows" class="rows"></div>
+            <button class="add-row" type="button" data-add="side-effect">＋ 添加状态变化</button>
+            <p class="help">需要工具执行器提供 world state 快照，例如 <code>orders.123.status</code> 从 <code>paid</code> 变成 <code>cancelled</code>。</p>
+          </div>
+        </section>
+
+        <section class="section" id="noise">
+          <div class="section-heading">
+            <div><h2><span class="section-number">04</span>噪音过滤与脱敏</h2><p>只处理已知、可解释的动态字段。过滤越宽，测试越容易通过，但证据越弱。</p></div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="ignorePaths">忽略路径</label>
+              <textarea id="ignorePaths" rows="5">tool_results[*].result.request_id</textarea>
+              <p class="help">支持 <code>[*]</code>。适合 request ID、trace ID 等不承载业务语义的字段。</p>
+            </div>
+            <div class="field">
+              <label for="secretValues">运行时敏感值</label>
+              <textarea id="secretValues" rows="5" placeholder="local-test-secret
+仅用于本次生成/运行，不要提交真实 Token"></textarea>
+              <p class="help">每行一条。页面不会把它保存到浏览器草稿；下载的 JSON 仍会包含输入值，请确认后再提交。</p>
+            </div>
+          </div>
+          <div class="subsection">
+            <div class="subsection-head"><h3>确定性归一化</h3><span>normalizers</span></div>
+            <div id="normalizerRows" class="rows"></div>
+            <button class="add-row" type="button" data-add="normalizer">＋ 添加归一化规则</button>
+            <p class="help"><code>timestamp</code> 把值归一化为时间戳占位符；<code>sort</code> 对列表按稳定表示排序。当前版本不支持任意正则重写。</p>
+          </div>
+          <div class="section-note warn">安全提示：脱敏不是数据防泄露系统。请在 CI 报告上传前检查 Trace、工具返回值和最终文本，尤其是自由文本中的密钥。</div>
+        </section>
+
+        <section class="section" id="review">
+          <div class="section-heading">
+            <div><h2><span class="section-number">05</span>检查并导出</h2><p>导出前先看右侧 JSON。配置页面不会自动写入仓库，确认无误后下载，再把文件放进项目的 <code>.agent-regression/</code> 目录。</p></div>
+          </div>
+          <div class="grid-checks" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;">
+            <label class="check-card"><input id="reviewBaseline" type="checkbox"><span><strong>我确认 baseline 已经过人工审核</strong><span>不会把每次 candidate 自动当成基线。</span></span></label>
+            <label class="check-card"><input id="reviewNoise" type="checkbox"><span><strong>我确认过滤字段只是已知噪音</strong><span>没有用 ignore/allow 隐藏业务变化。</span></span></label>
+          </div>
+          <div class="section-note">推荐流程：下载 JSON → 放入项目 → 执行 <code>agent-regression config validate</code> → 再运行 compare。页面状态通过不代表真实文件路径和 Trace 内容一定存在。</div>
+        </section>
+
+        <div class="bottom-actions">
+          <span class="save-note">当前页面是本地草稿；不会自动提交 Git 或调用外部服务。</span>
+          <div class="action-group">
+            <button class="secondary-button" id="loadExample" type="button">恢复示例</button>
+            <button class="secondary-button" id="resetForm" type="button">清空规则</button>
+            <button class="primary-button" id="downloadConfig" type="button">下载 config.json</button>
+          </div>
+        </div>
+      </main>
+
+      <aside class="right-column" aria-label="配置预览">
+        <div class="preview-card">
+          <div class="preview-top">
+            <div class="preview-title">Generated config<span><small>.agent-regression/config.json</small></span></div>
+            <div class="preview-actions"><button class="preview-action" id="copyJson" type="button">复制 JSON</button></div>
+          </div>
+          <pre class="json-preview" id="jsonPreview" aria-label="生成的配置 JSON"></pre>
+          <div class="preview-foot">
+            <div class="preview-status" id="previewStatus" aria-live="polite"><span class="preview-status-dot"></span><span>配置可导出</span></div>
+            <button class="primary-button" id="validateConfig" type="button">验证当前配置</button>
+          </div>
+        </div>
+
+        <div class="cli-card">
+          <div class="mini-heading"><strong>CLI command preview</strong><span>本地 / CI 都可复用</span></div>
+          <pre class="cli-preview" id="cliPreview"></pre>
+        </div>
+
+        <div class="rules-card">
+          <div class="mini-heading"><strong>当前规则摘要</strong><span>live summary</span></div>
+          <div class="rule-summary">
+            <div class="rule-summary-item"><span>必须工具</span><strong id="summaryMustCall">0</strong></div>
+            <div class="rule-summary-item"><span>禁止工具</span><strong id="summaryMustNotCall">0</strong></div>
+            <div class="rule-summary-item"><span>字段断言</span><strong id="summaryAssertions">0</strong></div>
+            <div class="rule-summary-item"><span>合法路径</span><strong id="summaryPaths">0</strong></div>
+            <div class="rule-summary-item"><span>噪音路径</span><strong id="summaryIgnore">0</strong></div>
+            <div class="rule-summary-item"><span>状态副作用</span><strong id="summaryEffects">0</strong></div>
+          </div>
+          <div class="legend"><span class="legend-item"><i class="legend-mark blue"></i>比较策略</span><span class="legend-item"><i class="legend-mark teal"></i>行为契约</span><span class="legend-item"><i class="legend-mark amber"></i>噪音与风险</span></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const example = {
+        baseline: "baselines/order-123.trace.json",
+        candidate: "work/order-123.trace.json",
+        report: "outputs/order-123.diff.md",
+        format: "markdown",
+        final_answer_mode: "claims-only",
+        allow_categories: ["final_answer"],
+        allow_paths: [],
+        secret_values: [],
+        contract: {
+          must_call: [{ tool: "get_order", arguments: { order_id: "123" } }],
+          must_not_call: ["delete_order"],
+          assertions: [{ path: "final_answer.claims.order_status", equals: "not_shipped" }],
+          ignore_paths: ["tool_results[*].result.request_id"],
+          normalizers: [{ path: "tool_results[*].result.created_at", type: "timestamp" }],
+          max_steps: 5,
+          path_rules: { ordered: true, any_of: [["get_order"], ["get_order", "get_shipping"]] },
+          side_effects: []
+        }
+      };
+
+      const ids = (id) => document.getElementById(id);
+      const textValue = (id) => ids(id).value.trim();
+      const lines = (value) => value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+      const csv = (value) => value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
+      const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+
+      function showToast(message, error) {
+        const toast = ids("toast");
+        toast.textContent = message;
+        toast.classList.toggle("error", Boolean(error));
+        toast.classList.add("show");
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2600);
+      }
+
+      function parseValue(value) {
+        const trimmed = value.trim();
+        if (trimmed === "true") return true;
+        if (trimmed === "false") return false;
+        if (trimmed === "null") return null;
+        if (!trimmed) return "";
+        try { return JSON.parse(trimmed); } catch (_) { return trimmed; }
+      }
+
+      function rowHtml(type, data) {
+        const item = data || {};
+        if (type === "must-call") {
+          return `<div class="rule-row" data-row="must-call"><input data-key="tool" type="text" value="${escapeHtml(item.tool || "get_order")}" aria-label="必须调用的工具名" placeholder="工具名，例如 get_order"><input data-key="arguments" type="text" value="${escapeHtml(item.arguments ? JSON.stringify(item.arguments) : "")}" aria-label="工具参数 JSON" placeholder='可选参数，例如 {"order_id":"123"}'><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
+        }
+        if (type === "must-not-call") {
+          return `<div class="rule-row two" data-row="must-not-call"><input data-key="tool" type="text" value="${escapeHtml(item.tool || "delete_order")}" aria-label="禁止调用的工具名" placeholder="工具名，例如 delete_order"><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
+        }
+        if (type === "assertion") {
+          const operator = item.operator || (Object.prototype.hasOwnProperty.call(item, "exists") ? "exists" : Object.prototype.hasOwnProperty.call(item, "contains") ? "contains" : "equals");
+          const value = Object.prototype.hasOwnProperty.call(item, "value") ? item.value : Object.prototype.hasOwnProperty.call(item, "equals") ? item.equals : Object.prototype.hasOwnProperty.call(item, "contains") ? item.contains : "true";
+          return `<div class="rule-row three" data-row="assertion"><input data-key="path" type="text" value="${escapeHtml(item.path || "final_answer.claims.order_status")}" aria-label="断言路径" placeholder="字段路径"><div class="select-wrap"><select data-key="operator" aria-label="断言运算符"><option value="equals" ${operator === "equals" ? "selected" : ""}>equals</option><option value="contains" ${operator === "contains" ? "selected" : ""}>contains</option><option value="exists" ${operator === "exists" ? "selected" : ""}>exists</option></select></div><input data-key="value" type="text" value="${escapeHtml(typeof value === "string" ? value : JSON.stringify(value))}" aria-label="断言值" placeholder="值或 JSON"><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
+        }
+        if (type === "normalizer") {
+          return `<div class="rule-row three" data-row="normalizer"><input data-key="path" type="text" value="${escapeHtml(item.path || "tool_results[*].result.created_at")}" aria-label="归一化路径" placeholder="字段路径"><div class="select-wrap"><select data-key="type" aria-label="归一化类型"><option value="timestamp" ${item.type !== "sort" ? "selected" : ""}>timestamp</option><option value="sort" ${item.type === "sort" ? "selected" : ""}>sort</option></select></div><span></span><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
+        }
+        if (type === "side-effect") {
+          return `<div class="rule-row" data-row="side-effect"><input data-key="path" type="text" value="${escapeHtml(item.path || "orders.123.status")}" aria-label="状态路径" placeholder="状态路径，例如 orders.123.status"><input data-key="from" type="text" value="${escapeHtml(item.from || "paid")}" aria-label="初始状态" placeholder="from"><input data-key="to" type="text" value="${escapeHtml(item.to || "cancelled")}" aria-label="最终状态" placeholder="to"><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
+        }
+        return "";
+      }
+
+      function renderRows(containerId, type, items) {
+        const container = ids(containerId);
+        container.innerHTML = items.length ? items.map((item) => rowHtml(type, item)).join("") : `<div class="row-empty">还没有规则。点击下方按钮添加一条。</div>`;
+      }
+
+      function initRows() {
+        renderRows("mustCallRows", "must-call", example.contract.must_call);
+        renderRows("mustNotCallRows", "must-not-call", example.contract.must_not_call.map((tool) => ({ tool })));
+        renderRows("assertionRows", "assertion", example.contract.assertions);
+        renderRows("normalizerRows", "normalizer", example.contract.normalizers);
+        renderRows("sideEffectRows", "side-effect", example.contract.side_effects);
+      }
+
+      function readRows(containerId, type) {
+        return Array.from(ids(containerId).querySelectorAll(`[data-row="${type}"]`));
+      }
+
+      function parseMustCall() {
+        return readRows("mustCallRows", "must-call").map((row) => {
+          const tool = row.querySelector('[data-key="tool"]').value.trim();
+          const rawArguments = row.querySelector('[data-key="arguments"]').value.trim();
+          const item = { tool };
+          if (rawArguments) item.arguments = parseValue(rawArguments);
+          return item;
+        }).filter((item) => item.tool);
+      }
+
+      function parseMustNotCall() {
+        return readRows("mustNotCallRows", "must-not-call").map((row) => row.querySelector('[data-key="tool"]').value.trim()).filter(Boolean);
+      }
+
+      function parseAssertions() {
+        return readRows("assertionRows", "assertion").map((row) => {
+          const path = row.querySelector('[data-key="path"]').value.trim();
+          const operator = row.querySelector('[data-key="operator"]').value;
+          const value = row.querySelector('[data-key="value"]').value;
+          const item = { path };
+          if (operator === "exists") item.exists = value.trim() !== "false";
+          else item[operator] = parseValue(value);
+          return item;
+        }).filter((item) => item.path);
+      }
+
+      function parseNormalizers() {
+        return readRows("normalizerRows", "normalizer").map((row) => ({
+          path: row.querySelector('[data-key="path"]').value.trim(),
+          type: row.querySelector('[data-key="type"]').value
+        })).filter((item) => item.path);
+      }
+
+      function parseSideEffects() {
+        return readRows("sideEffectRows", "side-effect").map((row) => ({
+          path: row.querySelector('[data-key="path"]').value.trim(),
+          from: row.querySelector('[data-key="from"]').value.trim(),
+          to: row.querySelector('[data-key="to"]').value.trim()
+        })).filter((item) => item.path && (item.from || item.to));
+      }
+
+      function parsePathRules() {
+        const alternatives = lines(textValue("pathRules")).map((line) => line.split(/\s*->\s*/).map((tool) => tool.trim()).filter(Boolean)).filter((path) => path.length);
+        return alternatives.length ? { ordered: ids("orderedPaths").value === "true", any_of: alternatives } : {};
+      }
+
+      function buildConfig() {
+        const maxSteps = textValue("maxSteps");
+        const config = {
+          baseline: textValue("baseline"),
+          candidate: textValue("candidate"),
+          report: textValue("report"),
+          format: ids("format").value,
+          final_answer_mode: ids("finalAnswerMode").value,
+          allow_categories: csv(textValue("allowCategories")),
+          allow_paths: lines(textValue("allowPaths")),
+          secret_values: lines(textValue("secretValues")),
+          contract: {
+            must_call: parseMustCall(),
+            must_not_call: parseMustNotCall(),
+            assertions: parseAssertions(),
+            ignore_paths: lines(textValue("ignorePaths")),
+            normalizers: parseNormalizers(),
+            max_steps: maxSteps === "" ? null : Number(maxSteps),
+            path_rules: parsePathRules(),
+            side_effects: parseSideEffects()
+          }
+        };
+        return config;
+      }
+
+      function validateConfig(config) {
+        const errors = [];
+        ["baseline", "candidate", "report"].forEach((key) => { if (!config[key]) errors.push(`${key} 不能为空`); });
+        if (!Number.isInteger(config.contract.max_steps) && config.contract.max_steps !== null) errors.push("max_steps 必须是非负整数");
+        if (Number.isInteger(config.contract.max_steps) && config.contract.max_steps < 0) errors.push("max_steps 必须是非负整数");
+        config.contract.must_call.forEach((rule, index) => { if (!rule.tool) errors.push(`must_call 第 ${index + 1} 行缺少工具名`); if (rule.arguments !== undefined && (typeof rule.arguments !== "object" || rule.arguments === null || Array.isArray(rule.arguments))) errors.push(`must_call 第 ${index + 1} 行的 arguments 必须是 JSON 对象`); });
+        config.contract.assertions.forEach((rule, index) => { if (!rule.path) errors.push(`assertions 第 ${index + 1} 行缺少路径`); });
+        config.contract.normalizers.forEach((rule, index) => { if (!rule.path) errors.push(`normalizers 第 ${index + 1} 行缺少路径`); if (!["timestamp", "sort"].includes(rule.type)) errors.push(`normalizers 第 ${index + 1} 行类型不支持`); });
+        config.contract.side_effects.forEach((rule, index) => { if (!rule.path) errors.push(`side_effects 第 ${index + 1} 行缺少路径`); if (!rule.from && !rule.to) errors.push(`side_effects 第 ${index + 1} 行至少需要 from 或 to`); });
+        return errors;
+      }
+
+      function updateSummary(config) {
+        ids("summaryMustCall").textContent = String(config.contract.must_call.length);
+        ids("summaryMustNotCall").textContent = String(config.contract.must_not_call.length);
+        ids("summaryAssertions").textContent = String(config.contract.assertions.length);
+        ids("summaryPaths").textContent = String(config.contract.path_rules.any_of ? config.contract.path_rules.any_of.length : 0);
+        ids("summaryIgnore").textContent = String(config.contract.ignore_paths.length);
+        ids("summaryEffects").textContent = String(config.contract.side_effects.length);
+      }
+
+      function renderCli(config) {
+        const command = [
+          "agent-regression compare",
+          `  --config .agent-regression/config.json`,
+          `  --baseline ${config.baseline || "<baseline>"}`,
+          `  --candidate ${config.candidate || "<candidate>"}`,
+          `  --format ${config.format}`,
+          `  --out ${config.report || "<report>"}`
+        ];
+        if (config.final_answer_mode === "claims-only") command.push("  --final-answer-mode claims-only");
+        config.allow_categories.forEach((category) => command.push(`  --allow-category ${category}`));
+        config.allow_paths.forEach((path) => command.push(`  --allow-path ${path}`));
+        return command.join(" \\\n+");
+      }
+
+      function render() {
+        const config = buildConfig();
+        const errors = validateConfig(config);
+        ids("jsonPreview").textContent = JSON.stringify(config, null, 2);
+        ids("cliPreview").textContent = renderCli(config);
+        updateSummary(config);
+        const badge = ids("validationBadge");
+        const badgeText = ids("validationText");
+        const previewStatus = ids("previewStatus");
+        badge.classList.toggle("ok", errors.length === 0);
+        badge.classList.toggle("warn", errors.length > 0);
+        badgeText.textContent = errors.length ? `${errors.length} 个配置问题` : "配置可导出";
+        previewStatus.classList.toggle("error", errors.length > 0);
+        previewStatus.querySelector("span:last-child").textContent = errors.length ? errors[0] : "配置可导出";
+        return { config, errors };
+      }
+
+      function applyConfig(config) {
+        ids("baseline").value = config.baseline || "";
+        ids("candidate").value = config.candidate || "";
+        ids("report").value = config.report || "";
+        ids("format").value = config.format || "markdown";
+        ids("finalAnswerMode").value = config.final_answer_mode || "exact";
+        ids("allowCategories").value = (config.allow_categories || []).join(", ");
+        ids("allowPaths").value = (config.allow_paths || []).join("\n");
+        ids("secretValues").value = (config.secret_values || []).join("\n");
+        ids("maxSteps").value = config.contract && config.contract.max_steps !== null && config.contract.max_steps !== undefined ? config.contract.max_steps : "";
+        ids("orderedPaths").value = config.contract && config.contract.path_rules && config.contract.path_rules.ordered === false ? "false" : "true";
+        ids("pathRules").value = config.contract && config.contract.path_rules && config.contract.path_rules.any_of ? config.contract.path_rules.any_of.map((path) => path.map((rule) => typeof rule === "string" ? rule : rule.tool).join(" -> ")).join("\n") : "";
+        ids("ignorePaths").value = (config.contract && config.contract.ignore_paths || []).join("\n");
+        renderRows("mustCallRows", "must-call", (config.contract && config.contract.must_call) || []);
+        renderRows("mustNotCallRows", "must-not-call", ((config.contract && config.contract.must_not_call) || []).map((tool) => typeof tool === "string" ? { tool } : tool));
+        renderRows("assertionRows", "assertion", ((config.contract && config.contract.assertions) || []).map((item) => {
+          const operator = Object.prototype.hasOwnProperty.call(item, "exists") ? "exists" : Object.prototype.hasOwnProperty.call(item, "contains") ? "contains" : "equals";
+          return { path: item.path, operator, value: item[operator] };
+        }));
+        renderRows("normalizerRows", "normalizer", (config.contract && config.contract.normalizers) || []);
+        renderRows("sideEffectRows", "side-effect", (config.contract && config.contract.side_effects) || []);
+        render();
+      }
+
+      function download(filename, content) {
+        const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function copy(text, success) {
+        navigator.clipboard.writeText(text).then(() => showToast(success || "已复制")).catch(() => showToast("当前浏览器禁止剪贴板访问，请手动复制", true));
+      }
+
+      document.addEventListener("input", render);
+      document.addEventListener("change", render);
+      document.addEventListener("click", (event) => {
+        const remove = event.target.closest("[data-remove='row']");
+        if (remove) {
+          remove.closest("[data-row]").remove();
+          render();
+          return;
+        }
+        const add = event.target.closest("[data-add]");
+        if (add) {
+          const type = add.dataset.add;
+          const map = { "must-call": ["mustCallRows", "must-call"], "must-not-call": ["mustNotCallRows", "must-not-call"], assertion: ["assertionRows", "assertion"], normalizer: ["normalizerRows", "normalizer"], "side-effect": ["sideEffectRows", "side-effect"] };
+          const [containerId, rowType] = map[type];
+          const container = ids(containerId);
+          const empty = container.querySelector(".row-empty");
+          if (empty) empty.remove();
+          container.insertAdjacentHTML("beforeend", rowHtml(rowType));
+          container.lastElementChild.querySelector("input, select").focus();
+          render();
+        }
+      });
+
+      ids("copyJson").addEventListener("click", () => {
+        const result = render();
+        if (result.errors.length) return showToast(result.errors[0], true);
+        copy(JSON.stringify(result.config, null, 2), "JSON 配置已复制");
+      });
+      ids("validateConfig").addEventListener("click", () => {
+        const result = render();
+        if (result.errors.length) showToast(result.errors.join("；"), true);
+        else showToast("配置校验通过，可以下载 config.json");
+      });
+      ids("downloadConfig").addEventListener("click", () => {
+        const result = render();
+        if (result.errors.length) return showToast(result.errors[0], true);
+        download("config.json", JSON.stringify(result.config, null, 2) + "\n");
+        showToast("config.json 已下载");
+      });
+      ids("loadExample").addEventListener("click", () => { applyConfig(example); showToast("示例配置已恢复"); });
+      ids("resetForm").addEventListener("click", () => {
+        const blank = JSON.parse(JSON.stringify(example));
+        blank.allow_categories = [];
+        blank.allow_paths = [];
+        blank.secret_values = [];
+        blank.contract.must_call = [];
+        blank.contract.must_not_call = [];
+        blank.contract.assertions = [];
+        blank.contract.ignore_paths = [];
+        blank.contract.normalizers = [];
+        blank.contract.max_steps = null;
+        blank.contract.path_rules = {};
+        blank.contract.side_effects = [];
+        applyConfig(blank);
+        showToast("规则已清空，基础路径仍保留");
+      });
+
+      ids("themeToggle").addEventListener("click", () => {
+        const root = document.documentElement;
+        const next = root.dataset.theme === "dark" ? "light" : "dark";
+        root.dataset.theme = next;
+        ids("themeIcon").innerHTML = next === "dark" ? '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/>' : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/>';
+      });
+
+      const navLinks = Array.from(document.querySelectorAll(".step-nav a"));
+      const sections = navLinks.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            navLinks.forEach((link) => link.classList.toggle("active", link.getAttribute("href") === `#${entry.target.id}`));
+          }
+        });
+      }, { rootMargin: "-20% 0px -65% 0px", threshold: 0 });
+      sections.forEach((section) => observer.observe(section));
+
+      initRows();
+      applyConfig(example);
+    })();
+  </script>
+</body>
+</html>

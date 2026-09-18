@@ -76,6 +76,14 @@ class AdapterSdkTemplateTests(unittest.TestCase):
                 json.loads(output.getvalue())["skipped"],
             )
 
+    def test_project_scaffold_includes_trace_preflight_before_compare(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with redirect_stdout(StringIO()):
+                self.assertEqual(0, main(["init", "--directory", str(root)]))
+            workflow = (root / ".github/workflows/agent-regression.yml").read_text(encoding="utf-8")
+            self.assertIn("agent-regression check --config .agent-regression/config.json", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

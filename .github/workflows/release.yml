@@ -1,0 +1,37 @@
+name: Release package
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install build tooling
+        run: python -m pip install --upgrade build
+      - name: Run test suite
+        run: python -m unittest discover -s tests -v
+      - name: Build source distribution and wheel
+        run: python -m build
+      - name: Verify wheel in a clean virtual environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/agent-regression-release-venv
+          /tmp/agent-regression-release-venv/bin/pip install dist/*.whl
+          /tmp/agent-regression-release-venv/bin/agent-regression --version
+          /tmp/agent-regression-release-venv/bin/agent-regression ui --help
+          /tmp/agent-regression-release-venv/bin/python -c \
+            'from agent_regression import __version__; print(__version__)'
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-regression-kit-${{ github.ref_name }}
+          path: dist/

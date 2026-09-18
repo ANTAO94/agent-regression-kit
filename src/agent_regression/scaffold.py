@@ -91,6 +91,8 @@ jobs:
         run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
+      - name: Preflight config and Trace inputs
+        run: agent-regression check --config .agent-regression/config.json --kind single
       - name: Compare with reviewed baseline
         uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@main
         with:

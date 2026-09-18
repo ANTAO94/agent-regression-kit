@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Add a loopback-only `agent-regression ui` command for the local Trace
+  Inspector and configuration viewer.
+- Package the static Viewer assets with source distributions and wheel data
+  files, and add CLI/path-discovery tests for installed and checkout layouts.
+- Centralize the package version and add a tag-triggered build-and-verify
+  release workflow with clean-wheel installation checks.
+- Add a side-effect-free `check` command that validates configured Trace
+  inputs, batch file-set symmetry, and AgentTrace schema before comparison.
+- Add a dependency-free framework callback example and make `agent-regression
+  init` place the preflight step before the generated CI comparison.
+
 ## 3.1.0 - 2026-09-18
 
 - Add `HistoryPoint`, `HistoryReport`, and `build_history_report` for offline

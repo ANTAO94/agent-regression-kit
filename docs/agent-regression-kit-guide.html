@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Regression Kit v3.1 完整使用说明、接入指南和技术文档">
+  <title>Agent Regression Kit v3.1 · 完整使用与技术文档</title>
+  <style>
+    :root {
+      --ink: #152235;
+      --muted: #5c6b7b;
+      --soft: #eef4f8;
+      --paper: #fbfcfe;
+      --panel: #ffffff;
+      --line: #d9e3ec;
+      --blue: #1769aa;
+      --blue-2: #dff0ff;
+      --teal: #087f7b;
+      --teal-2: #dff7f3;
+      --orange: #b95b09;
+      --orange-2: #fff0dc;
+      --red: #a3313f;
+      --red-2: #ffe9ec;
+      --shadow: 0 18px 55px rgba(22, 47, 72, .08);
+      --radius: 18px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f6f9fc 0%, #ffffff 30%, #f6f9fc 100%);
+      font-family: var(--sans);
+      line-height: 1.72;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre { font-family: var(--mono); }
+    code {
+      padding: .12em .35em;
+      border: 1px solid #d7e2ea;
+      border-radius: 6px;
+      background: #f3f7fa;
+      font-size: .9em;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 1rem 0;
+      padding: 1.15rem 1.25rem;
+      border: 1px solid #23364a;
+      border-radius: 13px;
+      color: #e9f2fb;
+      background: #172433;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+      font-size: .84rem;
+      line-height: 1.65;
+    }
+    .code-wrap { position: relative; }
+    .copy {
+      position: absolute;
+      z-index: 1;
+      top: 10px;
+      right: 10px;
+      padding: .35rem .6rem;
+      border: 1px solid #5d7389;
+      border-radius: 7px;
+      color: #e8f3fc;
+      background: #253a4f;
+      cursor: pointer;
+      font-size: .74rem;
+    }
+    .copy:hover { background: #31516a; }
+    h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -.02em; }
+    h1 { margin: .65rem 0 1rem; font-size: clamp(2.2rem, 4.4vw, 4.4rem); }
+    h2 { margin: 3.5rem 0 1rem; font-size: clamp(1.65rem, 2.6vw, 2.35rem); }
+    h3 { margin: 2rem 0 .7rem; font-size: 1.38rem; }
+    h4 { margin: 1.25rem 0 .45rem; font-size: 1.05rem; }
+    p { margin: .65rem 0 1rem; }
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: .35rem 0; }
+    hr { margin: 2.5rem 0; border: 0; border-top: 1px solid var(--line); }
+    .shell { display: grid; grid-template-columns: 286px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1.5rem 1rem 2rem;
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,.9);
+      backdrop-filter: blur(13px);
+    }
+    .brand { display: flex; gap: .75rem; align-items: center; margin-bottom: 1.4rem; }
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border-radius: 13px;
+      color: white;
+      background: linear-gradient(135deg, #1769aa, #087f7b);
+      box-shadow: 0 8px 20px rgba(23,105,170,.25);
+      font-weight: 800;
+    }
+    .brand strong { display: block; font-size: .94rem; }
+    .brand small { color: var(--muted); font-size: .75rem; }
+    .nav-label { margin: 1.1rem .7rem .35rem; color: #8492a0; font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .toc { display: grid; gap: 2px; }
+    .toc a { padding: .38rem .7rem; border-radius: 8px; color: #3d4e60; font-size: .81rem; line-height: 1.35; }
+    .toc a:hover { color: var(--blue); background: var(--blue-2); text-decoration: none; }
+    .toc a.sub { padding-left: 1.25rem; color: #6d7b88; font-size: .76rem; }
+    .main { min-width: 0; }
+    .content { max-width: 1180px; margin: 0 auto; padding: 3rem clamp(1.2rem, 4vw, 4.5rem) 5rem; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(1.5rem, 4vw, 4rem);
+      border: 1px solid #cfe0ec;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 85% 15%, rgba(43, 160, 180, .18), transparent 32%),
+        radial-gradient(circle at 10% 90%, rgba(23, 105, 170, .14), transparent 35%),
+        linear-gradient(135deg, #eff8ff, #f8fcfd 55%, #f1fbf8);
+      box-shadow: var(--shadow);
+    }
+    .hero:after {
+      position: absolute;
+      right: -80px;
+      bottom: -100px;
+      width: 320px;
+      height: 320px;
+      border: 1px solid rgba(23, 105, 170, .12);
+      border-radius: 50%;
+      content: "";
+    }
+    .eyebrow { color: var(--blue); font-size: .74rem; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
+    .hero p.lead { max-width: 800px; color: #33485c; font-size: clamp(1.05rem, 1.9vw, 1.25rem); }
+    .badges { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.35rem 0 0; }
+    .badge { display: inline-flex; align-items: center; gap: .35rem; padding: .32rem .65rem; border: 1px solid #b9d7e8; border-radius: 999px; color: #205271; background: rgba(255,255,255,.7); font-size: .77rem; font-weight: 750; }
+    .badge.green { border-color: #b9e4d9; color: #126b63; }
+    .badge.orange { border-color: #f4d1a4; color: #96500e; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin: 1.3rem 0 0; }
+    .summary-card { padding: 1rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.8); }
+    .summary-card strong { display: block; font-size: 1.35rem; }
+    .summary-card span { color: var(--muted); font-size: .77rem; }
+    .section-intro { max-width: 860px; color: var(--muted); font-size: 1.04rem; }
+    .panel { margin: 1.1rem 0; padding: 1.35rem 1.5rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: 0 9px 30px rgba(25,51,76,.045); }
+    .panel.tint-blue { border-color: #c5e1f4; background: linear-gradient(135deg, #f5fbff, #ffffff); }
+    .panel.tint-green { border-color: #c4e7df; background: linear-gradient(135deg, #f3fcfa, #ffffff); }
+    .panel.tint-orange { border-color: #f0d7b7; background: linear-gradient(135deg, #fffaf3, #ffffff); }
+    .panel.tint-red { border-color: #f0c5ca; background: linear-gradient(135deg, #fff8f9, #ffffff); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .card { height: 100%; padding: 1.1rem 1.2rem; border: 1px solid var(--line); border-radius: 15px; background: white; }
+    .card h3, .card h4 { margin-top: 0; }
+    .card p:last-child, .panel p:last-child { margin-bottom: 0; }
+    .number { display: inline-grid; width: 27px; height: 27px; margin-right: .35rem; place-items: center; border-radius: 50%; color: white; background: var(--blue); font-size: .78rem; font-weight: 800; vertical-align: middle; }
+    .callout { display: grid; grid-template-columns: auto 1fr; gap: .8rem; align-items: start; margin: 1rem 0; padding: 1rem 1.1rem; border-left: 4px solid var(--blue); border-radius: 9px; background: #f3f9fd; }
+    .callout .icon { font-size: 1.2rem; line-height: 1.4; }
+    .callout.warn { border-left-color: var(--orange); background: var(--orange-2); }
+    .callout.good { border-left-color: var(--teal); background: var(--teal-2); }
+    .callout.danger { border-left-color: var(--red); background: var(--red-2); }
+    .callout strong { display: block; margin-bottom: .2rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .91rem; }
+    th, td { padding: .72rem .7rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #40566b; background: #f4f8fb; font-size: .78rem; letter-spacing: .02em; }
+    tr:last-child td { border-bottom: 0; }
+    .term { color: var(--blue); font-weight: 800; }
+    .definition { color: var(--muted); }
+    .kicker { margin-bottom: .4rem; color: var(--teal); font-size: .75rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .mermaid-wrap { margin: 1.15rem 0; padding: 1rem; overflow-x: auto; border: 1px solid var(--line); border-radius: 15px; background: #fbfdff; }
+    .mermaid { min-width: 660px; text-align: center; }
+    .diagram-note { margin: .55rem 0 0; color: var(--muted); font-size: .87rem; }
+    .tree { display: grid; gap: .45rem; margin: 1rem 0; padding: 1rem 1.2rem; border: 1px dashed #b8cad7; border-radius: 13px; background: #f8fbfd; font-family: var(--mono); font-size: .83rem; white-space: pre; overflow-x: auto; }
+    .tag { display: inline-block; margin: .15rem .18rem .15rem 0; padding: .18rem .45rem; border: 1px solid #c8d9e4; border-radius: 5px; color: #36576d; background: #f4f8fa; font-family: var(--mono); font-size: .78rem; }
+    .anchor-link { float: right; color: #9aabb8; font-size: .75rem; font-weight: 500; }
+    .checklist { display: grid; gap: .55rem; padding: 0; list-style: none; }
+    .checklist li { margin: 0; padding: .6rem .75rem .6rem 2rem; border: 1px solid var(--line); border-radius: 9px; background: #fff; position: relative; }
+    .checklist li:before { position: absolute; left: .7rem; top: .58rem; color: var(--teal); content: "✓"; font-weight: 900; }
+    .footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+    .small { color: var(--muted); font-size: .86rem; }
+    .muted { color: var(--muted); }
+    .nowrap { white-space: nowrap; }
+    @media (max-width: 1020px) {
+      .shell { display: block; }
+      .sidebar { position: static; height: auto; padding: .9rem 1rem; border-right: 0; border-bottom: 1px solid var(--line); }
+      .brand { margin-bottom: .7rem; }
+      .toc { display: flex; flex-wrap: wrap; gap: .2rem; max-height: 180px; overflow-y: auto; }
+      .nav-label { display: none; }
+      .toc a.sub { padding-left: .7rem; }
+      .content { padding-top: 1.5rem; }
+    }
+    @media (max-width: 720px) {
+      .summary-grid, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .content { padding-right: 1rem; padding-left: 1rem; }
+      .hero { border-radius: 19px; }
+      th, td { padding: .58rem .45rem; }
+      table { display: block; overflow-x: auto; }
+      .mermaid { min-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="文档目录">
+      <div class="brand">
+        <div class="brand-mark">AR</div>
+        <div>
+          <strong>Agent Regression Kit</strong>
+          <small>v3.1 · Usage &amp; Technical Guide</small>
+        </div>
+      </div>
+      <div class="nav-label">Start here</div>
+      <nav class="toc">
+        <a href="#overview">1. 先看结论</a>
+        <a href="#problem">2. 它解决什么问题</a>
+        <a href="#terms">3. 名词解释</a>
+        <a href="#mental-model">4. 一次运行如何变成证据</a>
+        <a href="#quick-start">5. 五分钟跑通</a>
+        <a href="#trace">6. Trace 数据格式</a>
+        <a href="#baseline">7. baseline 与检查规则</a>
+        <a class="sub" href="#assertions">7.1 断言与噪音过滤</a>
+        <a class="sub" href="#policy-choice">7.2 如何选择规则</a>
+        <a href="#adapter">8. 接入自己的 Agent</a>
+        <a class="sub" href="#async">8.1 异步与并行</a>
+        <a href="#mcp">9. MCP 接入</a>
+        <a href="#state">10. 状态、副作用与 Session</a>
+        <a href="#stability">11. 稳定性评测</a>
+        <a href="#coverage">12. 场景与业务分支覆盖</a>
+        <a href="#sdk">13. SDK 与模板</a>
+        <a href="#history">14. 历史趋势</a>
+        <a href="#ci">15. CI 集成</a>
+        <a href="#reports">16. 报告与退出码</a>
+        <a href="#architecture">17. 技术架构</a>
+        <a href="#security">18. 边界与安全</a>
+        <a href="#faq">19. 常见问题</a>
+        <a href="#commands">20. 命令速查</a>
+        <a href="#releases">21. 版本演进</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="content">
+        <header class="hero" id="overview">
+          <div class="eyebrow">Framework-neutral · Deterministic evidence · CI-ready</div>
+          <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
+          <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
+          <div class="badges">
+            <span class="badge">v3.1.0</span>
+            <span class="badge green">Python ≥ 3.9</span>
+            <span class="badge green">MIT License</span>
+            <span class="badge orange">117 tests passed</span>
+            <a class="badge" href="../viewer/index.html">打开 Trace 查看器 →</a>
+            <a class="badge" href="../viewer/config.html">打开配置中心 →</a>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-card"><strong>Trace</strong><span>一次运行的结构化证据</span></div>
+            <div class="summary-card"><strong>Compare</strong><span>baseline 与 candidate 的差异</span></div>
+            <div class="summary-card"><strong>Contract</strong><span>候选行为必须满足的规则</span></div>
+            <div class="summary-card"><strong>CI Gate</strong><span>让回归变成可阻断的结果</span></div>
+          </div>
+        </header>
+
+        <section id="problem">
+          <h2>1. 它到底解决什么问题？<a class="anchor-link" href="#problem">#</a></h2>
+          <p class="section-intro">AI Agent 的回归测试和传统接口流量回放有相似之处，但观察对象更丰富：一次 Agent 运行不只是“请求进、响应出”，中间还包含模型决策、工具选择、参数、工具结果、再次思考、最终结构化结论，以及可能产生的业务副作用。</p>
+          <div class="grid-2">
+            <div class="panel tint-blue">
+              <div class="kicker">Traditional API replay</div>
+              <h3>传统接口回放关注什么</h3>
+              <p>通常保存请求和响应，重新发送请求，然后断言 HTTP 状态码、响应字段、延迟或错误码。它假设接口边界相对稳定，响应的主要语义在一个 JSON 中。</p>
+              <p><strong>典型问题：</strong>“这个接口在新版本里是否返回了不兼容的字段？”</p>
+            </div>
+            <div class="panel tint-green">
+              <div class="kicker">Agent regression</div>
+              <h3>Agent 回归还要关注什么</h3>
+              <p>除了最终答案，还要检查 Agent 有没有调用正确工具、参数是否正确、工具结果有没有被误读、是否绕过权限、是否多走了危险路径、是否在多轮之间污染状态。</p>
+              <p><strong>典型问题：</strong>“我改了 Prompt 或模型后，它还会按允许的方式完成这件事吗？”</p>
+            </div>
+          </div>
+          <div class="callout good">
+            <div class="icon">◎</div>
+            <div><strong>一句话判断项目价值</strong>如果只比较最后一句文本，它很像普通文本测试；如果比较整个可观察行为链，它就是 Agent 的“单元测试 + 契约测试 + CI 回归门禁”基础层。</div>
+          </div>
+          <div class="grid-3">
+            <div class="card"><h3>修改 Prompt</h3><p>发现工具选择或参数悄悄变化，而不是只看回答“好像还行”。</p></div>
+            <div class="card"><h3>更换模型</h3><p>允许明确声明哪些文字可以变化，同时继续校验 claims、工具和结果。</p></div>
+            <div class="card"><h3>增加工具</h3><p>限制危险工具、最大步骤数和允许的完整工具路径，避免 Agent 绕远路。</p></div>
+          </div>
+        </section>
+
+        <section id="terms">
+          <h2>2. 先把关键名词说清楚<a class="anchor-link" href="#terms">#</a></h2>
+          <p class="section-intro">第一次接触 Agent 评测时，很多困难不是代码，而是名词混在一起。下面的定义以本项目的实际边界为准。</p>
+          <div class="panel">
+            <table>
+              <thead><tr><th>名词</th><th>英文含义</th><th>在项目里具体指什么</th></tr></thead>
+              <tbody>
+                <tr><td class="term">Agent</td><td>智能体</td><td>接收用户请求、决定调用哪些工具、根据结果继续执行并给出答案的程序。可以是 LangChain、Spring AI、OpenAI SDK 或自研代码。</td></tr>
+                <tr><td class="term">Tool</td><td>工具</td><td>Agent 可以调用的外部能力，例如查询订单、查数据库、搜索、发起支付或调用 MCP Server。</td></tr>
+                <tr><td class="term">Adapter</td><td>适配器</td><td>把某个框架的 Agent 调用方式翻译成 Kit 能观察的两个动作：<code>context.call_tool()</code> 和 <code>context.final_answer()</code>。</td></tr>
+                <tr><td class="term">ToolExecutor</td><td>工具执行器</td><td>真正执行工具调用并返回结果的边界。可以是内存 Fixture、自定义执行器或 MCP 客户端。</td></tr>
+                <tr><td class="term">Trace</td><td>运行轨迹</td><td>一次 Agent 运行的 JSON 证据，包含工具调用、工具结果、最终答案、结构化 claims 和元数据。</td></tr>
+                <tr><td class="term">baseline</td><td>基线</td><td>经过人工审核、被认为正确的行为证据。它是“期望行为”，不是每次 CI 自动覆盖的临时结果。</td></tr>
+                <tr><td class="term">candidate</td><td>候选版本</td><td>当前代码、Prompt 或模型生成的新 Trace。比较器会判断它相对 baseline 发生了什么变化。</td></tr>
+                <tr><td class="term">Replay</td><td>回放</td><td>读取已有 Trace 并验证其结构；它不是重新调用真实模型，也不是自动重放所有线上副作用。</td></tr>
+                <tr><td class="term">Regression</td><td>回归</td><td>一次改动导致原来正确的可观察行为被破坏，例如工具参数错误、结果误读或非法路径。</td></tr>
+                <tr><td class="term">Assertion</td><td>断言</td><td>对候选 Trace 中某个字段提出明确要求，例如 <code>order_status == "paid"</code>。</td></tr>
+                <tr><td class="term">Contract</td><td>契约</td><td>比“和 baseline 是否相同”更主动的行为规则，例如必须调用某工具、禁止调用某工具、允许多条合法路径。</td></tr>
+                <tr><td class="term">Normalizer</td><td>归一化器</td><td>在比较前把确定的动态值转换成稳定形式，例如把时间戳归一化为 <code>&lt;timestamp&gt;</code>。</td></tr>
+                <tr><td class="term">Redaction</td><td>脱敏</td><td>在 Trace 写入前遮蔽常见敏感字段或显式传入的 secret，降低 API Key、Token 进入报告的风险。</td></tr>
+                <tr><td class="term">Claims</td><td>结构化结论</td><td>Agent 对最终结果的机器可比较表达，例如 <code>{"order_status": "not_shipped"}</code>；比从自然语言中猜事实可靠。</td></tr>
+                <tr><td class="term">Scenario</td><td>场景</td><td>一个可重复的输入和工具世界，例如“查询订单 123”，通常包含 Scenario JSON 或工厂函数。</td></tr>
+                <tr><td class="term">World State</td><td>业务世界状态</td><td>订单、库存、权限等会被 Agent 改变的状态。可以在运行前后做快照来检查副作用。</td></tr>
+                <tr><td class="term">MCP</td><td>Model Context Protocol</td><td>一种让 Agent 发现和调用工具、资源、Prompt 等能力的协议。本项目可通过 stdio 或 Streamable HTTP 接入。</td></tr>
+                <tr><td class="term">SSE</td><td>Server-Sent Events</td><td>服务器向客户端持续推送事件的 HTTP 流格式。它适合记录长连接通知和流式响应。</td></tr>
+                <tr><td class="term">CI</td><td>Continuous Integration</td><td>持续集成系统，例如 GitHub Actions。每次 Pull Request 自动运行测试并在失败时阻止合并。</td></tr>
+                <tr><td class="term">LLM Judge</td><td>大模型裁判</td><td>让另一个模型评价回答“像不像正确答案”。本项目的核心比较器不是 LLM Judge，而是确定性结构比较。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="mental-model">
+          <h2>3. 一次运行如何变成回归证据<a class="anchor-link" href="#mental-model">#</a></h2>
+          <p class="section-intro">把系统想成一条证据流水线：Agent 负责产生动作，Recorder 负责记录，Trace 负责保存，Compare 负责解释差异，CI 负责决定是否阻断。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">flowchart LR
+  Input[用户请求或场景] --> Agent[Agent / Framework]
+  Agent --> Adapter[Adapter 适配边界]
+  Adapter --> Recorder[Recorder 录制器]
+  Recorder --> Executor[ToolExecutor 工具执行器]
+  Executor --> Tools[Fixture / MCP / 自定义工具]
+  Recorder --> Trace[脱敏 AgentTrace]
+  Baseline[审核后的 baseline] --> Compare[结构化比较]
+  Trace --> Candidate[candidate Trace]
+  Candidate --> Compare
+  Compare --> Report[JSON / Markdown / JUnit]
+  Report --> Gate[CI 退出码]
+  Gate -->|通过| Pass[允许继续]
+  Gate -->|回归| Fail[阻断并审核]</pre>
+            <p class="diagram-note">图意：Agent 只需要把可观察行为接到统一边界；之后的录制、比较、报告和 CI 门禁可以复用。</p>
+          </div>
+          <div class="grid-3">
+            <div class="card"><h3>输入</h3><p>用户请求、Scenario JSON 或多轮请求。输入应稳定、可复现，并明确使用什么工具世界。</p></div>
+            <div class="card"><h3>证据</h3><p>工具调用和结果成对出现，最终答案必须是 Trace 最后一个事件，claims 可选但强烈建议提供。</p></div>
+            <div class="card"><h3>决策</h3><p>比较器返回差异列表和 <code>passed</code>；CLI 再把它转换成 0、1 或 2 的退出码。</p></div>
+          </div>
+        </section>
+
+        <section id="quick-start">
+          <h2>4. 五分钟跑通完整闭环<a class="anchor-link" href="#quick-start">#</a></h2>
+          <p class="section-intro">下面使用仓库自带的确定性订单场景，不需要 API Key、真实模型、网络或外部数据库。先验证工具本身，再接入你的 Agent。</p>
+          <h3><span class="number">1</span>安装与确认版本</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
+.venv/bin/pip install -e .
+.venv/bin/agent-regression --version</code></pre></div>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.1.0</code>。</p>
+
+          <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
+.venv/bin/agent-regression record \
+  --scenario examples/order-123/baseline.scenario.json \
+  --out work/order-123.baseline.trace.json
+
+# 确认内容符合预期后，显式接受为 baseline
+.venv/bin/agent-regression baseline accept \
+  --trace work/order-123.baseline.trace.json \
+  --out baselines/order-123.trace.json</code></pre></div>
+          <p>这里的 <code>baseline accept</code> 会先校验 Trace，再把它保存到期望路径。它强调“审核后接受”，避免 CI 每次运行都无意覆盖基线。</p>
+
+          <h3><span class="number">3</span>生成一个 candidate 并比较</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression record \
+  --scenario examples/order-123/candidate-ok.scenario.json \
+  --out work/order-123.candidate.trace.json
+
+.venv/bin/agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/order-123.candidate.trace.json \
+  --format markdown \
+  --out outputs/order-123.diff.md</code></pre></div>
+          <p>如果换成 <code>candidate-regression.scenario.json</code>，会产生一个故意错误的工具参数，比较结果会出现 <code>tool_arguments</code> 差异，并返回退出码 <code>1</code>。</p>
+
+          <h3><span class="number">4</span>验证 Trace 和查看回放摘要</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression validate \
+  --trace baselines/order-123.trace.json
+
+.venv/bin/agent-regression replay \
+  --trace work/order-123.candidate.trace.json \
+  --out outputs/order-123.replay.json</code></pre></div>
+
+          <div class="tree">agent-regression-kit/
+├── baselines/                 # 人工审核后的期望 Trace
+├── work/                     # 本次运行的临时 candidate
+├── outputs/                  # diff、JUnit、Markdown、趋势报告
+├── examples/                 # 可重复的场景和本地 Fixture
+├── src/agent_regression/     # 核心库与 CLI
+├── schema/                   # AgentTrace v0.1 JSON Schema
+└── .github/actions/          # 可复用 GitHub Actions</div>
+          <div class="callout warn"><div class="icon">!</div><div><strong>不要把 work 当成 baseline</strong><code>work/</code> 是运行产物，<code>baselines/</code> 是经过审核的产品行为契约。只有确认行为变化是有意的，才更新 baseline。</div></div>
+        </section>
+
+        <section id="trace">
+          <h2>5. Trace：项目真正比较的是什么<a class="anchor-link" href="#trace">#</a></h2>
+          <p class="section-intro"><code>AgentTrace</code> 是项目的证据格式，当前运行时版本是 <code>0.1</code>。它不是模型内部思维链，也不是把隐藏推理暴露出来；它只保存接入边界上明确产生的可观察事件。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">sequenceDiagram
+  participant A as Agent
+  participant R as Recorder
+  participant T as ToolExecutor
+  participant X as Tool or MCP
+  A->>R: call_tool(name, arguments)
+  R->>T: execute normalized request
+  T->>X: perform tool call
+  X-->>T: result or error
+  T-->>R: ToolExecutionResult
+  R-->>A: return result
+  A->>R: final_answer(text, claims)
+  R->>R: redact and validate
+  R-->>R: write AgentTrace JSON</pre>
+            <p class="diagram-note">图意：Recorder 只记录接入边界上的调用和结果；它不负责决定 Agent 使用哪个框架，也不负责替模型生成 claims。</p>
+          </div>
+          <h3>5.1 一个最小 Trace 长什么样</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>{
+  "schema_version": "0.1",
+  "run_id": "order-123-baseline",
+  "agent": {
+    "name": "toy-order-agent",
+    "version": "1.0.0"
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "type": "tool_call",
+      "call_id": "call-1",
+      "tool": "get_order",
+      "arguments": {"order_id": "123"}
+    },
+    {
+      "sequence": 2,
+      "type": "tool_result",
+      "call_id": "call-1",
+      "result": {"status": "not_shipped"},
+      "is_error": false
+    },
+    {
+      "sequence": 3,
+      "type": "final_answer",
+      "text": "订单 123 尚未发货。",
+      "claims": {
+        "order_id": "123",
+        "order_status": "not_shipped"
+      }
+    }
+  ],
+  "metadata": {"input": "查询订单 123", "case": "order-lookup"}
+}</code></pre></div>
+          <table>
+            <thead><tr><th>字段</th><th>含义</th><th>为什么要记录</th></tr></thead>
+            <tbody>
+              <tr><td><code>schema_version</code></td><td>证据格式版本</td><td>让未来的代码知道如何解释旧 Trace。</td></tr>
+              <tr><td><code>run_id</code></td><td>运行唯一标识</td><td>把报告、日志和场景关联起来。</td></tr>
+              <tr><td><code>agent</code></td><td>Agent 身份</td><td>记录名称、版本或框架信息，便于追踪变更来源。</td></tr>
+              <tr><td><code>events</code></td><td>有序事件序列</td><td>比较工具名、参数、结果、错误状态和最终答案。</td></tr>
+              <tr><td><code>metadata</code></td><td>输入、场景、状态、并发等元数据</td><td>让报告知道这次运行的上下文，并支持状态与稳定性评测。</td></tr>
+            </tbody>
+          </table>
+          <div class="callout"><div class="icon">i</div><div><strong>为什么建议输出 claims？</strong>自然语言容易因为模型风格变化而改写。把业务结论明确放进 <code>final_answer.claims</code> 后，可以在 <code>claims-only</code> 模式下放宽文字变化，但仍严格检查“订单到底是不是已发货”。</div></div>
+        </section>
+
+        <section id="baseline">
+          <h2>6. baseline 与检查规则<a class="anchor-link" href="#baseline">#</a></h2>
+          <p class="section-intro">这是最重要、也最容易误解的一节。项目里有两类规则：一类决定 baseline 差异是否阻断；另一类定义候选 Trace 必须满足的行为契约。两者作用不同，不能混用。</p>
+          <div class="grid-2">
+            <div class="panel tint-blue">
+              <h3><code>allow_categories</code> / <code>allow_paths</code></h3>
+              <p>作用是<strong>放宽 baseline 比较的阻断条件</strong>。例如最终文本允许变化，或者某个 request ID 本来就动态。</p>
+              <p>注意：差异不会消失，仍会写进报告；只是这一项不再让比较失败。</p>
+            </div>
+            <div class="panel tint-green">
+              <h3><code>contract</code></h3>
+              <p>作用是<strong>约束 candidate 必须怎样运行</strong>。例如必须调用 <code>get_order</code>、禁止调用 <code>delete_order</code>、最多 5 步或必须产生某种副作用。</p>
+              <p>契约失败会产生明确的 <code>contract_assertion</code>、<code>required_tool</code> 等差异。</p>
+            </div>
+          </div>
+          <h3 id="assertions">6.1 配置 baseline 检查项、断言和噪音过滤<a class="anchor-link" href="#assertions">#</a></h3>
+          <p>你可以把比较配置写成项目文件，避免每次命令行重复传参。下面是一份覆盖主要能力的例子：</p>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>{
+  "baseline": "baselines/order-123.trace.json",
+  "candidate": "work/order-123.candidate.trace.json",
+  "format": "markdown",
+  "report": "outputs/order-123.diff.md",
+  "allow_categories": ["final_answer"],
+  "allow_paths": ["tool_calls[0].arguments.request_id"],
+  "final_answer_mode": "claims-only",
+  "secret_values": ["local-test-secret"],
+  "contract": {
+    "must_call": [
+      {"tool": "get_order", "arguments": {"order_id": "123"}}
+    ],
+    "must_not_call": ["delete_order"],
+    "assertions": [
+      {"path": "final_answer.claims.order_status", "equals": "not_shipped"},
+      {"path": "final_answer.claims.order_id", "exists": true}
+    ],
+    "ignore_paths": ["tool_results[*].result.request_id"],
+    "normalizers": [
+      {"path": "tool_results[*].result.created_at", "type": "timestamp"},
+      {"path": "tool_results[*].result.items", "type": "sort"}
+    ],
+    "max_steps": 5,
+    "path_rules": {
+      "ordered": true,
+      "any_of": [
+        [{"tool": "get_order", "arguments": {"order_id": "123"}}],
+        [
+          {"tool": "get_order", "arguments": {"order_id": "123"}},
+          "get_shipping"
+        ]
+      ]
+    },
+    "side_effects": [
+      {"path": "orders.123.status", "from": "paid", "to": "cancelled"}
+    ]
+  }
+}</code></pre></div>
+          <p>运行配置前可以先做无副作用校验：</p>
+          <p class="small"><code>config validate</code> 校验配置格式；<code>check</code> 会进一步读取并校验配置引用的 Trace。两者都是无副作用的，输入错误返回退出码 <code>2</code>。</p>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression config validate \
+  --config .agent-regression/config.json \
+  --kind single
+
+# 只校验输入，不执行 Agent，也不比较行为
+.venv/bin/agent-regression check \
+  --config .agent-regression/config.json \
+  --kind single
+
+.venv/bin/agent-regression compare \
+  --config .agent-regression/config.json</code></pre></div>
+
+          <h3>6.2 每个检查字段到底做什么</h3>
+          <table>
+            <thead><tr><th>配置项</th><th>解决的问题</th><th>示例</th><th>是否仍在报告中保留差异</th></tr></thead>
+            <tbody>
+              <tr><td><code>allow_categories</code></td><td>整个差异类别不阻断</td><td><code>final_answer</code></td><td>是</td></tr>
+              <tr><td><code>allow_paths</code></td><td>某个精确差异路径不阻断</td><td><code>tool_calls[0].arguments.request_id</code></td><td>是</td></tr>
+              <tr><td><code>assertions</code></td><td>断言 candidate 字段等于、包含或存在</td><td><code>equals</code> / <code>contains</code> / <code>exists</code></td><td>失败时是</td></tr>
+              <tr><td><code>ignore_paths</code></td><td>比较前移除指定嵌套噪音字段</td><td><code>tool_results[*].result.request_id</code></td><td>不会生成该字段差异</td></tr>
+              <tr><td><code>normalizers</code></td><td>把确定的动态值转成稳定值</td><td><code>timestamp</code>、<code>sort</code></td><td>归一化后的差异才会比较</td></tr>
+              <tr><td><code>must_call</code></td><td>必须调用的工具和可选参数</td><td><code>get_order</code></td><td>失败时是</td></tr>
+              <tr><td><code>must_not_call</code></td><td>不能调用的危险或越权工具</td><td><code>delete_order</code></td><td>失败时是</td></tr>
+              <tr><td><code>path_rules.any_of</code></td><td>允许多条完整工具路径</td><td>只查订单，或查订单后查物流</td><td>失败时是</td></tr>
+              <tr><td><code>side_effects</code></td><td>检查状态从 from 到 to 的变化</td><td><code>paid → cancelled</code></td><td>失败时是</td></tr>
+              <tr><td><code>max_steps</code></td><td>防止 Agent 无限调用工具</td><td><code>5</code></td><td>失败时是</td></tr>
+            </tbody>
+          </table>
+
+          <h3 id="policy-choice">6.3 和传统接口回放的断言怎么对应？<a class="anchor-link" href="#policy-choice">#</a></h3>
+          <table>
+            <thead><tr><th>传统接口回放</th><th>Agent Regression Kit 对应方式</th><th>建议</th></tr></thead>
+            <tbody>
+              <tr><td>响应 JSON 字段等于</td><td><code>contract.assertions</code> 或 baseline 的结构比较</td><td>关键业务结论优先放 claims，再用断言固定。</td></tr>
+              <tr><td>忽略时间戳、request ID</td><td><code>contract.ignore_paths</code> 或 <code>normalizers</code></td><td>只过滤已知噪音，不要为了“让测试通过”忽略整段结果。</td></tr>
+              <tr><td>请求参数断言</td><td>工具调用 baseline 比较、<code>must_call.arguments</code></td><td>权限、租户、订单号等关键参数不要放宽。</td></tr>
+              <tr><td>允许多个合法响应</td><td><code>path_rules.any_of</code> 或 <code>claims-only</code></td><td>把合法范围写出来，不要依赖宽泛的字符串匹配。</td></tr>
+              <tr><td>接口副作用回滚</td><td><code>SnapshotBackend</code>、<code>StateIsolation</code>、<code>side_effects</code></td><td>测试环境能 snapshot/restore 才能证明没有污染后续用例。</td></tr>
+            </tbody>
+          </table>
+          <div class="callout danger"><div class="icon">!</div><div><strong>目前不是任意 JSONPath / 正则 / 语义判分平台</strong>内核只提供确定的路径、时间戳归一化、列表排序、字段断言和结构化比较。复杂业务语义应在 Adapter 或 claims 中明确表达；不要假设工具包会从一句自然语言自动推断“事实”。</div></div>
+        </section>
+
+        <section id="adapter">
+          <h2>7. 接入自己的 Agent<a class="anchor-link" href="#adapter">#</a></h2>
+          <p class="section-intro">接入的关键不是把整个框架改造成 Kit，而是在 Agent 和工具执行层之间放一层很薄的 Adapter。它只需要把“调用工具”和“给出最终答案”转发到统一上下文。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">flowchart LR
+  Framework[你的框架 Agent] --> Invoke[invoke / run / execute]
+  Invoke --> Adapter[CallableAgentAdapter]
+  Adapter --> Context[RunContext]
+  Context --> Call[context.call_tool]
+  Context --> Answer[context.final_answer]
+  Call --> Executor[你的 ToolExecutor 或 MCP]
+  Answer --> Trace[AgentTrace]
+  Executor --> Trace</pre>
+            <p class="diagram-note">图意：框架的内部实现留在项目内，Kit 只要求两个可观察出口，从而保持跨框架。</p>
+          </div>
+          <h3>7.1 最小同步 Agent 示例</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>import json
+from pathlib import Path
+
+from agent_regression import (
+    CallableAgentAdapter,
+    FixtureTools,
+    record_run,
+)
+
+
+def invoke_framework(request, context):
+    # 真实项目里，这里可以调用你的 LangChain、Spring AI、OpenAI SDK
+    order_id = request["order_id"]
+    order = context.call_tool("get_order", {"order_id": order_id})
+    context.final_answer(
+        f"订单 {order_id} 的状态是 {order['status']}。",
+        {"order_id": order_id, "order_status": order["status"]},
+    )
+
+
+adapter = CallableAgentAdapter(
+    {"name": "my-order-agent", "version": "1.0.0"},
+    invoke_framework,
+)
+tools = FixtureTools({"get_order": {"status": "not_shipped"}})
+trace = record_run(
+    adapter,
+    {"order_id": "123"},
+    tools,
+    run_id="my-order-agent-123",
+)
+
+Path("work/my-agent.trace.json").parent.mkdir(parents=True, exist_ok=True)
+Path("work/my-agent.trace.json").write_text(
+    json.dumps(trace.to_dict(), ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+)</code></pre></div>
+          <h3>7.2 适配器必须遵守的两个约定</h3>
+          <div class="grid-2">
+            <div class="card"><h3>工具调用</h3><p>不要让 Agent 直接绕过 Recorder 调用真实工具。所有需要被比较的工具都要通过 <code>context.call_tool(tool, arguments)</code>，这样调用、结果、错误状态才能成对写进 Trace。</p></div>
+            <div class="card"><h3>最终答案</h3><p>在每次运行结束时调用一次 <code>context.final_answer(text, claims)</code>。<code>claims</code> 是可选的结构化业务结论，但要做可靠评测时建议提供。</p></div>
+          </div>
+          <h3>7.3 如果已有自己的 ToolExecutor</h3>
+          <p>不使用 MCP 也可以。只要实现类似下面的最小边界，就能复用同一套录制器：</p>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>class MyToolExecutor:
+    def call(self, tool: str, arguments: dict):
+        if tool == "get_order":
+            return order_service.get(arguments["order_id"])
+        raise KeyError(tool)
+
+# 录制器负责事件和脱敏；执行器负责真正调用工具
+trace = record_run(
+    adapter,
+    request,
+    MyToolExecutor(),
+    run_id="production-like-order-123",
+)</code></pre></div>
+          <div class="callout"><div class="icon">i</div><div><strong>不需要先拥有成熟 Agent</strong>可以先使用项目内的 <code>ScriptedAgentAdapter</code>、<code>RuleBasedOrderAgentAdapter</code> 或 Fixture 工具验证 Trace 和 compare，再逐步接入真实框架。工具包测的是接入边界是否正确，不要求一开始就有生产级模型。</div></div>
+        </section>
+
+        <section id="async">
+          <h2>8. 异步 Agent 与一次运行内的并行工具<a class="anchor-link" href="#async">#</a></h2>
+          <p class="section-intro">“多个场景并行录制”和“一个 Agent 在同一轮并行调用多个工具”是两件事。v2.9 处理后者，并把并行形状写进 Trace，防止一次改动把并发逻辑悄悄降级成串行。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">sequenceDiagram
+  participant A as Async Agent
+  participant R as Async Recorder
+  participant O as Tool get_order
+  participant S as Tool get_shipping
+  A->>R: create call-1 and call-2
+  par same parallel_group lookup
+    R->>O: await get_order
+    O-->>R: result for call-1
+  and
+    R->>S: await get_shipping
+    S-->>R: result for call-2
+  end
+  R->>R: preserve creation order and call IDs
+  R-->>A: final answer event last</pre>
+            <p class="diagram-note">图意：实际完成时间可以变化，但 Trace 保留调用创建顺序、稳定 call ID 和 parallel group；并发形状变化会被识别为差异。</p>
+          </div>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>import asyncio
+from agent_regression import AsyncCallableAgentAdapter, record_async_run
+
+
+async def invoke_async(request, context):
+    order, shipping = await asyncio.gather(
+        context.call_tool(
+            "get_order", {"order_id": request["order_id"]},
+            parallel_group="lookup",
+        ),
+        context.call_tool(
+            "get_shipping", {"order_id": request["order_id"]},
+            parallel_group="lookup",
+        ),
+    )
+    context.final_answer(
+        "查询完成",
+        {"order": order, "shipping": shipping},
+    )
+
+
+trace = record_async_run(
+    AsyncCallableAgentAdapter(
+        {"name": "async-order-agent", "version": "1.0.0"},
+        invoke_async,
+    ),
+    {"order_id": "123"},
+    async_tools,
+    run_id="async-order-123",
+)</code></pre></div>
+          <table>
+            <thead><tr><th>顺序概念</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>调用创建顺序</td><td>决定 <code>call-1</code>、<code>call-2</code>，用于稳定比较。</td></tr>
+              <tr><td>实际完成顺序</td><td>可能因网络或工具延迟变化，不应该成为无意义的回归差异。</td></tr>
+              <tr><td>Trace 事件顺序</td><td>保持可比较的调用与结果结构，最终答案仍然最后出现。</td></tr>
+              <tr><td><code>parallel_group</code></td><td>明确声明哪些调用属于同一并行组；组结构变化会产生 <code>execution_concurrency</code> 差异。</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="mcp">
+          <h2>9. MCP 接入：从本地 Fixture 到真实 Server<a class="anchor-link" href="#mcp">#</a></h2>
+          <p class="section-intro">MCP（Model Context Protocol）让 Agent 用统一协议发现和调用工具、资源、Prompt 等能力。项目提供 stdio 和 Streamable HTTP 两种传输方式；测试优先使用仓库自带的确定性 Fixture，不依赖外部服务。</p>
+          <div class="grid-2">
+            <div class="panel tint-blue"><h3>stdio</h3><p>把 MCP Server 当作子进程启动，通过标准输入输出传输 JSON-RPC。适合本地工具和 CI，进程边界清晰。</p><p><code>mcp-record --server-command</code></p></div>
+            <div class="panel tint-green"><h3>Streamable HTTP</h3><p>通过 HTTP POST 发送请求，服务端可以返回 JSON 或 SSE 流，也可以使用 GET 监听事件。适合独立部署的 MCP Server。</p><p><code>mcp-http-record --url</code></p></div>
+          </div>
+          <h3>9.1 用项目自带的 MCP Server 做可重复测试</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code># stdio 录制：默认使用项目自带 fixture
+.venv/bin/agent-regression mcp-record \
+  --scenario examples/order-123/baseline.scenario.json \
+  --out work/mcp-order-123.trace.json
+
+# 兼容性检查：不产生业务变更的 smoke test
+.venv/bin/agent-regression mcp-smoke \
+  --server-command 'python src/agent_regression/fixtures/mcp_stdio_server.py' \
+  --out outputs/mcp-smoke.json</code></pre></div>
+          <h3>9.2 Streamable HTTP 示例</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression mcp-http-record \
+  --scenario examples/order-123/baseline.scenario.json \
+  --url http://127.0.0.1:3001/mcp \
+  --header 'Authorization: Bearer test-token' \
+  --timeout 30 \
+  --out work/mcp-http-order-123.trace.json
+
+.venv/bin/agent-regression mcp-smoke \
+  --url http://127.0.0.1:3001/mcp \
+  --timeout 30 \
+  --out outputs/mcp-http-smoke.json</code></pre></div>
+          <h3>9.3 MCP 交互与错误如何进入 Trace</h3>
+          <table>
+            <thead><tr><th>情况</th><th>记录方式</th><th>默认安全行为</th></tr></thead>
+            <tbody>
+              <tr><td>工具成功</td><td><code>tool_result.is_error = false</code>，保存结构化结果</td><td>继续 Agent 运行</td></tr>
+              <tr><td>工具业务错误</td><td><code>is_error = true</code>，保存错误状态和内容</td><td>不把错误伪装成成功</td></tr>
+              <tr><td>JSON-RPC / 协议错误</td><td>转换成明确的 MCP 异常或错误结果</td><td>不自动重试未知副作用</td></tr>
+              <tr><td>超时</td><td>记录 timeout / transport error</td><td>默认不自动重试</td></tr>
+              <tr><td>服务端请求</td><td>可显式响应或通过 callback 处理</td><td>调用者负责声明允许的响应策略</td></tr>
+              <tr><td>分页、进度、取消、重连</td><td>由 MCP 客户端和事件流处理</td><td>客户端生命周期仍以同步接口为主</td></tr>
+            </tbody>
+          </table>
+          <div class="callout warn"><div class="icon">!</div><div><strong>项目自带 Server 是测试 Fixture，不是生产 MCP Server</strong>它的目的，是让任何人克隆仓库后不用寻找第三方依赖，就能验证录制、异常和比较边界。对外兼容性仍建议用官方 Everything Server 或你自己的真实 Server 做 smoke test。</div></div>
+        </section>
+
+        <section id="state">
+          <h2>10. 状态、副作用与多轮 Session<a class="anchor-link" href="#state">#</a></h2>
+          <p class="section-intro">如果 Agent 会取消订单、扣库存、修改权限，只比较工具结果还不够。测试必须知道运行前后的世界状态，并在用例结束后把状态恢复，防止前一个测试污染后一个测试。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">flowchart LR
+  Before[初始 World State] --> Snapshot[snapshot 快照]
+  Snapshot --> Run[Agent run]
+  Run --> After[最终 World State]
+  After --> Effect[side_effects 断言]
+  Effect --> Restore[restore 恢复]
+  Restore --> Clean[下一个用例从干净状态开始]
+  Run --> Error[Agent 异常]
+  Error --> Restore</pre>
+            <p class="diagram-note">图意：无论正常结束还是异常结束，都应走 restore；side_effects 只检查明确声明的业务状态变化。</p>
+          </div>
+          <h3>10.1 SnapshotBackend 示例</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>from agent_regression import isolated_record_run
+
+
+class TestDatabaseState:
+    def snapshot(self):
+        return read_test_rows_as_json()
+
+    def restore(self, snapshot):
+        replace_test_rows_from_json(snapshot)
+
+
+trace = isolated_record_run(
+    my_agent,
+    {"order_id": "123", "action": "cancel"},
+    my_tools,
+    state_backend=TestDatabaseState(),
+    run_id="cancel-order-123",
+)</code></pre></div>
+          <p><code>SnapshotBackend</code> 只规定两个职责：<code>snapshot()</code> 返回可脱离原对象的测试状态，<code>restore(snapshot)</code> 把它恢复。它可以连接测试数据库、Redis、内存 Fixture 或服务模拟器，但不会自动发现隐藏的外部写入。</p>
+          <h3>10.2 多轮 Session</h3>
+          <p>多轮流程应使用 Session，而不是把所有对话拼成一个不可读的最终字符串。每一轮仍然拥有独立 Trace，Session 比较器按轮次对齐，并可以检查上一轮最终状态是否成为下一轮初始状态。</p>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression session-record \
+  --scenario examples/order-session/session.scenario.json \
+  --out work/order-session.json
+
+.venv/bin/agent-regression session-compare \
+  --baseline baselines/order-session.json \
+  --candidate work/order-session.json \
+  --format markdown \
+  --out outputs/order-session.md</code></pre></div>
+        </section>
+
+        <section id="stability">
+          <h2>11. 稳定性评测：重复运行不是简单回放<a class="anchor-link" href="#stability">#</a></h2>
+          <p class="section-intro">模型采样、网络延迟和工具状态可能让同一个输入偶尔走不同路径。单次 baseline/candidate 比较只能回答“一次是否变化”；稳定性评测会隔离地重复运行同一个场景，并把指标变成门禁。</p>
+          <div class="grid-2">
+            <div class="card"><h3><code>pass_rate</code></h3><p>重复运行中与 baseline 比较通过的比例。</p></div>
+            <div class="card"><h3><code>claims_match_rate</code></h3><p>结构化业务结论和 baseline 一致的比例。</p></div>
+            <div class="card"><h3><code>tool_error_rate</code></h3><p>运行中工具错误的比例，适合发现不稳定依赖。</p></div>
+            <div class="card"><h3><code>path_variant_count</code></h3><p>观察到的完整工具路径数量，用于发现路线漂移。</p></div>
+          </div>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/baseline.scenario.json \
+  --repeats 10 \
+  --workers 4 \
+  --min-pass-rate 0.95 \
+  --min-claims-match-rate 1.0 \
+  --max-tool-error-rate 0.05 \
+  --max-path-variants 1 \
+  --final-answer-mode claims-only \
+  --format markdown \
+  --out outputs/stability.md</code></pre></div>
+          <div class="callout"><div class="icon">i</div><div><strong>这不是统计学证明</strong>重复 10 次只能说明这 10 次的证据。它不能穷尽模型所有路径，也不是 LLM Judge。它的价值是把“偶尔会错”变成 pass rate、claims 一致率、工具错误率和路径变化这些可审核指标。</div></div>
+        </section>
+
+        <section id="coverage">
+          <h2>12. 场景覆盖与业务分支覆盖<a class="anchor-link" href="#coverage">#</a></h2>
+          <p class="section-intro">Agent 的覆盖率不等于源码行覆盖率。这里统计的是“场景证据是否走过预期工具路径”和“结构化 claims 是否覆盖预期业务结果”。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">flowchart LR
+  Scenarios[正常 / 异常 / 权限 / 副作用场景] --> Traces[多份 AgentTrace]
+  Traces --> ToolPaths[工具调用路径集合]
+  Traces --> Claims[结构化 claims]
+  ToolPaths --> ExpectedPaths[expected-path 门禁]
+  Claims --> ExpectedBranches[expected-branch 门禁]
+  ExpectedPaths --> CoverageReport[覆盖率报告]
+  ExpectedBranches --> CoverageReport
+  CoverageReport --> CI[CI 退出码]</pre>
+            <p class="diagram-note">图意：覆盖率的对象是“已有场景是否提供证据”，不是声明 Agent 内部所有代码和模型分支都被证明。</p>
+          </div>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression coverage \
+  --trace-dir work/scenarios \
+  --expected-path "get_order" \
+  --expected-path "get_order -> cancel_order" \
+  --expected-path "get_order -> refund" \
+  --include-outcomes \
+  --branch-path final_answer.claims.order_status \
+  --expected-branch paid \
+  --expected-branch cancelled \
+  --expected-branch not_found \
+  --format markdown \
+  --out outputs/coverage.md</code></pre></div>
+          <p><code>--include-outcomes</code> 会把工具路径写成 <code>get_order[ok]</code> 或 <code>get_order[error]</code>。如果任意 expected path 或 expected branch 没有被观察到，命令返回 <code>1</code>，可以直接阻断 CI。</p>
+          <p>批量录制独立场景可以使用：</p>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression batch-record \
+  --scenario-dir examples/order-123 \
+  --out-dir work/scenarios \
+  --workers 4 \
+  --format markdown \
+  --report outputs/batch-record.md</code></pre></div>
+          <p class="small">批量录制要求每个 ScenarioCase 创建独立 Agent 和工具执行器；有界线程不会自动修复框架线程安全，也不会自动隔离进程级环境变量。</p>
+        </section>
+
+        <section id="sdk">
+          <h2>13. SDK 与 Adapter 模板<a class="anchor-link" href="#sdk">#</a></h2>
+          <p class="section-intro">v3.0 把接入边界抽成小型 SDK，并提供 <code>adapter-init</code> 模板。目标不是自动发现任何框架，而是让第一次接入有一个可运行、可测试、可扩展的起点。</p>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>.venv/bin/agent-regression adapter-init \
+  --directory my-agent-regression \
+  --name my-order-agent \
+  --mode both
+
+cd my-agent-regression
+PYTHONPATH=.. python -m unittest discover -s tests -v</code></pre></div>
+          <p>模板会生成：</p>
+          <div class="grid-3">
+            <div class="card"><h3><code>adapter.py</code></h3><p>同步、异步或双模式的最小适配器示例。</p></div>
+            <div class="card"><h3><code>tests/test_adapter_contract.py</code></h3><p>离线契约测试，检查工具调用和最终答案是否经过统一上下文。</p></div>
+            <div class="card"><h3><code>README.md</code></h3><p>生成的双语接入说明，帮助团队理解如何替换示例逻辑。</p></div>
+          </div>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>from agent_regression import AdapterSpec
+
+spec = AdapterSpec(
+    "my-agent",
+    version="1.0.0",
+    metadata={"framework": "your-framework"},
+)
+
+sync_adapter = spec.build_sync(invoke_framework)
+async_adapter = spec.build_async(invoke_async_framework)</code></pre></div>
+          <div class="callout warn"><div class="icon">!</div><div><strong>SDK 的边界</strong><code>AdapterSpec</code> 固定 Agent 身份和 callback 形状，但不负责框架启动、依赖注入、生命周期、模型调用、业务 claims 生成或 Java/Spring 原生包装。</div></div>
+        </section>
+
+        <section id="history">
+          <h2>14. 历史趋势与长期回归<a class="anchor-link" href="#history">#</a></h2>
+          <p class="section-intro">一次 compare 只能告诉你当前差异。v3.1 的 <code>history</code> 把多个稳定性、比较、批量或覆盖率 JSON 报告放入目录，按文件名排序聚合成长期趋势。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">flowchart LR
+  Compare[compare JSON] --> Dir[reports/agent-history]
+  Stability[stability JSON] --> Dir
+  Coverage[coverage JSON] --> Dir
+  Dir --> Load[history loader]
+  Load --> Metrics[first / latest / delta / min / max]
+  Load --> Latest[最新报告状态]
+  Metrics --> Report[JSON / Markdown / JUnit]
+  Latest --> Report
+  Report --> CI[CI 门禁]</pre>
+            <p class="diagram-note">图意：历史聚合器是文件型报告工具，不是在线 Dashboard；退出码跟随最新一个可识别报告。</p>
+          </div>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p reports/agent-history
+
+# 建议使用稳定文件名表达顺序
+cp outputs/stability-v2.8.json reports/agent-history/001-v2.8.json
+cp outputs/stability-v2.9.json reports/agent-history/002-v2.9.json
+cp outputs/stability-v3.0.json reports/agent-history/003-v3.0.json
+
+.venv/bin/agent-regression history \
+  --report-dir reports/agent-history \
+  --format markdown \
+  --out outputs/history.md</code></pre></div>
+          <table>
+            <thead><tr><th>趋势指标</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td>first / latest</td><td>第一份与最新一份报告的指标值。</td></tr>
+              <tr><td>delta</td><td>最新值减去第一值，用于看方向变化。</td></tr>
+              <tr><td>min / max</td><td>历史区间，便于发现波动。</td></tr>
+              <tr><td>skipped</td><td>无法识别的 JSON 文件，不会被静默吞掉。</td></tr>
+              <tr><td>latest passed</td><td>最新可识别报告是否通过，决定命令退出码。</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="ci">
+          <h2>15. CI 集成：让回归真正阻断合并<a class="anchor-link" href="#ci">#</a></h2>
+          <p class="section-intro">CI 的核心不是“再写一套脚本”，而是让本地和 Pull Request 使用同一套 Trace 与比较规则。仓库已经提供可复用的 GitHub Action，也可以在工作流里直接调用 CLI。</p>
+          <h3>15.1 最小 GitHub Actions 工作流</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>name: agent-regression
+
+on:
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Agent Regression Kit
+        run: python -m pip install \
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.1.0"
+      - name: Record candidate trace
+        run: python scripts/record_agent.py --out work/my-agent.trace.json
+      - name: Compare with reviewed baseline
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.1.0
+        with:
+          baseline: baselines/my-agent.trace.json
+          candidate: work/my-agent.trace.json
+          report: outputs/my-agent.junit.xml
+          summary: outputs/my-agent.md
+          final-answer-mode: claims-only
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-regression-report
+          path: outputs/</code></pre></div>
+          <h3>15.2 Action 的输入和作用</h3>
+          <table>
+            <thead><tr><th>输入</th><th>作用</th><th>建议</th></tr></thead>
+            <tbody>
+              <tr><td><code>baseline</code></td><td>审核过的 Trace 路径</td><td>提交到仓库并通过 Pull Request 审核。</td></tr>
+              <tr><td><code>candidate</code></td><td>本次构建生成的 Trace 路径</td><td>放在 work 或临时输出目录。</td></tr>
+              <tr><td><code>report</code></td><td>JUnit XML 报告</td><td>供 CI 测试报告插件读取。</td></tr>
+              <tr><td><code>summary</code></td><td>Markdown 报告</td><td>写入 GitHub Job Summary，方便在 PR 页面阅读。</td></tr>
+              <tr><td><code>allow-category</code></td><td>逗号分隔的可放宽差异类别</td><td>最小化使用，并在代码评审中解释原因。</td></tr>
+              <tr><td><code>allow-path</code></td><td>逗号分隔的精确差异路径</td><td>优先精确路径，不要放宽整个结果对象。</td></tr>
+              <tr><td><code>final-answer-mode</code></td><td><code>exact</code> 或 <code>claims-only</code></td><td>只有文字风格不稳定时才用 claims-only。</td></tr>
+            </tbody>
+          </table>
+          <h3>15.3 CI 中的三种门禁组合</h3>
+          <div class="grid-3">
+            <div class="card"><h3>回归门禁</h3><p>比较 baseline/candidate，检查工具、结果、claims、流程和最终文本。</p></div>
+            <div class="card"><h3>稳定性门禁</h3><p>重复运行场景，检查通过率、错误率和路径变体。</p></div>
+            <div class="card"><h3>覆盖门禁</h3><p>检查正常、异常、权限和副作用路径是否都已经有证据。</p></div>
+          </div>
+          <p>建议的 PR 流程是：先录 candidate → 生成 JSON/Markdown/JUnit → 在 PR 中审核差异 → 如果是意外变化修代码 → 如果是有意变化再单独更新 baseline。</p>
+        </section>
+
+        <section id="reports">
+          <h2>16. 报告格式与退出码<a class="anchor-link" href="#reports">#</a></h2>
+          <div class="grid-3">
+            <div class="card"><h3>JSON</h3><p>机器可读，适合后续聚合、历史趋势和自动化处理。通常包含每个差异的 category、path、baseline、candidate。</p></div>
+            <div class="card"><h3>Markdown</h3><p>人最容易读，适合 GitHub Job Summary、PR 评论和本地审核。</p></div>
+            <div class="card"><h3>JUnit XML</h3><p>适合 CI 测试结果面板。工具会把阻断差异转换为失败用例。</p></div>
+          </div>
+          <table>
+            <thead><tr><th>退出码</th><th>含义</th><th>处理方式</th></tr></thead>
+            <tbody>
+              <tr><td><strong>0</strong></td><td>比较、覆盖或稳定性门禁通过</td><td>允许继续流水线。</td></tr>
+              <tr><td><strong>1</strong></td><td>发现阻断性回归、缺失覆盖、稳定性阈值未达标或最新历史点失败</td><td>查看 Markdown/JSON，决定修代码还是审核更新 baseline。</td></tr>
+              <tr><td><strong>2</strong></td><td>输入、Trace、配置或环境无效</td><td>先修命令、路径、JSON 或运行环境，不要把它当业务回归。</td></tr>
+            </tbody>
+          </table>
+          <h3>16.1 如何阅读一条差异</h3>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>{
+  "category": "tool_arguments",
+  "path": "tool_calls[0].arguments",
+  "baseline": {"order_id": "123"},
+  "candidate": {"order_id": "132"}
+}</code></pre></div>
+          <ol>
+            <li><strong>先看 category：</strong>它告诉你变化属于工具名、参数、工具结果、答案文本、claims、状态、并发还是契约。</li>
+            <li><strong>再看 path：</strong>它告诉你 Trace 中的具体位置；<code>tool_calls[0]</code> 表示第一个工具调用。</li>
+            <li><strong>最后对照 baseline/candidate：</strong>判断这是 Bug、噪音、还是经过评审的产品变化。</li>
+          </ol>
+        </section>
+
+        <section id="architecture">
+          <h2>17. 技术架构：各组件的职责边界<a class="anchor-link" href="#architecture">#</a></h2>
+          <p class="section-intro">设计原则是：接入层负责把框架动作翻译出来，执行层负责工具边界，Trace 负责证据格式，比较层负责确定性差异，报告层负责展示，CI 负责门禁。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">flowchart TD
+  Adapter[AgentAdapter]
+  Adapter --> Context[RunContext / AsyncRunContext]
+  Context --> Recorder[record_run / async_record_run]
+  Recorder --> Executor[ToolExecutor]
+  Executor --> Fixture[FixtureTools]
+  Executor --> MCP[MCP Client]
+  Recorder --> Model[AgentTrace v0.1]
+  Model --> Comparator[compare_traces]
+  Comparator --> Contract[ContractPolicy]
+  Comparator --> Reports[Report Renderers]
+  Reports --> CLI[CLI and GitHub Action]
+  CLI --> Exit[Exit code gate]</pre>
+            <p class="diagram-note">图意：每一层只有一个主职责，比较策略不应该散落到框架适配器或报告渲染器里。</p>
+          </div>
+          <table>
+            <thead><tr><th>组件</th><th>职责</th><th>明确不负责什么</th></tr></thead>
+            <tbody>
+              <tr><td><code>AgentAdapter</code></td><td>将框架 Agent 的工具调用和最终答案接入上下文。</td><td>不比较、不评分、不管理 CI。</td></tr>
+              <tr><td><code>Recorder</code></td><td>给事件排序、配对调用与结果、脱敏、校验 Trace。</td><td>不决定 Agent 应该选哪个工具。</td></tr>
+              <tr><td><code>ToolExecutor</code></td><td>执行工具并返回正常或错误结果。</td><td>不负责 baseline 策略。</td></tr>
+              <tr><td><code>AgentTrace</code></td><td>提供稳定、可持久化的证据模型和 v0.1 校验。</td><td>不保存隐藏思维链。</td></tr>
+              <tr><td><code>ComparisonPolicy</code></td><td>决定允许哪些差异、最终答案用 exact 还是 claims-only。</td><td>不从散文中推断业务事实。</td></tr>
+              <tr><td><code>ContractPolicy</code></td><td>执行断言、工具约束、噪音过滤、路径和副作用规则。</td><td>不做任意正则和模型判分。</td></tr>
+              <tr><td><code>Reporter</code></td><td>把结果渲染成 JSON、Markdown、JUnit。</td><td>不改变比较结论。</td></tr>
+              <tr><td><code>History</code></td><td>聚合已有报告并计算趋势。</td><td>不作为在线数据库或 Dashboard。</td></tr>
+            </tbody>
+          </table>
+          <h3>17.1 为什么保持 AgentTrace schema v0.1 不轻易变化</h3>
+          <p>产品版本和证据 schema 版本是两条线。v3.1 可以增加历史聚合、SDK 或报告能力，而不必悄悄改变旧 Trace 的解释方式。可选的 world state、session、coverage、stability、async execution metadata 都挂在现有边界上，保证已有证据仍可读取。</p>
+          <h3>17.2 比较器当前采用的简化</h3>
+          <ul>
+            <li>工具调用按事件顺序对齐，不做最优序列匹配；顺序变化会被明确报告。</li>
+            <li>工具结果会检查结构化内容和 <code>is_error</code>，不会把“错误结果”当作“没有结果”。</li>
+            <li>claims 必须由 Adapter 或场景显式产生，比较器不从自然语言反向抽取事实。</li>
+            <li>并发组由 Adapter 显式声明，工具包不猜测框架内部隐藏的任务。</li>
+          </ul>
+        </section>
+
+        <section id="security">
+          <h2>18. 边界、脱敏和安全注意事项<a class="anchor-link" href="#security">#</a></h2>
+          <div class="grid-2">
+            <div class="panel tint-red">
+              <h3>Trace 脱敏</h3>
+              <ul>
+                <li>默认识别常见敏感字段名称。</li>
+                <li>自由文本里的 secret 不能自动可靠识别，需要显式传入 <code>--secret-value</code> 或 <code>RedactionPolicy(secret_values=...)</code>。</li>
+                <li>脱敏降低误泄露风险，但不是完整的数据防泄露系统。</li>
+              </ul>
+            </div>
+            <div class="panel tint-orange">
+              <h3>MCP 运行权限</h3>
+              <ul>
+                <li>stdio MCP Server 以当前用户权限作为本地子进程运行。</li>
+                <li>只运行你信任的 server command。</li>
+                <li>生产重试、幂等性和副作用策略必须由真实集成明确决定；Kit 默认不自动重试。</li>
+              </ul>
+            </div>
+          </div>
+          <h3>18.1 当前明确不承诺的内容</h3>
+          <table>
+            <thead><tr><th>不承诺</th><th>原因</th><th>替代做法</th></tr></thead>
+            <tbody>
+              <tr><td>模型质量的统计学证明</td><td>重复运行只能观察有限样本。</td><td>用 stability 指标表达当前样本中的稳定性。</td></tr>
+              <tr><td>从自然语言自动判定事实</td><td>自由文本有歧义，模型裁判也会引入不确定性。</td><td>让 Agent 输出 claims，使用确定性断言。</td></tr>
+              <tr><td>框架自动发现</td><td>不同框架生命周期、上下文和工具模型差异很大。</td><td>实现薄 Adapter 或使用 v3.0 模板。</td></tr>
+              <tr><td>任意外部状态自动回滚</td><td>工具包看不到未声明的隐藏写入。</td><td>实现 SnapshotBackend，明确覆盖数据库、缓存或模拟器。</td></tr>
+              <tr><td>完整 MCP 可选能力覆盖</td><td>协议能力和版本不断扩展，部分能力需要业务策略。</td><td>使用 smoke test，针对目标 Server 增加专门 Fixture。</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="faq">
+          <h2>19. 常见问题与排错<a class="anchor-link" href="#faq">#</a></h2>
+          <div class="panel">
+            <h3>Q1：我必须先有一个真实 Agent 吗？</h3>
+            <p>不需要。先用仓库内的 Scripted/Rule-based Agent 和 Fixture 工具验证回归链路；然后用 <code>CallableAgentAdapter</code> 接入真实 Agent。项目的第一个测试对象是“记录、比较、报告是否正确”，不是模型能力。</p>
+            <h3>Q2：这和接口流量回放到底有什么难点差异？</h3>
+            <p>相似点是保存基线、重放或重跑、比较差异；差异在于 Agent 的行为是路径性的、可能非确定、带工具编排和业务状态。关键测试项从单个响应字段扩展到工具路径、参数、工具错误、结果误读、合法替代路径、状态副作用、并发形状、重复运行稳定性和多轮连续性。</p>
+            <h3>Q3：最终文本经常不同，是否每次都失败？</h3>
+            <p>默认 <code>exact</code> 会比较文本。若业务允许文字变化但要求事实不变，使用 <code>--final-answer-mode claims-only</code>；它只忽略 <code>final_answer.text</code>，不会忽略 claims、工具调用、参数、结果或错误状态。</p>
+            <h3>Q4：baseline 什么时候应该更新？</h3>
+            <p>只有当变化是有意的产品行为变更，并且已经审核了工具、参数、结果、claims 和状态影响时更新。不要在 CI 中自动把每次 candidate 覆盖为 baseline。</p>
+            <h3>Q5：<code>allow_paths</code> 和 <code>contract.ignore_paths</code> 有什么区别？</h3>
+            <p><code>allow_paths</code> 匹配比较器输出的完整差异路径，只是让该差异不阻断；<code>contract.ignore_paths</code> 在比较前深入清理指定 JSON 字段，并支持 <code>[*]</code>。前者是门禁放宽，后者是输入归一化/噪音清理，语义不同。</p>
+            <h3>Q6：运行返回 2 是不是 Agent 回归？</h3>
+            <p>通常不是。退出码 2 表示命令、配置、路径、Trace 格式或环境无效；退出码 1 才是比较发现回归、覆盖缺失、稳定性阈值未达标或最新历史点失败。</p>
+            <h3>Q7：为什么不直接做一个 Dashboard？</h3>
+            <p>Kit 先解决证据格式和 CI 门禁：Trace 可保存、可审核、可复现，比展示层更基础。v3.1 的 history 是文件型趋势聚合器，未来可以在不改变核心证据的前提下接入 Dashboard。</p>
+            <h3>Q8：官方 MCP Server 怎么验证？</h3>
+            <p>仓库提供可手动触发的 <code>.github/workflows/mcp-compatibility.yml</code>，会启动官方 Everything Server，分别检查 stdio 和 Streamable HTTP。它是兼容性 smoke test，不等于支持所有 MCP Server 的全部可选能力。</p>
+          </div>
+        </section>
+
+        <section id="commands">
+          <h2>20. CLI 命令速查<a class="anchor-link" href="#commands">#</a></h2>
+          <table>
+            <thead><tr><th>命令</th><th>用途</th><th>最常见参数</th></tr></thead>
+            <tbody>
+              <tr><td><code>init</code></td><td>生成项目接入骨架、配置、示例脚本和 GitHub Actions。</td><td><code>--directory</code>、<code>--force</code></td></tr>
+              <tr><td><code>ui</code></td><td>启动本地 Trace 查看器和配置中心。</td><td><code>--directory</code>、<code>--host</code>、<code>--port</code>、<code>--open-browser</code></td></tr>
+              <tr><td><code>adapter-init</code></td><td>生成同步、异步或双模式 Adapter 模板和契约测试。</td><td><code>--directory</code>、<code>--name</code>、<code>--mode</code></td></tr>
+              <tr><td><code>record</code></td><td>从确定性 Scenario 录制 AgentTrace。</td><td><code>--scenario</code>、<code>--out</code></td></tr>
+              <tr><td><code>mcp-record</code></td><td>通过 MCP stdio Server 录制。</td><td><code>--server-command</code>、<code>--timeout</code></td></tr>
+              <tr><td><code>mcp-http-record</code></td><td>通过 MCP Streamable HTTP Server 录制。</td><td><code>--url</code>、<code>--header</code>、<code>--timeout</code></td></tr>
+              <tr><td><code>mcp-smoke</code></td><td>做非变更型 MCP 兼容性检查。</td><td><code>--server-command</code> 或 <code>--url</code></td></tr>
+              <tr><td><code>replay</code></td><td>验证并读取 Trace 的回放摘要。</td><td><code>--trace</code>、<code>--out</code></td></tr>
+              <tr><td><code>validate</code></td><td>按 AgentTrace v0.1 校验一个 Trace。</td><td><code>--trace</code></td></tr>
+              <tr><td><code>compare</code></td><td>比较单个 baseline/candidate。</td><td><code>--config</code>、<code>--format</code>、<code>--allow-category</code>、<code>--allow-path</code></td></tr>
+              <tr><td><code>baseline accept/show</code></td><td>审核保存或查看 baseline。</td><td><code>--trace</code>、<code>--baseline</code></td></tr>
+              <tr><td><code>batch-compare</code></td><td>比较两目录中匹配的 Trace。</td><td><code>--baseline-dir</code>、<code>--candidate-dir</code></td></tr>
+              <tr><td><code>batch-record</code></td><td>并行录制多个独立 Scenario。</td><td><code>--scenario-dir</code>、<code>--out-dir</code>、<code>--workers</code></td></tr>
+              <tr><td><code>async-record</code></td><td>录制一次 Agent 内的异步并行工具调用。</td><td><code>--scenario</code>、<code>--format</code></td></tr>
+              <tr><td><code>stability</code></td><td>重复运行并检查稳定性阈值。</td><td><code>--repeats</code>、<code>--min-pass-rate</code>、<code>--max-path-variants</code></td></tr>
+              <tr><td><code>coverage</code></td><td>统计工具路径和业务分支覆盖。</td><td><code>--expected-path</code>、<code>--branch-path</code>、<code>--expected-branch</code></td></tr>
+              <tr><td><code>session-record/compare</code></td><td>录制和比较多轮 Agent Session。</td><td><code>--scenario</code>、<code>--baseline</code>、<code>--candidate</code></td></tr>
+              <tr><td><code>history</code></td><td>聚合历史报告并生成趋势。</td><td><code>--report-dir</code>、<code>--pattern</code>、<code>--format</code></td></tr>
+              <tr><td><code>config validate</code></td><td>在 CI 运行前校验单用例或批量配置。</td><td><code>--config</code>、<code>--kind single|batch</code></td></tr>
+              <tr><td><code>check</code></td><td>在比较前读取并校验配置引用的 Trace 和批量文件集合，不执行 Agent。</td><td><code>--config</code>、<code>--kind single|batch</code></td></tr>
+            </tbody>
+          </table>
+          <p class="small">任意命令都可以先运行 <code>agent-regression COMMAND --help</code> 查看当前版本的完整参数。</p>
+        </section>
+
+        <section id="releases">
+          <h2>21. 版本演进：从回放到 Agent 可靠性基础设施<a class="anchor-link" href="#releases">#</a></h2>
+          <p class="section-intro">项目不是停在“把流量存下来再回放”。每次迭代都在补一类真实 Agent 的可靠性问题，同时尽量保持 Trace 与核心比较 API 稳定。</p>
+          <table>
+            <thead><tr><th>版本</th><th>解决的问题</th><th>新增能力</th></tr></thead>
+            <tbody>
+              <tr><td><strong>v2.1</strong></td><td>只有 baseline 差异，不够表达主动行为约束。</td><td>ContractPolicy、字段断言、噪音路径、时间戳/列表归一化、必须/禁止工具、最大步骤。</td></tr>
+              <tr><td><strong>v2.2–v2.6</strong></td><td>状态副作用会污染用例，且多轮流程难以验证。</td><td>WorldState、side_effects、SnapshotBackend、StateIsolation、Session 和状态连续性。</td></tr>
+              <tr><td><strong>v2.7</strong></td><td>多场景串行太慢，框架接入重复代码多。</td><td>CallableAgentAdapter、ScenarioCase、批量并行录制。</td></tr>
+              <tr><td><strong>v2.8</strong></td><td>一次回放不能说明非确定 Agent 是否稳定。</td><td>重复运行、通过率、claims 一致率、工具错误率、路径变体阈值。</td></tr>
+              <tr><td><strong>v2.9</strong></td><td>并发工具完成顺序变化会让证据不稳定，或并发降级不易发现。</td><td>AsyncAdapter、稳定 call ID、parallel group、并发形状比较。</td></tr>
+              <tr><td><strong>v3.0</strong></td><td>每个框架接入者都重新猜 Adapter 边界。</td><td>AdapterSpec、adapter-init 模板、离线契约测试。</td></tr>
+              <tr><td><strong>v3.1</strong></td><td>单次报告看不到长期趋势和版本波动。</td><td>HistoryPoint、HistoryReport、首末/最小/最大/变化量和最新状态门禁。</td></tr>
+            </tbody>
+          </table>
+          <div class="panel tint-green">
+            <h3>推荐的实际采用顺序</h3>
+            <ol>
+              <li>先用 Fixture 跑通 <code>record → baseline accept → compare</code>。</li>
+              <li>接入一个真实 Agent，只关注工具调用和 claims，不要同时接十个框架。</li>
+              <li>为动态字段加最小范围的噪音过滤，并把危险行为写进 Contract。</li>
+              <li>对有副作用的场景加入 snapshot/restore，再扩展多轮、异步和 MCP。</li>
+              <li>最后接 stability、coverage、history 和 GitHub Actions，让证据进入团队流程。</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="checklist">
+          <h2>22. 接入完成检查清单<a class="anchor-link" href="#checklist">#</a></h2>
+          <ul class="checklist">
+            <li>本地能够安装并运行 <code>agent-regression --version</code>。</li>
+            <li>至少有一份经过人工审核的 baseline，且没有把 candidate 自动覆盖回去。</li>
+            <li>Agent 的所有重要工具调用都经过 <code>context.call_tool</code>。</li>
+            <li>Agent 的最终答案包含可比较的结构化 claims，尤其是业务结论。</li>
+            <li>已明确哪些差异是必须阻断的，哪些动态字段只是已知噪音。</li>
+            <li>危险工具、最大步骤、合法路径和关键副作用已经写入 Contract。</li>
+            <li>有状态场景实现了 snapshot/restore，且异常路径也能恢复。</li>
+            <li>至少有正常、异常、权限或副作用场景中的一部分覆盖门禁。</li>
+            <li>CI 运行和本地运行使用相同的 baseline、candidate 和比较策略。</li>
+            <li>报告以 JSON/Markdown/JUnit 至少一种形式保存，失败时能定位到 path。</li>
+            <li>Trace 写入前已确认敏感字段和自由文本 secret 的脱敏边界。</li>
+          </ul>
+        </section>
+
+        <footer class="footer">
+          <p><strong>相关仓库文档：</strong>
+            <a href="../README.md">README</a> ·
+            <a href="usage-guide.zh-CN.md">中文新手指南</a> ·
+            <a href="usage-guide.en.md">English Guide</a> ·
+            <a href="architecture.md">Architecture</a> ·
+            <a href="api.md">API Reference</a> ·
+            <a href="limitations.md">Limitations</a>
+          </p>
+          <p>本文档面向 Agent Regression Kit v3.1.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
+          <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll('.copy').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var code = button.nextElementSibling.innerText;
+        navigator.clipboard.writeText(code).then(function () {
+          var original = button.innerText;
+          button.innerText = '已复制';
+          setTimeout(function () { button.innerText = original; }, 1200);
+        });
+      });
+    });
+  </script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: 'neutral' });
+  </script>
+</body>
+</html>

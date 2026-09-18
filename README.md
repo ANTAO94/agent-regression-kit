@@ -8,6 +8,8 @@
 
 [中文新手接入指南](docs/usage-guide.zh-CN.md) | [English Getting Started](docs/usage-guide.en.md)
 
+[打开 Trace 查看器](viewer/index.html) | [打开配置中心](viewer/config.html) | [完整 HTML 技术文档](docs/agent-regression-kit-guide.html) | [成熟框架路线图](docs/maturity-roadmap.md)
+
 ## 中文说明
 
 Agent Regression Kit 是一个面向 AI Agent 的、与框架无关的回归测试工具包。它把一次 Agent 运行记录成版本化、脱敏的 JSON Trace，再将候选版本与经过审核的基线进行结构化比较。
@@ -43,7 +45,7 @@ flowchart LR
 - 项目配置：`compare --config` 可复用 baseline、candidate、报告格式和比较策略，命令行参数优先。
 - CI 策略一致：GitHub Action 支持 `final-answer-mode`、`allow-category` 和 `allow-path`。
 - 批量配置：`batch-compare --config` 支持多用例目录的可复用配置。
-- 稳定配置契约：`config validate` 可在 CI 比较前预检单用例或批量配置。
+- 稳定配置契约：`config validate` 可校验配置形状；`check` 进一步检查配置引用的 Trace 文件、批量目录和文件集合是否真的可用。
 - Agent Contract Testing：支持字段断言、动态字段忽略/归一化、必须/禁止工具调用和最大步骤约束。
 - Stateful Scenario Testing：支持每个用例独立的 world state、业务副作用断言、状态差异报告和多条合法工具路径。
 - Scenario Path Coverage：汇总多份 Trace 的工具调用路径，发现缺失的正常、异常或副作用分支，并可直接作为 CI 门禁。
@@ -63,7 +65,7 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **107 项通过，0 项失败** |
+| Python 单元与集成测试 | **117 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
 | Wheel 构建 | `agent_regression_kit-3.1.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
@@ -133,11 +135,41 @@ agent-regression compare --config .agent-regression/config.json
 agent-regression config validate \
   --config .agent-regression/config.json \
   --kind single
+
+# 不执行 Agent、不比较行为，只检查配置引用的 Trace 是否存在且合法
+agent-regression check \
+  --config .agent-regression/config.json \
+  --kind single
 ```
+
+`config validate` 只检查配置字段和路径规范；`check` 是 CI 中更靠前的一道
+无副作用预检，会读取 baseline/candidate Trace 并校验其 schema、事件结构和批量
+用例集合，但不会执行 Agent、写入 baseline，也不会把差异判为通过或失败。
+
+### 本地查看器和配置中心（v3.2 MVP）
+
+项目提供一个不需要后端的本地 Viewer：可以查看 baseline/candidate 的 Trace 时间线、Python compare 生成的差异 JSON，并通过配置中心生成 `.agent-regression/config.json`。
+
+从源码仓库启动：
+
+```bash
+agent-regression ui --open-browser
+```
+
+默认只绑定 `127.0.0.1`，不会把 Trace 暴露到局域网。也可以手动指定目录和端口：
+
+```bash
+agent-regression ui \
+  --directory viewer \
+  --host 127.0.0.1 \
+  --port 8765
+```
+
+Viewer 是只读展示层：它不会重新执行 Agent、修改 baseline 或替代 Python 比较器。正式 compare 仍然由 CLI 生成 JSON/Markdown/JUnit 报告，页面只读取本地文件。
 
 ### 项目边界
 
-它不是通用 Agent 框架、评分平台、LLM Judge 或 Dashboard。仓库里的订单 Agent 和 MCP Server 是确定性的测试 Fixture，用来证明接入边界可以在没有模型和网络依赖的情况下运行。
+它不是通用 Agent 框架、评分平台、LLM Judge 或在线多租户 Dashboard。仓库里的订单 Agent 和 MCP Server 是确定性的测试 Fixture，用来证明接入边界可以在没有模型和网络依赖的情况下运行；Viewer 是一个本地只读的证据查看层。
 
 ### 别人如何接入自己的 Agent
 
@@ -486,6 +518,8 @@ For a complete step-by-step walkthrough, see the [English Getting Started guide]
 
 Current release line: **v3.1**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
+The local v3.2 MVP also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
+
 ```text
 Agent / MCP Server
         │
@@ -511,7 +545,7 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **107 passed, 0 failed** |
+| Python unit and integration suite | **117 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
 | Wheel build | `agent_regression_kit-3.1.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
@@ -523,7 +557,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 107 tests in 8.6s
+Ran 117 tests in 8.6s
 
 OK
 ```

@@ -83,10 +83,34 @@ agent-regression config validate \
   --config .agent-regression/config.json \
   --kind single
 
+# 比较前的无副作用预检：确认配置引用的 Trace 存在且 schema 合法
+agent-regression check \
+  --config .agent-regression/config.json \
+  --kind single
+
 agent-regression compare --config .agent-regression/config.json
 ```
 
+两条命令的边界不同：`config validate` 只检查配置文件的字段、类型和路径；
+`check` 会继续读取 baseline/candidate Trace，检查 JSON 和 AgentTrace schema，
+但不会执行 Agent、修改 baseline 或比较两次运行的行为。输入错误返回退出码 `2`。
+
+如果使用批量配置，把 `--kind single` 改成 `--kind batch`；它还会检查两侧
+目录中的 `.trace.json` 相对文件名是否一一匹配。
+
 匹配时退出码是 `0`。发现阻断性回归时退出码是 `1`。配置、Trace 或运行环境无效时退出码是 `2`。
+
+### 本地查看器和配置中心（v3.2 MVP）
+
+如果你希望用页面查看 Trace 和 compare 差异，可以启动仓库自带的本地 Viewer：
+
+```bash
+agent-regression ui --open-browser
+```
+
+它默认只监听 `127.0.0.1`，不会上传或执行任何 Agent。Trace Inspector 读取
+baseline、candidate 和 compare JSON；配置中心可以生成 `.agent-regression/config.json`。
+Python CLI 仍然是比较结果的唯一来源，页面只是只读展示层。
 
 ## 4. 如何接入自己的 Agent
 

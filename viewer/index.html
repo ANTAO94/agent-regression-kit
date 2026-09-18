@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Regression Kit Trace and Diff Viewer">
+  <title>Trace Inspector · Agent Regression Kit</title>
+  <style>
+    :root {
+      --ink: #172434;
+      --ink-soft: #45596e;
+      --muted: #738396;
+      --surface: #f4f8fb;
+      --paper: #ffffff;
+      --paper-2: #edf3f7;
+      --line: #d7e1e9;
+      --line-strong: #b8cbd8;
+      --blue: #176aa9;
+      --blue-soft: #e5f2fb;
+      --teal: #087d77;
+      --teal-soft: #e2f5f1;
+      --amber: #ad5c11;
+      --amber-soft: #fff0dc;
+      --red: #b23c4b;
+      --red-soft: #ffe9ed;
+      --code: #152331;
+      --code-text: #e1eef7;
+      --shadow-sm: 0 5px 20px rgba(24, 51, 76, .06);
+      --shadow-lg: 0 22px 70px rgba(24, 51, 76, .12);
+      --radius: 15px;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      --ink: #eef6fc;
+      --ink-soft: #bdcedc;
+      --muted: #8da1b2;
+      --surface: #0e1924;
+      --paper: #172634;
+      --paper-2: #203441;
+      --line: #2d4354;
+      --line-strong: #456176;
+      --blue: #6bb7ec;
+      --blue-soft: #1e3b51;
+      --teal: #6bd0c4;
+      --teal-soft: #173e40;
+      --amber: #f0b36d;
+      --amber-soft: #4c351e;
+      --red: #ff9aa8;
+      --red-soft: #4c2932;
+      --code: #09121b;
+      --code-text: #dceefa;
+      --shadow-sm: 0 5px 20px rgba(0, 0, 0, .2);
+      --shadow-lg: 0 22px 70px rgba(0, 0, 0, .35);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: radial-gradient(circle at 8% 4%, rgba(23,106,169,.11), transparent 27rem), radial-gradient(circle at 94% 21%, rgba(8,125,119,.08), transparent 27rem), var(--surface); font-family: var(--sans); line-height: 1.55; transition: color .2s ease, background .2s ease; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button, input, select { font: inherit; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid rgba(23,106,169,.35); outline-offset: 2px; }
+    code, pre { font-family: var(--mono); }
+    code { padding: .12em .32em; border: 1px solid var(--line); border-radius: 5px; background: var(--paper-2); font-size: .88em; }
+    .topbar { position: sticky; z-index: 10; top: 0; display: flex; min-height: 70px; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem clamp(1rem, 3vw, 3.3rem); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 91%, transparent); backdrop-filter: blur(18px); }
+    .brand { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+    .brand-mark { display: grid; width: 39px; height: 39px; flex: 0 0 auto; place-items: center; border-radius: 11px; color: #fff; background: linear-gradient(145deg, #176aa9, #087d77); box-shadow: 0 8px 20px rgba(23,106,169,.25); font-weight: 850; letter-spacing: -.08em; }
+    .brand-name { display: block; overflow: hidden; color: var(--ink); font-size: .92rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-sub { display: block; color: var(--muted); font-family: var(--mono); font-size: .67rem; letter-spacing: .04em; }
+    .top-actions { display: flex; align-items: center; gap: .35rem; }
+    .text-button, .icon-button, .primary-button, .secondary-button { min-height: 44px; border: 1px solid transparent; border-radius: 9px; cursor: pointer; transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease; }
+    .text-button { padding: .6rem .8rem; color: var(--blue); background: transparent; font-size: .82rem; font-weight: 780; }
+    .text-button:hover { background: var(--blue-soft); text-decoration: none; }
+    .icon-button { display: grid; width: 44px; place-items: center; color: var(--ink-soft); background: transparent; }
+    .icon-button:hover { background: var(--paper-2); }
+    .primary-button { padding: .65rem 1rem; color: #fff; background: var(--blue); box-shadow: 0 7px 16px rgba(23,106,169,.2); font-weight: 800; }
+    .primary-button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(23,106,169,.25); }
+    .secondary-button { padding: .65rem 1rem; border-color: var(--line-strong); color: var(--ink-soft); background: var(--paper); font-weight: 750; }
+    .secondary-button:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+    svg { display: block; }
+    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.25rem; max-width: 1450px; margin: 0 auto; padding: 1.55rem clamp(1rem, 3vw, 3.3rem) 4rem; }
+    .rail { position: sticky; top: 91px; align-self: start; }
+    .rail-card { padding: 1rem .85rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .rail-label { margin: .1rem .65rem .7rem; color: var(--muted); font-family: var(--mono); font-size: .65rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .rail-item { display: grid; grid-template-columns: 28px 1fr; gap: .55rem; align-items: center; min-height: 45px; padding: .35rem .55rem; border-radius: 9px; color: var(--ink-soft); font-size: .78rem; font-weight: 700; }
+    .rail-item:hover, .rail-item.active { color: var(--blue); background: var(--blue-soft); text-decoration: none; }
+    .rail-icon { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid var(--line-strong); border-radius: 7px; font-family: var(--mono); font-size: .66rem; }
+    .rail-note { margin: .9rem .3rem 0; padding: .7rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .71rem; }
+    .main { min-width: 0; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 1rem; align-items: end; margin-bottom: 1rem; padding: 1.55rem 1.65rem; overflow: hidden; border: 1px solid #c7ddea; border-radius: 20px; background: radial-gradient(circle at 95% 10%, rgba(8,125,119,.17), transparent 14rem), linear-gradient(135deg, var(--paper), var(--blue-soft)); box-shadow: var(--shadow-sm); }
+    .eyebrow { color: var(--teal); font-family: var(--mono); font-size: .68rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -.025em; }
+    h1 { margin: .35rem 0 .45rem; font-size: clamp(1.75rem, 3.2vw, 2.8rem); }
+    h2 { margin: 0 0 .45rem; font-size: 1.2rem; }
+    h3 { margin: 0 0 .35rem; font-size: .98rem; }
+    p { margin: .4rem 0 .75rem; }
+    .lede { max-width: 720px; color: var(--ink-soft); font-size: .95rem; }
+    .run-id { padding: .9rem 1rem; border: 1px solid var(--line-strong); border-radius: 11px; background: color-mix(in srgb, var(--paper) 68%, transparent); }
+    .run-id-label { color: var(--muted); font-family: var(--mono); font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; }
+    .run-id strong { display: block; margin: .25rem 0 .2rem; overflow: hidden; font-family: var(--mono); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+    .run-id span { color: var(--ink-soft); font-size: .72rem; }
+    .status { display: inline-flex; align-items: center; gap: .38rem; padding: .33rem .6rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--paper); font-size: .72rem; font-weight: 800; }
+    .status.good { border-color: #a8d8cf; color: var(--teal); background: var(--teal-soft); }
+    .status.bad { border-color: #efbbc3; color: var(--red); background: var(--red-soft); }
+    .status.warn { border-color: #eec99a; color: var(--amber); background: var(--amber-soft); }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .load-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; margin-bottom: 1rem; padding: .9rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .load-copy strong { display: block; font-size: .81rem; }
+    .load-copy span { display: block; color: var(--muted); font-size: .71rem; }
+    .load-actions { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: flex-end; }
+    .file-label { display: inline-flex; min-height: 40px; align-items: center; padding: .5rem .7rem; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--blue); background: var(--paper-2); cursor: pointer; font-size: .73rem; font-weight: 780; }
+    .file-label:hover { border-color: var(--blue); background: var(--blue-soft); }
+    .file-label input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+    .metric { min-width: 0; padding: .95rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .metric-label { display: block; color: var(--muted); font-size: .7rem; font-weight: 760; }
+    .metric strong { display: block; margin-top: .15rem; color: var(--ink); font-family: var(--mono); font-size: 1.45rem; letter-spacing: -.06em; }
+    .metric small { display: block; margin-top: .15rem; color: var(--muted); font-size: .68rem; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(320px, .98fr); gap: 1rem; align-items: start; }
+    .panel { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; padding: 1rem 1.1rem .85rem; border-bottom: 1px solid var(--line); }
+    .panel-head p { margin: .2rem 0 0; color: var(--muted); font-size: .71rem; }
+    .panel-head-actions { display: flex; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
+    .small-button { min-height: 35px; padding: .35rem .55rem; border: 1px solid var(--line-strong); border-radius: 7px; color: var(--ink-soft); background: var(--paper); cursor: pointer; font-size: .68rem; font-weight: 750; }
+    .small-button:hover, .small-button.active { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+    .trace-tabs { display: flex; gap: .2rem; padding: .65rem 1.1rem 0; border-bottom: 1px solid var(--line); }
+    .trace-tab { min-height: 38px; padding: .35rem .7rem; border: 0; border-bottom: 2px solid transparent; color: var(--muted); background: transparent; cursor: pointer; font-size: .76rem; font-weight: 800; }
+    .trace-tab.active { border-bottom-color: var(--blue); color: var(--blue); }
+    .timeline { display: grid; gap: 0; padding: .9rem 1.1rem 1.1rem; }
+    .event { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: .7rem; padding-bottom: 1rem; }
+    .event:last-child { padding-bottom: 0; }
+    .event:not(:last-child):after { position: absolute; top: 29px; bottom: 0; left: 15px; width: 1px; background: var(--line-strong); content: ""; }
+    .event-mark { position: relative; z-index: 1; display: grid; width: 31px; height: 31px; place-items: center; border: 1px solid var(--line-strong); border-radius: 9px; color: var(--blue); background: var(--paper); font-family: var(--mono); font-size: .64rem; font-weight: 800; }
+    .event.result .event-mark { color: var(--teal); }
+    .event.answer .event-mark { color: var(--amber); }
+    .event-body { min-width: 0; padding: .1rem 0 0; }
+    .event-top { display: flex; align-items: baseline; justify-content: space-between; gap: .7rem; }
+    .event-top strong { overflow: hidden; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+    .event-top span { flex: 0 0 auto; color: var(--muted); font-family: var(--mono); font-size: .64rem; }
+    .event-type { display: inline-block; margin: .2rem 0 .38rem; padding: .17rem .38rem; border-radius: 4px; color: var(--blue); background: var(--blue-soft); font-family: var(--mono); font-size: .62rem; }
+    .event.result .event-type { color: var(--teal); background: var(--teal-soft); }
+    .event.answer .event-type { color: var(--amber); background: var(--amber-soft); }
+    .event-detail { margin: 0; padding: .65rem .7rem; overflow: auto; border: 1px solid var(--line); border-radius: 8px; color: var(--ink-soft); background: var(--paper-2); font-size: .68rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .event-detail strong { color: var(--ink); }
+    .empty { padding: 2.3rem 1rem; color: var(--muted); text-align: center; }
+    .empty strong { display: block; margin-bottom: .35rem; color: var(--ink-soft); }
+    .diff-toolbar { display: flex; gap: .45rem; align-items: center; padding: .7rem 1.1rem; border-bottom: 1px solid var(--line); }
+    .diff-toolbar label { color: var(--muted); font-size: .7rem; font-weight: 760; }
+    select { min-height: 36px; padding: .35rem 1.8rem .35rem .5rem; border: 1px solid var(--line-strong); border-radius: 7px; color: var(--ink); background: var(--paper); cursor: pointer; font-size: .7rem; }
+    .diff-list { display: grid; gap: .7rem; padding: .9rem 1.1rem 1.1rem; }
+    .diff-item { padding: .75rem; border: 1px solid var(--line); border-left: 3px solid var(--red); border-radius: 9px; background: var(--paper); }
+    .diff-item.allowed { border-left-color: var(--amber); }
+    .diff-item-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+    .diff-category { overflow: hidden; color: var(--red); font-family: var(--mono); font-size: .68rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .diff-item.allowed .diff-category { color: var(--amber); }
+    .diff-state { padding: .18rem .35rem; border-radius: 4px; color: var(--red); background: var(--red-soft); font-size: .61rem; font-weight: 800; white-space: nowrap; }
+    .diff-item.allowed .diff-state { color: var(--amber); background: var(--amber-soft); }
+    .diff-path { margin-bottom: .55rem; color: var(--muted); font-family: var(--mono); font-size: .66rem; word-break: break-all; }
+    .diff-values { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .value-block { min-width: 0; padding: .48rem .55rem; border-radius: 7px; background: var(--paper-2); }
+    .value-block label { display: block; margin-bottom: .22rem; color: var(--muted); font-family: var(--mono); font-size: .6rem; text-transform: uppercase; }
+    .value-block pre { max-height: 150px; overflow: auto; margin: 0; color: var(--ink-soft); background: transparent; font-size: .64rem; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+    .info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .info-panel { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .info-panel h3 { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .info-panel h3 span { color: var(--muted); font-family: var(--mono); font-size: .62rem; font-weight: 500; }
+    .info-panel p, .info-panel li { color: var(--muted); font-size: .73rem; }
+    .info-panel ul { margin: .45rem 0 0; padding-left: 1.1rem; }
+    .command { overflow: auto; margin: .55rem 0 0; padding: .65rem; border-radius: 8px; color: var(--code-text); background: var(--code); font-size: .66rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .raw-details { margin-top: .9rem; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-2); }
+    .raw-details summary { padding: .7rem .8rem; cursor: pointer; color: var(--ink-soft); font-size: .75rem; font-weight: 800; }
+    .raw-details pre { max-height: 370px; overflow: auto; margin: 0; padding: .8rem; border-top: 1px solid var(--line); color: var(--code-text); background: var(--code); font-size: .66rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .footer { margin-top: 1.5rem; color: var(--muted); font-size: .72rem; }
+    .toast { position: fixed; z-index: 40; right: 1.2rem; bottom: 1.2rem; max-width: min(380px, calc(100vw - 2.4rem)); padding: .8rem 1rem; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow-lg); font-size: .76rem; opacity: 0; pointer-events: none; transform: translateY(12px); transition: opacity .2s ease, transform .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 190px minmax(0, 1fr); }
+      .workspace { grid-template-columns: 1fr; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 760px) {
+      .topbar { padding-right: 1rem; padding-left: 1rem; }
+      .brand-sub, .top-actions .text-button { display: none; }
+      .layout { display: block; padding: 1rem; }
+      .rail { position: static; margin-bottom: 1rem; }
+      .rail-card { display: flex; align-items: center; gap: .5rem; overflow-x: auto; padding: .6rem; }
+      .rail-label, .rail-note { display: none; }
+      .rail-item { min-width: 145px; border: 1px solid var(--line); background: var(--paper); }
+      .hero { grid-template-columns: 1fr; }
+      .load-card { grid-template-columns: 1fr; }
+      .load-actions { justify-content: flex-start; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      h1 { font-size: 1.85rem; }
+      .hero, .panel-head { padding: 1rem; }
+      .metrics { gap: .5rem; }
+      .metric { padding: .75rem; }
+      .metric strong { font-size: 1.15rem; }
+      .diff-values { grid-template-columns: 1fr; }
+      .load-actions > * { flex: 1 1 auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">AR</div>
+      <div><span class="brand-name">Agent Regression Kit <span style="color:var(--blue)">/</span> Trace Inspector</span><span class="brand-sub">v3.2 MVP · evidence before opinion</span></div>
+    </div>
+    <div class="top-actions">
+      <a class="text-button" href="config.html">配置中心</a>
+      <a class="text-button" href="../docs/agent-regression-kit-guide.html#reports">使用说明</a>
+      <button class="icon-button" id="themeToggle" type="button" aria-label="切换深色模式" title="切换深色模式"><svg id="themeIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" aria-label="查看器导航">
+      <div class="rail-card">
+        <div class="rail-label">Evidence workspace</div>
+        <a class="rail-item active" href="#overview"><span class="rail-icon">01</span><span>结果概览</span></a>
+        <a class="rail-item" href="#timeline"><span class="rail-icon">02</span><span>运行时间线</span></a>
+        <a class="rail-item" href="#diffs"><span class="rail-icon">03</span><span>差异明细</span></a>
+        <a class="rail-item" href="#next"><span class="rail-icon">04</span><span>下一步</span></a>
+        <p class="rail-note">所有文件只在浏览器本地读取。页面不上传 Trace，也不重新执行 Agent。</p>
+      </div>
+    </aside>
+
+    <main class="main" id="overview">
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Read the evidence, not just the answer</div>
+          <h1>Trace Inspector</h1>
+          <p class="lede">把 Agent 的一次运行拆开来看：它调用了什么工具、传了什么参数、拿到了什么结果、最后形成了什么 claims，以及 candidate 和 baseline 究竟哪里不同。</p>
+          <span class="status bad" id="resultStatus"><span class="status-dot"></span><span>检测到回归</span></span>
+        </div>
+        <div class="run-id"><span class="run-id-label">candidate run</span><strong id="candidateRunId">order-123-candidate-regression</strong><span id="candidateAgent">toy-order-agent · 1.0.1</span></div>
+      </section>
+
+      <section class="load-card" aria-label="加载证据文件">
+        <div class="load-copy"><strong>加载你的本地证据</strong><span>选择 baseline Trace、candidate Trace 和 compare 生成的 JSON；不选择时展示内置故障示例。</span></div>
+        <div class="load-actions">
+          <label class="file-label">Baseline Trace<input id="baselineFile" type="file" accept="application/json,.json"></label>
+          <label class="file-label">Candidate Trace<input id="candidateFile" type="file" accept="application/json,.json"></label>
+          <label class="file-label">Compare JSON<input id="diffFile" type="file" accept="application/json,.json"></label>
+          <button class="secondary-button" id="demoButton" type="button">恢复示例</button>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="比较摘要">
+        <div class="metric"><span class="metric-label">Blocking differences</span><strong id="blockingCount">4</strong><small>需要人工处理的差异</small></div>
+        <div class="metric"><span class="metric-label">Observed events</span><strong id="eventCount">3 / 3</strong><small>baseline / candidate</small></div>
+        <div class="metric"><span class="metric-label">Tool calls</span><strong id="toolCount">1 / 1</strong><small>调用数量</small></div>
+        <div class="metric"><span class="metric-label">Policy</span><strong id="policyMode">strict</strong><small id="policyDetail">0 allowed paths</small></div>
+      </section>
+
+      <div class="workspace">
+        <section class="panel" id="timeline">
+          <div class="panel-head"><div><h2>运行时间线</h2><p>按事件顺序查看 Agent 的可观察行为。</p></div><div class="panel-head-actions"><button class="small-button active" id="baselineTab" type="button">Baseline</button><button class="small-button" id="candidateTab" type="button">Candidate</button></div></div>
+          <div class="trace-tabs"><button class="trace-tab active" data-event-filter="all" type="button">全部事件</button><button class="trace-tab" data-event-filter="tool_call" type="button">工具调用</button><button class="trace-tab" data-event-filter="tool_result" type="button">工具结果</button><button class="trace-tab" data-event-filter="final_answer" type="button">最终答案</button></div>
+          <div class="timeline" id="timelineContent"></div>
+        </section>
+
+        <section class="panel" id="diffs">
+          <div class="panel-head"><div><h2>差异明细</h2><p>内容来自 Python compare 输出，不在浏览器中重新计算。</p></div><span class="status bad" id="diffStatus"><span class="status-dot"></span><span>4 blocking</span></span></div>
+          <div class="diff-toolbar"><label for="categoryFilter">筛选</label><select id="categoryFilter"><option value="all">全部差异</option></select></div>
+          <div class="diff-list" id="diffList"></div>
+        </section>
+      </div>
+
+      <div class="info-grid" id="next">
+        <section class="info-panel"><h3>执行命令 <span>local / CI</span></h3><p>页面只展示证据。要生成 candidate 和 compare JSON，请在项目里执行：</p><pre class="command" id="commandPreview">agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/order-123.trace.json \
+  --format json \
+  --out outputs/order-123.diff.json</pre><button class="small-button" id="copyCommand" type="button">复制命令</button></section>
+        <section class="info-panel"><h3>这次失败说明什么？ <span>read the path</span></h3><ul><li>先看 <code>category</code>：变化属于工具、结果、claims 还是文本。</li><li>再看 <code>path</code>：定位到 Trace 的具体字段。</li><li>最后判断是 Bug、已知噪音，还是有意的产品变更。</li></ul></section>
+        <section class="info-panel"><h3>下一步 <span>configure</span></h3><p>如果文字允许变化或存在动态 request ID，请进入配置中心设置 <code>claims-only</code>、<code>allow_paths</code> 或 Contract。</p><a class="secondary-button" style="display:inline-flex;align-items:center" href="config.html">打开配置中心 →</a></section>
+      </div>
+
+      <details class="raw-details"><summary>查看当前加载的原始 JSON</summary><pre id="rawJson"></pre></details>
+      <p class="footer">Trace Inspector 是 v3.2 的本地只读查看器。它不会替代 Python 核心比较器，也不会执行 Agent 或上传你的运行证据。</p>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const demo = {
+        baseline: {
+          schema_version: "0.1",
+          run_id: "order-123-baseline",
+          agent: { name: "toy-order-agent", version: "1.0.0" },
+          events: [
+            { type: "tool_call", call_id: "call-1", tool: "get_order", arguments: { order_id: "123" }, sequence: 1 },
+            { type: "tool_result", call_id: "call-1", result: { order_id: "123", status: "not_shipped" }, is_error: false, sequence: 2 },
+            { type: "final_answer", text: "订单 123 尚未发货。", claims: { order_id: "123", order_status: "not_shipped" }, sequence: 3 }
+          ],
+          metadata: { input: "查询订单 123", case: "order-lookup" }
+        },
+        candidate: {
+          schema_version: "0.1",
+          run_id: "order-123-candidate-regression",
+          agent: { name: "toy-order-agent", version: "1.0.1" },
+          events: [
+            { type: "tool_call", call_id: "call-1", tool: "lookup_order", arguments: { order_id: 123 }, sequence: 1 },
+            { type: "tool_result", call_id: "call-1", result: { error: "invalid_arguments", message: "order_id must be a string" }, is_error: true, sequence: 2 },
+            { type: "final_answer", text: "订单 123 已经发货。", claims: { order_id: "123", order_status: "shipped" }, sequence: 3 }
+          ],
+          metadata: { input: "查询订单 123", case: "order-lookup" }
+        },
+        diff: {
+          schema_version: "0.1",
+          baseline_run_id: "order-123-baseline",
+          candidate_run_id: "order-123-candidate-regression",
+          passed: false,
+          difference_count: 4,
+          blocking_difference_count: 4,
+          policy: { mode: "strict", allowed_categories: [], allowed_paths: [] },
+          differences: [
+            { category: "tool_name", path: "tool_calls[0].tool", baseline: "get_order", candidate: "lookup_order", allowed: false },
+            { category: "tool_arguments", path: "tool_calls[0].arguments", baseline: { order_id: "123" }, candidate: { order_id: 123 }, allowed: false },
+            { category: "result_interpretation", path: "final_answer.claims", baseline: { order_id: "123", order_status: "not_shipped" }, candidate: { order_id: "123", order_status: "shipped" }, allowed: false },
+            { category: "final_answer", path: "final_answer.text", baseline: "订单 123 尚未发货。", candidate: "订单 123 已经发货。", allowed: false }
+          ]
+        }
+      };
+      let state = { ...demo, activeTrace: "baseline", eventFilter: "all", category: "all" };
+      const $ = (id) => document.getElementById(id);
+      const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+      const pretty = (value) => JSON.stringify(value, null, 2);
+      const shortJson = (value) => typeof value === "string" ? value : JSON.stringify(value, null, 2);
+
+      function showToast(message) {
+        const node = $("toast");
+        node.textContent = message;
+        node.classList.add("show");
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => node.classList.remove("show"), 2500);
+      }
+
+      function eventLabel(event) {
+        if (event.type === "tool_call") return event.tool || "tool call";
+        if (event.type === "tool_result") return event.is_error ? "工具返回错误" : "工具返回结果";
+        return "最终答案";
+      }
+
+      function eventDetail(event) {
+        if (event.type === "tool_call") return `arguments\n${pretty(event.arguments || {})}`;
+        if (event.type === "tool_result") return `result\n${pretty(event.result)}\n\nis_error = ${event.is_error}${event.error ? `\nerror = ${event.error}` : ""}`;
+        return `text\n${event.text}\n\nclaims\n${pretty(event.claims || {})}`;
+      }
+
+      function renderTimeline() {
+        const trace = state[state.activeTrace];
+        const events = (trace.events || []).filter((event) => state.eventFilter === "all" || event.type === state.eventFilter);
+        const target = $("timelineContent");
+        if (!events.length) {
+          target.innerHTML = '<div class="empty"><strong>没有匹配的事件</strong>换一个筛选条件查看完整运行。</div>';
+          return;
+        }
+        target.innerHTML = events.map((event) => {
+          const className = event.type === "tool_result" ? "result" : event.type === "final_answer" ? "answer" : "call";
+          return `<article class="event ${className}"><div class="event-mark">${escapeHtml(event.sequence)}</div><div class="event-body"><div class="event-top"><strong>${escapeHtml(eventLabel(event))}</strong><span>${escapeHtml(event.call_id || "terminal")}</span></div><span class="event-type">${escapeHtml(event.type)}</span><pre class="event-detail">${escapeHtml(eventDetail(event))}</pre></div></article>`;
+        }).join("");
+      }
+
+      function renderDiffFilter() {
+        const select = $("categoryFilter");
+        const categories = [...new Set((state.diff.differences || []).map((item) => item.category))];
+        select.innerHTML = '<option value="all">全部差异</option>' + categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+        select.value = categories.includes(state.category) ? state.category : "all";
+        state.category = select.value;
+      }
+
+      function renderDiffs() {
+        const target = $("diffList");
+        const diffs = (state.diff.differences || []).filter((item) => state.category === "all" || item.category === state.category);
+        if (!diffs.length) {
+          target.innerHTML = '<div class="empty"><strong>没有匹配的差异</strong>当前筛选条件下没有报告项目。</div>';
+          return;
+        }
+        target.innerHTML = diffs.map((diff) => `<article class="diff-item ${diff.allowed ? "allowed" : ""}"><div class="diff-item-head"><span class="diff-category">${escapeHtml(diff.category)}</span><span class="diff-state">${diff.allowed ? "allowed · 不阻断" : "blocking · 阻断"}</span></div><div class="diff-path">${escapeHtml(diff.path)}</div><div class="diff-values"><div class="value-block"><label>baseline</label><pre>${escapeHtml(shortJson(diff.baseline))}</pre></div><div class="value-block"><label>candidate</label><pre>${escapeHtml(shortJson(diff.candidate))}</pre></div></div></article>`).join("");
+      }
+
+      function renderOverview() {
+        const diff = state.diff || {};
+        const baselineEvents = state.baseline.events || [];
+        const candidateEvents = state.candidate.events || [];
+        const baselineCalls = baselineEvents.filter((event) => event.type === "tool_call").length;
+        const candidateCalls = candidateEvents.filter((event) => event.type === "tool_call").length;
+        const blocking = Number(diff.blocking_difference_count ?? (diff.differences || []).filter((item) => !item.allowed).length);
+        const passed = diff.passed === true;
+        $("blockingCount").textContent = String(blocking);
+        $("eventCount").textContent = `${baselineEvents.length} / ${candidateEvents.length}`;
+        $("toolCount").textContent = `${baselineCalls} / ${candidateCalls}`;
+        $("policyMode").textContent = diff.policy?.mode || "unknown";
+        $("policyDetail").textContent = `${(diff.policy?.allowed_paths || []).length} allowed paths`;
+        $("candidateRunId").textContent = state.candidate.run_id || "candidate";
+        $("candidateAgent").textContent = `${state.candidate.agent?.name || "unknown agent"} · ${state.candidate.agent?.version || "unknown version"}`;
+        const status = $("resultStatus");
+        status.className = `status ${passed ? "good" : "bad"}`;
+        status.innerHTML = `<span class="status-dot"></span><span>${passed ? "比较通过" : "检测到回归"}</span>`;
+        const diffStatus = $("diffStatus");
+        diffStatus.className = `status ${passed ? "good" : "bad"}`;
+        diffStatus.innerHTML = `<span class="status-dot"></span><span>${blocking} ${blocking === 1 ? "blocking" : "blocking differences"}</span>`;
+        $("rawJson").textContent = pretty({ baseline: state.baseline, candidate: state.candidate, diff: state.diff });
+        renderDiffFilter();
+        renderDiffs();
+        renderTimeline();
+      }
+
+      function readJsonFile(file, callback) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try { callback(JSON.parse(reader.result)); }
+          catch (_) { showToast(`${file.name} 不是有效 JSON`); }
+        };
+        reader.onerror = () => showToast(`读取 ${file.name} 失败`);
+        reader.readAsText(file);
+      }
+
+      function bindFile(id, key) {
+        $(id).addEventListener("change", (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+          readJsonFile(file, (value) => { state[key] = value; renderOverview(); showToast(`${file.name} 已加载`); });
+        });
+      }
+
+      function loadDemo() { state = { ...demo, activeTrace: "baseline", eventFilter: "all", category: "all" }; $("baselineTab").classList.add("active"); $("candidateTab").classList.remove("active"); renderOverview(); showToast("内置回归示例已恢复"); }
+
+      $("baselineTab").addEventListener("click", () => { state.activeTrace = "baseline"; $("baselineTab").classList.add("active"); $("candidateTab").classList.remove("active"); renderTimeline(); });
+      $("candidateTab").addEventListener("click", () => { state.activeTrace = "candidate"; $("candidateTab").classList.add("active"); $("baselineTab").classList.remove("active"); renderTimeline(); });
+      document.querySelectorAll("[data-event-filter]").forEach((button) => button.addEventListener("click", () => { document.querySelectorAll("[data-event-filter]").forEach((item) => item.classList.remove("active")); button.classList.add("active"); state.eventFilter = button.dataset.eventFilter; renderTimeline(); }));
+      $("categoryFilter").addEventListener("change", (event) => { state.category = event.target.value; renderDiffs(); });
+      $("demoButton").addEventListener("click", loadDemo);
+      bindFile("baselineFile", "baseline"); bindFile("candidateFile", "candidate"); bindFile("diffFile", "diff");
+      $("copyCommand").addEventListener("click", () => navigator.clipboard.writeText($("commandPreview").textContent).then(() => showToast("compare 命令已复制")).catch(() => showToast("浏览器禁止剪贴板访问，请手动复制")));
+      $("themeToggle").addEventListener("click", () => { const root = document.documentElement; const next = root.dataset.theme === "dark" ? "light" : "dark"; root.dataset.theme = next; $("themeIcon").innerHTML = next === "dark" ? '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/>' : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/>'; });
+
+      const railLinks = Array.from(document.querySelectorAll(".rail-item"));
+      const railTargets = railLinks.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+      const observer = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) railLinks.forEach((link) => link.classList.toggle("active", link.getAttribute("href") === `#${entry.target.id}`)); }), { rootMargin: "-20% 0px -65% 0px", threshold: 0 });
+      railTargets.forEach((target) => observer.observe(target));
+      renderOverview();
+    })();
+  </script>
+</body>
+</html>

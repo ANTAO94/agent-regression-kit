@@ -269,6 +269,12 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `config validate --config path/to/config.json [--kind single|batch]` performs
   the same validation and prints normalized project-relative paths without
   running an Agent or comparing traces.
+- `check --config path/to/config.json [--kind single|batch]` is the stronger
+  preflight boundary: it reads every configured Trace, validates AgentTrace
+  schema and lifecycle invariants, and for batch configs checks that baseline
+  and candidate directories contain the same relative `*.trace.json` files.
+  It still does not run an Agent, mutate a baseline, or compare behavior;
+  invalid input returns exit code `2`.
 - `compare_traces(baseline, candidate, policy=None)` returns a JSON-serializable report.
 - `compare_trace_batch(baseline_dir, candidate_dir, policy=None)` compares matching nested `*.trace.json` cases and reports missing files.
 - `trace_tool_path(trace)` returns the ordered tool-name path for one trace.

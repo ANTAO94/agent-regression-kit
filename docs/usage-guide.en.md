@@ -83,10 +83,38 @@ agent-regression config validate \
   --config .agent-regression/config.json \
   --kind single
 
+# Side-effect-free preflight: verify referenced Trace files and their schema
+agent-regression check \
+  --config .agent-regression/config.json \
+  --kind single
+
 agent-regression compare --config .agent-regression/config.json
 ```
 
+These commands have different boundaries: `config validate` checks the config
+fields, types, and paths; `check` also reads the baseline and candidate Trace
+files and validates their JSON and AgentTrace schema. It does not execute an
+Agent, mutate a baseline, or compare behavior. Invalid input returns exit code
+`2`.
+
+For a batch config, use `--kind batch`; the check also verifies that the two
+Trace directories contain matching relative `.trace.json` file names.
+
 Exit code `0` means the comparison passed. Exit code `1` means a blocking regression was found. Exit code `2` means invalid configuration, Trace data, or runtime input.
+
+### Local viewer and configuration center (v3.2 MVP)
+
+To inspect Trace timelines and compare differences in a browser, start the
+bundled local Viewer:
+
+```bash
+agent-regression ui --open-browser
+```
+
+It binds to `127.0.0.1` by default and does not upload evidence or execute an
+Agent. Trace Inspector reads baseline, candidate, and compare JSON files; the
+configuration center generates `.agent-regression/config.json`. The Python CLI
+remains the source of truth for comparison decisions, and the Viewer is read-only.
 
 ## 4. Connect your own Agent
 
