@@ -21,6 +21,10 @@ inputs:
     description: Return exit code 1 when a recognized report failed.
     required: false
     default: 'true'
+  required-reports:
+    description: Optional comma-separated report paths or globs that must be present.
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
@@ -32,15 +36,25 @@ runs:
         JSON_REPORT: ${{ inputs.json-report }}
         MARKDOWN_REPORT: ${{ inputs.markdown-report }}
         FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+        REQUIRED_REPORTS: ${{ inputs['required-reports'] }}
       run: |
         set -euo pipefail
         mkdir -p "$(dirname "$JSON_REPORT")" "$(dirname "$MARKDOWN_REPORT")"
         set +e
-        agent-regression report-index \
+        json_args=(
+          report-index
           --report-dir "$REPORT_DIR" \
           --pattern "$PATTERN" \
           --format json \
           --out "$JSON_REPORT"
+        )
+        if [[ -n "$REQUIRED_REPORTS" ]]; then
+          IFS=',' read -r -a required_reports <<< "$REQUIRED_REPORTS"
+          for required in "${required_reports[@]}"; do
+            json_args+=(--required-report "$required")
+          done
+        fi
+        agent-regression "${json_args[@]}"
         json_status=$?
         markdown_args=(
           report-index
@@ -49,6 +63,12 @@ runs:
           --format markdown
           --out "$MARKDOWN_REPORT"
         )
+        if [[ -n "$REQUIRED_REPORTS" ]]; then
+          IFS=',' read -r -a required_reports <<< "$REQUIRED_REPORTS"
+          for required in "${required_reports[@]}"; do
+            markdown_args+=(--required-report "$required")
+          done
+        fi
         if [[ "$FAIL_ON_REGRESSION" == "true" ]]; then
           markdown_args+=(--fail-on-regression)
         fi

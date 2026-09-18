@@ -89,6 +89,27 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ContractPolicy(normalizers=[{"path": "events", "type": "regex"}])
 
+    def test_required_claims_fail_when_the_agent_omits_a_business_result(self):
+        policy = ComparisonPolicy(
+            contract=ContractPolicy(
+                required_claims=["final_answer.claims.order_status"]
+            )
+        )
+        missing = make_trace(claims={"order_id": "123"})
+        report = compare_traces(missing, missing, policy)
+        self.assertFalse(report["passed"])
+        self.assertEqual("required_claim", report["differences"][0]["category"])
+
+    def test_required_claims_are_serialized_and_validated(self):
+        policy = ContractPolicy.from_dict(
+            {"required_claims": ["final_answer.claims.order_status"]}
+        )
+        self.assertEqual(
+            ["final_answer.claims.order_status"], policy.to_dict()["required_claims"]
+        )
+        with self.assertRaises(ValueError):
+            ContractPolicy.from_dict({"required_claims": "final_answer.claims"})
+
 
 if __name__ == "__main__":
     unittest.main()

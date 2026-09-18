@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v3.4.3 source. Package version 3.4.3, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
+Based on v3.5.0 source. Package version 3.5.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -124,13 +124,13 @@ Local fixtures verify controlled behavior; official Everything Server smoke chec
 
 ## 9. Reports and CI
 
-JSON preserves machine-readable results; Markdown supports review and Job Summary; JUnit supports test tooling. report-index includes compare/batch/stability/coverage/history summaries without embedding complete differences or traces.
+JSON preserves machine-readable results; Markdown supports review and Job Summary; JUnit supports test tooling. report-index includes compare/batch/stability/coverage/history summaries without embedding complete differences or traces. Use `--required-report path-or-glob` to make missing artifacts fail the gate instead of silently accepting an incomplete index.
 
 history uses sorted relative filenames, not inferred timestamps, and does not automatically group cases or report types. Build meaningful trends from comparable runs. The main CI's mixed report aggregation demonstrates the interface, not a cross-release performance trend.
 
-Comparison/check commands use 0/1/2. history follows the last recognized point. report-index --fail-on-regression requires all recognized entries to pass and fails on an empty inventory. Malformed/unrecognized JSON may be listed as skipped: the index does not prove that every expected report exists, so preserve producer exit codes.
+Comparison/check commands use 0/1/2. history follows the last recognized point. report-index --fail-on-regression requires all recognized entries to pass and fails on an empty inventory. Malformed/unrecognized JSON may be listed as skipped: the index is not an "all expected reports exist" check unless required paths are supplied. In CI, pass `--required-report` or the Action's `required-reports` input, and preserve producer exit codes.
 
-Use compare --config for custom contracts; the existing compare Action has no config/contract input. CI records, preflights, compares and uploads, without automatically accepting baseline changes.
+Use compare --config for custom contracts; v3.5's comparison Action also accepts a `config` input while retaining the legacy baseline/candidate inputs. CI records, preflights, compares and uploads, without automatically accepting baseline changes.
 
 ## 10. Security and deployment
 

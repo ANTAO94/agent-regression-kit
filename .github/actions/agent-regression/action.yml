@@ -1,12 +1,16 @@
 name: Agent Regression
 description: Compare an Agent Regression Kit candidate trace with a reviewed baseline.
 inputs:
+  config:
+    description: Optional project comparison config. When set, baseline/candidate and contract are read from this file.
+    required: false
+    default: ""
   baseline:
     description: Path to the reviewed baseline AgentTrace JSON file.
-    required: true
+    required: false
   candidate:
     description: Path to the candidate AgentTrace JSON file.
-    required: true
+    required: false
   report:
     description: Path for the JUnit report.
     required: false
@@ -30,13 +34,14 @@ inputs:
   final-answer-mode:
     description: Compare final prose exactly or compare only structured claims.
     required: false
-    default: exact
+    default: ""
 runs:
   using: composite
   steps:
     - name: Compare AgentTrace evidence
       shell: bash
       env:
+        CONFIG: ${{ inputs.config }}
         BASELINE: ${{ inputs.baseline }}
         CANDIDATE: ${{ inputs.candidate }}
         REPORT: ${{ inputs.report }}
@@ -50,7 +55,15 @@ runs:
         mkdir -p "$(dirname "$REPORT")"
         mkdir -p "$(dirname "$SUMMARY")"
         mkdir -p "$(dirname "$JSON_REPORT")"
-        args=(compare --baseline "$BASELINE" --candidate "$CANDIDATE")
+        if [[ -n "$CONFIG" ]]; then
+          args=(compare --config "$CONFIG")
+        else
+          if [[ -z "$BASELINE" || -z "$CANDIDATE" ]]; then
+            echo "agent-regression: config or both baseline/candidate inputs are required" >&2
+            exit 2
+          fi
+          args=(compare --baseline "$BASELINE" --candidate "$CANDIDATE")
+        fi
         if [[ -n "$ALLOW_CATEGORY" ]]; then
           IFS=',' read -r -a categories <<< "$ALLOW_CATEGORY"
           for category in "${categories[@]}"; do
@@ -63,7 +76,9 @@ runs:
             args+=(--allow-path "$path")
           done
         fi
-        args+=(--final-answer-mode "$FINAL_ANSWER_MODE")
+        if [[ -n "$FINAL_ANSWER_MODE" ]]; then
+          args+=(--final-answer-mode "$FINAL_ANSWER_MODE")
+        fi
         set +e
         agent-regression "${args[@]}" --format junit --out "$REPORT"
         comparison_status=$?

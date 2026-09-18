@@ -121,6 +121,39 @@ class ReportIndexTests(unittest.TestCase):
                     main(["report-index", "--report-dir", str(root), "--fail-on-regression"]),
                 )
 
+    def test_required_reports_make_completeness_a_gate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "compare/order.json",
+                {
+                    "report_type": "agent_compare",
+                    "passed": True,
+                    "difference_count": 0,
+                    "blocking_difference_count": 0,
+                },
+            )
+            report = build_report_index(
+                root, required_reports=["compare/*.json", "coverage.json"]
+            )
+            self.assertFalse(report["passed"])
+            self.assertEqual(["coverage.json"], report["missing_reports"])
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    1,
+                    main(
+                        [
+                            "report-index",
+                            "--report-dir",
+                            str(root),
+                            "--required-report",
+                            "coverage.json",
+                            "--fail-on-regression",
+                        ]
+                    ),
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

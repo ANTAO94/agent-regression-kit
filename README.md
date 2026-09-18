@@ -12,7 +12,7 @@
 
 改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
-当前版本：[v3.4.3](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+当前版本：[v3.5.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.5.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
 
 ### 从这里开始
 
@@ -45,7 +45,7 @@ Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际�
 macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
 
 ```bash
-git clone --branch v3.4.3 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v3.5.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -96,18 +96,18 @@ agent-regression ui
 
 打开终端提示的地址，默认 http://127.0.0.1:8765/index.html，选择本地 Trace/报告。配置中心导出 JSON 后再运行 CLI。GitHub 不直接运行这些 HTML 页面。
 
-自定义断言的 CI 请使用 **compare --config**：v3.4.3 比较 Action 不接收 contract/config，也不会自动加载项目策略。[可复制工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁)保留失败退出码并上传三种报告。
+自定义断言的 CI 可以使用 **compare --config**，或在 v3.5.0 比较 Action 中传入 `config`；旧的 baseline/candidate 输入仍兼容。策略中的 `required_claims` 能阻止候选 Trace 通过“少报业务结论”，Report Index 的 `required-reports` 能阻止报告缺失被误认为成功。[可复制工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁)保留失败退出码并上传三种报告。
 
 ### 验证与维护
 
-v3.4.3 已记录的发布验收：
+v3.5.0 的发布验收：
 
 | 检查 | 证据 |
 | --- | --- |
-| 核心测试 | 132 项；[Python 3.9/3.11/3.13 CI](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647124) |
+| 核心测试 | 本地完整测试 + [Python 3.9/3.11/3.13 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml) |
 | 框架回调 | [LangChain Core 三版本矩阵](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647091) |
 | 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647344) |
-| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3) |
+| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.5.0) |
 
 这些验证覆盖已实现路径，生产接入仍需要自己的业务用例。官方 MCP 检查是独立的[可选工作流](.github/workflows/mcp-compatibility.yml)，不等于完整协议认证。文档更新以 main 为准，发布 tag 内容固定。
 
@@ -119,7 +119,7 @@ v3.4.3 已记录的发布验收：
 
 After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
 
-Release: [v3.4.3](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+Release: [v3.5.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.5.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
 
 ### Documentation
 
@@ -137,7 +137,7 @@ Release: [v3.4.3](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v
 Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
 
 ```bash
-git clone --branch v3.4.3 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v3.5.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -185,11 +185,11 @@ A Trace records one run; baseline is reviewed expectation; candidate is new evid
 
 Run agent-regression ui, open the printed loopback URL and select local files. Save exported configuration before CLI checks. GitHub HTML links display source rather than a running page.
 
-Use **compare --config** for custom contracts in CI. The v3.4.3 comparison Action has no config/contract input and does not automatically load project policy. The [documented workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) preserves exit codes and uploads all three report formats.
+Use **compare --config** for custom contracts in CI, or pass `config` to the v3.5.0 comparison Action. The legacy baseline/candidate Action inputs remain compatible. `required_claims` prevents a candidate from passing by omitting a business conclusion, and Report Index `required-reports` turns missing artifacts into a failure. The [documented workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) preserves exit codes and uploads all three report formats.
 
 ### Verification and maintenance
 
-Recorded v3.4.3 evidence: [132 core tests across Python 3.9/3.11/3.13](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647124), [LangChain Core callback checks](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647091), and [build/clean-install verification](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647344).
+Recorded v3.5.0 evidence is maintained by the main regression, framework compatibility and release workflows; each release also includes local full-test, wheel-build and clean-install checks.
 
 These checks cover implemented paths; production integrations need their own scenarios. The [optional MCP workflow](.github/workflows/mcp-compatibility.yml) is separate and does not certify every protocol behavior. Main contains documentation updates; published tags are fixed snapshots.
 

@@ -52,6 +52,12 @@ def _load_config(path: str | Path, required_paths: tuple[str, ...]) -> Dict[str,
             or not all(isinstance(item, str) for item in result[key])
         ):
             raise ValueError(f"config.{key} must be an array of strings")
+    if "required_reports" in result:
+        if (
+            not isinstance(result["required_reports"], list)
+            or not all(isinstance(item, str) and item.strip() for item in result["required_reports"])
+        ):
+            raise ValueError("config.required_reports must be an array of non-empty strings")
     if "contract" in result:
         result["contract"] = ContractPolicy.from_dict(result["contract"]).to_dict()
     return result

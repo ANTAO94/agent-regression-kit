@@ -7,6 +7,17 @@
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
 - Correct conflicting MCP limitations and stale adapter-template test instructions.
 
+## 3.5.0 - 2026-09-18
+
+- Add `required_claims` contract checks so a candidate cannot pass by omitting
+  a required structured business conclusion.
+- Add required report/glob completeness gates to `report-index` and the
+  reusable Report Index Action.
+- Let the comparison Action consume a project `config` file, including its
+  contract and comparison policy, while preserving the legacy path inputs.
+- Make the core workflow exercise both policy loading and required report
+  completeness with deterministic error-injection coverage.
+
 ## 3.4.3 - 2026-09-18
 
 - Complete the unified CI evidence flow: compare, stability, coverage, and

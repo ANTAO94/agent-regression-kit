@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v3.4.3 源码整理；产品版本 3.4.3、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
+依据 v3.5.0 源码整理；产品版本 3.5.0、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
 
 ## 1. 目标和适用场景
 
@@ -96,6 +96,7 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | max_steps | 限定工具调用总数 |
 | path_rules.any_of | 接受显式列举的多条工具路径，改变严格路径对齐语义 |
 | side_effects | 约束已录制状态的 from/to 变化 |
+| required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
 | timestamp / sort | 固定时间标记或按 repr 排序列表，不执行用户脚本 |
 
 采用 claims-only 并不自动证明业务正确；空 claims 或过宽忽略规则会削弱测试。允许替代路径时，补上结果断言、副作用约束与分支用例，避免单纯放宽路径。
@@ -124,13 +125,13 @@ MCP 是 Agent 调用工具的协议边界。当前客户端按 2025-11-25 协议
 
 ## 9. 报告、历史和 CI
 
-JSON 保留机器可读差异；Markdown 用于人工审核和 Job Summary；JUnit 用于测试系统。report-index 汇总 compare/batch/stability/coverage/history，并默认只输出状态和摘要，不嵌入完整差异或 Trace。
+JSON 保留机器可读差异；Markdown 用于人工审核和 Job Summary；JUnit 用于测试系统。report-index 汇总 compare/batch/stability/coverage/history，并默认只输出状态和摘要，不嵌入完整差异或 Trace。使用 `--required-report path-or-glob` 可以把“报告缺失”也变成失败；这解决了某个前置步骤没有产出报告、但索引仍看起来通过的问题。
 
 history 按排序后的相对文件名定义“最新”；不是按真实时间自动排序，也不会按用例/报告类型自动分组。应在同一测试序列内生成可解释趋势。主 CI 混合报告只演示聚合接口，不应把混合指标解释为跨版本性能趋势。
 
-compare 等检查命令返回 0/1/2。history 跟随最新点；report-index --fail-on-regression 要求所有已识别报告通过，空索引也不通过。无法识别/损坏的 JSON 可进入 skipped；索引不是“所有预期报告存在”的完整性校验，因此各生成步骤必须保留失败退出码。
+compare 等检查命令返回 0/1/2。history 跟随最新点；report-index --fail-on-regression 要求所有已识别报告通过，空索引也不通过。无法识别/损坏的 JSON 可进入 skipped；索引默认不是“所有预期报告存在”的完整性校验，在 CI 中应显式列出 `--required-report`，或给 Report Index Action 传 `required-reports`。
 
-CI 自定义 contract 使用 compare --config；现有比较 Action 没有 config/contract 输入。CI 先录制再 check，之后比较并上传报告，绝不自动接受 baseline。
+CI 自定义 contract 可以使用 `compare --config`，v3.5 的比较 Action 也支持 `config` 输入；旧的 baseline/candidate 输入仍兼容。CI 先录制再 check，之后比较并上传报告，绝不自动接受 baseline。
 
 ## 10. 安全与部署
 

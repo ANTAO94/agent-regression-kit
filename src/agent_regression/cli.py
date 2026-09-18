@@ -464,6 +464,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="return exit code 1 when any indexed report failed",
     )
+    report_index.add_argument(
+        "--required-report",
+        action="append",
+        default=[],
+        help="required report path or glob relative to --report-dir; repeatable",
+    )
 
     check = subparsers.add_parser(
         "check", help="preflight config and Trace inputs without comparing behavior"
@@ -639,7 +645,11 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if report.passed else 1
 
         if args.command == "report-index":
-            report = build_report_index(args.report_dir, pattern=args.pattern)
+            report = build_report_index(
+                args.report_dir,
+                pattern=args.pattern,
+                required_reports=args.required_report,
+            )
             if args.format == "markdown":
                 _write_text(render_report_index_markdown(report), args.out)
             else:

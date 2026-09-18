@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import fnmatch
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 
 from .history import _classify, _label, _metrics
 from .model import SUPPORTED_SCHEMA_VERSION
@@ -27,6 +28,7 @@ def build_report_index(
     report_dir: str | Path,
     *,
     pattern: str = "*.json",
+    required_reports: Sequence[str] = (),
     redaction_policy: RedactionPolicy | None = None,
 ) -> Dict[str, Any]:
     """Index recognized JSON reports without embedding report contents.
@@ -39,6 +41,14 @@ def build_report_index(
     root = Path(report_dir).resolve()
     if not root.is_dir():
         raise ValueError(f"report directory not found: {report_dir}")
+    normalized_required = []
+    for required in required_reports:
+        if not isinstance(required, str) or not required.strip():
+            raise ValueError("required report paths must be non-empty strings")
+        required_path = Path(required)
+        if required_path.is_absolute() or ".." in required_path.parts:
+            raise ValueError("required report paths must stay inside report-dir")
+        normalized_required.append(required.replace("\\", "/"))
     active_redaction = redaction_policy or DEFAULT_REDACTION_POLICY
     entries = []
     skipped = []
@@ -115,6 +125,11 @@ def build_report_index(
                 "summary": summary,
             }
         )
+    missing_reports = [
+        required
+        for required in normalized_required
+        if not any(fnmatch.fnmatch(entry["source"], required) for entry in entries)
+    ]
     return {
         "schema_version": "0.1",
         "report_type": "agent_report_index",
@@ -123,7 +138,13 @@ def build_report_index(
         # remains relative to this directory.
         "source_dir": root.name or ".",
         "pattern": active_redaction.redact(pattern),
-        "passed": bool(entries) and all(entry["passed"] for entry in entries),
+        "passed": (
+            bool(entries)
+            and all(entry["passed"] for entry in entries)
+            and not missing_reports
+        ),
+        "required_reports": normalized_required,
+        "missing_reports": missing_reports,
         "report_count": len(entries),
         "passed_count": sum(1 for entry in entries if entry["passed"]),
         "failed_count": sum(1 for entry in entries if not entry["passed"]),

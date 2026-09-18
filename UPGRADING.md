@@ -130,6 +130,28 @@ python -m pip install --upgrade agent-regression-kit==3.4.3
 agent-regression --version
 ```
 
+## v3.4.3 → v3.5.0
+
+This feature release hardens CI trust boundaries without changing the
+AgentTrace `0.1` schema. Contracts can require structured claim paths, report
+indexes can require named reports or globs, and the reusable comparison Action
+can load a project `config` containing the contract. Existing
+`baseline`/`candidate` Action inputs continue to work.
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.5.0
+agent-regression --version
+agent-regression config validate --config .agent-regression/config.json
+agent-regression compare --config .agent-regression/config.json
+agent-regression report-index --report-dir outputs \
+  --required-report compare.json --fail-on-regression
+```
+
+No Trace schema migration is required. Review existing contracts that use
+`claims-only`; add `contract.required_claims` for fields that must not be
+silently omitted. In the Report Index Action, use comma-separated
+`required-reports` values when missing artifacts should fail the job.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

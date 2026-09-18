@@ -127,12 +127,15 @@ class ContractPolicy:
     path_rules: Dict[str, Any] = field(default_factory=dict)
     side_effects: List[Dict[str, Any]] = field(default_factory=list)
     max_steps: int | None = None
+    required_claims: List[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.max_steps is not None and (
             not isinstance(self.max_steps, int) or self.max_steps < 0
         ):
             raise ValueError("contract.max_steps must be a non-negative integer")
+        for path in self.required_claims:
+            _tokens(path)
         for path in self.ignore_paths:
             _tokens(path)
         for normalizer in self.normalizers:
@@ -212,6 +215,11 @@ class ContractPolicy:
         side_effects = value.get("side_effects", [])
         if not isinstance(side_effects, list) or not all(isinstance(item, dict) for item in side_effects):
             raise ValueError("contract.side_effects must be an array of objects")
+        required_claims = value.get("required_claims", [])
+        if not isinstance(required_claims, list) or not all(
+            isinstance(item, str) and item.strip() for item in required_claims
+        ):
+            raise ValueError("contract.required_claims must be an array of non-empty strings")
         return cls(
             assertions=rules("assertions"),
             ignore_paths=list(ignore_paths),
@@ -221,6 +229,7 @@ class ContractPolicy:
             path_rules=deepcopy(path_rules),
             side_effects=[dict(item) for item in side_effects],
             max_steps=value.get("max_steps"),
+            required_claims=list(required_claims),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -239,6 +248,7 @@ class ContractPolicy:
             "path_rules": deepcopy(self.path_rules),
             "side_effects": deepcopy(self.side_effects),
             "max_steps": self.max_steps,
+            "required_claims": list(self.required_claims),
         }
 
     @property
@@ -300,6 +310,19 @@ class ContractPolicy:
                         "baseline": expected if expected is not _MISSING else None,
                         "candidate": values if values else None,
                         "message": "contract assertion failed",
+                    }
+                )
+
+        for path in self.required_claims:
+            values = _lookup(candidate_data, _tokens(path))
+            if not values:
+                differences.append(
+                    {
+                        "category": "required_claim",
+                        "path": path,
+                        "baseline": "present",
+                        "candidate": None,
+                        "message": "required claim was not observed",
                     }
                 )
 

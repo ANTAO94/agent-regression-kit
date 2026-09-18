@@ -97,6 +97,7 @@ def render_report_index_markdown(report: Dict[str, Any]) -> str:
         f"- Reports: `{report.get('report_count', 0)}`",
         f"- Passed: `{report.get('passed_count', 0)}`",
         f"- Failed: `{report.get('failed_count', 0)}`",
+        f"- Missing required: `{len(report.get('missing_reports', []))}`",
         f"- Skipped: `{len(report.get('skipped', []))}`",
         "",
         "| Status | Type | Label | Relative path |",
@@ -108,6 +109,10 @@ def render_report_index_markdown(report: Dict[str, Any]) -> str:
         label = str(entry.get("label", "")).replace("|", "\\|")
         source = str(entry.get("source", "")).replace("|", "\\|")
         lines.append(f"| {status_text} | `{report_type}` | `{label}` | `{source}` |")
+    if report.get("missing_reports"):
+        lines.extend(["", "## Missing required reports", ""])
+        for source in report["missing_reports"]:
+            lines.append(f"- `{source}`")
     if report.get("skipped"):
         lines.extend(["", "## Skipped", ""])
         for item in report["skipped"]:
