@@ -274,6 +274,41 @@ agent-regression history \
   --out outputs/history.junit.xml
 ```
 
+## Report index
+
+`build_report_index` is the batch handoff layer for a CI output directory. It
+recognizes compare, batch, stability, and coverage JSON reports, but deliberately
+does not embed their full `differences`, Trace events, or arbitrary metadata.
+Each entry contains a safe relative path, report type, label, pass/fail status,
+and normalized metrics:
+
+```python
+from agent_regression import build_report_index
+
+index = build_report_index("outputs")
+assert index["report_type"] == "agent_report_index"
+print(index["failed_count"], index["entries"])
+```
+
+The CLI can produce JSON for the Viewer or Markdown for a job summary:
+
+```bash
+agent-regression report-index \
+  --report-dir outputs \
+  --out outputs/report-index.json
+
+agent-regression report-index \
+  --report-dir outputs \
+  --format markdown \
+  --out outputs/report-index.md \
+  --fail-on-regression
+```
+
+By default this command is non-gating. `--fail-on-regression` returns exit code
+`1` if any recognized report failed; invalid input still follows the normal
+CLI error contract. `viewer/reports.html` reads the generated index locally and
+does not automatically read neighboring files.
+
 ## MCP
 
 - `StdioMcpClient` implements the documented MCP 2025-11-25 subset and accepts newline or Content-Length framing through its `framing` parameter.

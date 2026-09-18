@@ -1,8 +1,8 @@
 # Agent Regression Kit：成熟框架路线图
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
-v3.2 核心已经可以作为开发团队的 Agent 回归测试工具使用；本地 Viewer
-和框架兼容性工作流正在补齐团队级接入和排错体验。
+v3.3 核心已经可以作为开发团队的 Agent 回归测试工具使用；下一步重点是
+把本地文件选择、报告目录和 Job Summary 连接得更顺滑，并继续扩大真实框架覆盖。
 
 ## 成熟框架的定义
 
@@ -34,6 +34,7 @@ v3.2 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 | Adapter SDK / 模板 | 已具备 | 框架回调边界稳定，含同步/异步接入诊断；框架内部生命周期仍由接入方负责 |
 | 本地配置中心 | v3.2 | 表单生成 config JSON，暂不调用 Agent |
 | 本地 Trace Inspector | v3.2 | 读取 Trace 和 compare JSON，Python 比较器仍是事实来源 |
+| 报告索引与批量 Viewer | v3.3 | 读取 report-index JSON，按相对路径交接多份报告 |
 | `agent-regression ui` | v3.2 | loopback 静态服务，源码和 wheel 安装均可启动 |
 | 团队后台 / 权限 / 数据库 | 未开始 | 不进入本地 Viewer 的第一阶段 |
 
@@ -48,7 +49,7 @@ v3.2 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 - [x] Viewer 静态检查、CLI 测试和全新 wheel 安装验证。
 - [ ] 将 Viewer 的本地文件选择与项目输出目录做更清晰的向导连接。
 
-### v3.3：真实框架接入质量
+### v3.2.0–v3.2.2：真实框架接入质量
 
 - [x] 提供一个不强绑定第三方依赖的完整 callback 示例。
 - [x] 提供一个可选 LangChain Core 示例，并明确第三方依赖和 Python 版本边界。
@@ -57,12 +58,12 @@ v3.2 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 - [x] 固化公共导出列表、弃用策略和 Trace schema compatibility tests。
 - [x] 增加项目级 `check` 命令，一次执行 config、Trace 和批量输入预检。
 
-### v3.4：团队 CI 体验
+### v3.3：团队 CI 体验
 
-- 为 compare、stability、coverage、history 统一报告目录和 Job Summary。
-- 增加失败报告索引和基于相对路径的批量 Viewer 入口。
-- 增加 release workflow：测试、构建 wheel、检查 manifest、生成 changelog。
-- 对 MCP 官方 Server 和目标框架建立定期兼容性矩阵。
+- [ ] 为 compare、stability、coverage、history 统一报告目录和 Job Summary。
+- [x] 增加失败报告索引和基于相对路径的批量 Viewer 入口。
+- [x] 增加 release workflow：测试、构建 wheel、检查 manifest、生成 changelog。
+- [x] 对 MCP 官方 Server 和目标框架建立定期兼容性矩阵。
 
 ### v4.0：可选服务化层
 

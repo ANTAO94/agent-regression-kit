@@ -1,0 +1,118 @@
+"""Build a safe, relative-path index for local regression reports."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+from .history import _classify, _label, _metrics
+from .model import SUPPORTED_SCHEMA_VERSION
+from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
+
+
+_SUMMARY_FIELDS = (
+    "difference_count",
+    "blocking_difference_count",
+    "case_count",
+    "passed_case_count",
+    "failed_case_count",
+    "coverage_percent",
+    "business_branch_coverage_percent",
+    "latest_label",
+)
+
+
+def build_report_index(
+    report_dir: str | Path,
+    *,
+    pattern: str = "*.json",
+    redaction_policy: RedactionPolicy | None = None,
+) -> Dict[str, Any]:
+    """Index recognized JSON reports without embedding report contents.
+
+    The index is intentionally presentation-oriented: it keeps only relative
+    paths, status, report type, labels, and numeric summaries. The Viewer can
+    use it to navigate a report directory without receiving secrets or
+    duplicating the Python comparison logic.
+    """
+    root = Path(report_dir).resolve()
+    if not root.is_dir():
+        raise ValueError(f"report directory not found: {report_dir}")
+    active_redaction = redaction_policy or DEFAULT_REDACTION_POLICY
+    entries = []
+    skipped = []
+    for path in sorted(root.rglob(pattern)):
+        if not path.is_file():
+            continue
+        relative = str(path.relative_to(root))
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            skipped.append(
+                {
+                    "source": relative,
+                    "reason": f"invalid JSON at line {exc.lineno}, column {exc.colno}",
+                }
+            )
+            continue
+        except (OSError, UnicodeError) as exc:
+            skipped.append(
+                {
+                    "source": relative,
+                    "reason": active_redaction.redact(
+                        f"unable to read report ({type(exc).__name__})"
+                    ),
+                }
+            )
+            continue
+        if not isinstance(value, dict):
+            skipped.append({"source": relative, "reason": "report must be a JSON object"})
+            continue
+        if value.get("report_type") == "agent_report_index":
+            # The generated index may live in the same output directory. It is
+            # an inventory, not another regression result, so do not surface
+            # it as a skipped report when the command is run twice (JSON + MD).
+            continue
+        if (
+            value.get("schema_version") == SUPPORTED_SCHEMA_VERSION
+            and isinstance(value.get("events"), list)
+            and isinstance(value.get("run_id"), str)
+        ):
+            # Raw AgentTrace inputs are evidence sources, not derived reports.
+            # They commonly sit beside compare output in a CI artifact folder.
+            continue
+        report_type = _classify(value)
+        if report_type is None:
+            skipped.append({"source": relative, "reason": "unrecognized regression report"})
+            continue
+        summary = {
+            key: value[key]
+            for key in _SUMMARY_FIELDS
+            if key in value and isinstance(value[key], (str, int, float, bool))
+        }
+        entries.append(
+            {
+                "source": relative,
+                "label": active_redaction.redact(_label(value, path)),
+                "report_type": report_type,
+                "passed": bool(value.get("passed")),
+                "metrics": _metrics(value, report_type),
+                "summary": summary,
+            }
+        )
+    return {
+        "schema_version": "0.1",
+        "report_type": "agent_report_index",
+        # Do not put an absolute local path into a CI artifact. The Viewer
+        # only needs a human-readable directory name; every navigable source
+        # remains relative to this directory.
+        "source_dir": root.name or ".",
+        "pattern": active_redaction.redact(pattern),
+        "passed": bool(entries) and all(entry["passed"] for entry in entries),
+        "report_count": len(entries),
+        "passed_count": sum(1 for entry in entries if entry["passed"]),
+        "failed_count": sum(1 for entry in entries if not entry["passed"]),
+        "entries": entries,
+        "skipped": skipped,
+    }

@@ -102,7 +102,7 @@ Trace directories contain matching relative `.trace.json` file names.
 
 Exit code `0` means the comparison passed. Exit code `1` means a blocking regression was found. Exit code `2` means invalid configuration, Trace data, or runtime input.
 
-### Local viewer and configuration center (v3.2 MVP)
+### Local viewer, report index, and configuration center (v3.3)
 
 To inspect Trace timelines and compare differences in a browser, start the
 bundled local Viewer:
@@ -115,6 +115,27 @@ It binds to `127.0.0.1` by default and does not upload evidence or execute an
 Agent. Trace Inspector reads baseline, candidate, and compare JSON files; the
 configuration center generates `.agent-regression/config.json`. The Python CLI
 remains the source of truth for comparison decisions, and the Viewer is read-only.
+
+When one CI run produces several compare, batch, stability, or coverage reports,
+build a small index containing only status, metrics, and relative paths:
+
+```bash
+agent-regression report-index \
+  --report-dir outputs \
+  --out outputs/report-index.json
+
+agent-regression report-index \
+  --report-dir outputs \
+  --format markdown \
+  --out outputs/report-index.md \
+  --fail-on-regression
+```
+
+Then open `viewer/reports.html` and select `outputs/report-index.json`. The index
+does not copy full Trace or diff contents into the browser. Reviewers see the
+global status first, then explicitly load an original JSON by relative path in
+Trace Inspector. This is intentional: a static page must not silently scan your
+local filesystem.
 
 ## 4. Connect your own Agent
 

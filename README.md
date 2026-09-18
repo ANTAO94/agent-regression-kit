@@ -8,7 +8,7 @@
 
 [中文新手接入指南](docs/usage-guide.zh-CN.md) | [English Getting Started](docs/usage-guide.en.md)
 
-[打开 Trace 查看器](viewer/index.html) | [打开配置中心](viewer/config.html) | [完整 HTML 技术文档](docs/agent-regression-kit-guide.html) | [成熟框架路线图](docs/maturity-roadmap.md) | [升级指南](UPGRADING.md) | [兼容性矩阵](docs/compatibility-matrix.md)
+[打开 Trace 查看器](viewer/index.html) | [打开报告索引](viewer/reports.html) | [打开配置中心](viewer/config.html) | [完整 HTML 技术文档](docs/agent-regression-kit-guide.html) | [成熟框架路线图](docs/maturity-roadmap.md) | [升级指南](UPGRADING.md) | [兼容性矩阵](docs/compatibility-matrix.md)
 
 ## 中文说明
 
@@ -59,6 +59,7 @@ flowchart LR
 - 公共兼容边界：`PUBLIC_API_VERSION`、`public_api_manifest()` 和 `SUPPORTED_TRACE_SCHEMA_VERSIONS` 明确 Python API 与 Trace schema 的版本策略。
 - 可选真实框架示例：`examples/langchain_core_callback_example.py` 使用 LangChain Core 的 `RunnableLambda`，不需要模型密钥；依赖单独放在 `examples/optional-requirements.txt`，不会污染默认测试。
 - 历史趋势与长期回归：`build_history_report` 和 `history` 聚合多次 stability、compare、batch 或 coverage 报告，展示最新状态、指标首末变化和历史失败点。
+- CI 报告索引：`report-index` 为一个输出目录生成安全的相对路径清单；Viewer 的 Report Index 先展示全局通过/失败，再把维护者带到具体 compare、batch、stability 或 coverage 证据。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -67,9 +68,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **125 项通过，0 项失败** |
+| Python 单元与集成测试 | **129 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-3.2.2-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-3.3.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -148,9 +149,9 @@ agent-regression check \
 无副作用预检，会读取 baseline/candidate Trace 并校验其 schema、事件结构和批量
 用例集合，但不会执行 Agent、写入 baseline，也不会把差异判为通过或失败。
 
-### 本地查看器和配置中心（v3.2 MVP）
+### 本地查看器、报告索引和配置中心（v3.3）
 
-项目提供一个不需要后端的本地 Viewer：可以查看 baseline/candidate 的 Trace 时间线、Python compare 生成的差异 JSON，并通过配置中心生成 `.agent-regression/config.json`。
+项目提供一个不需要后端的本地 Viewer：可以查看 baseline/candidate 的 Trace 时间线、Python compare 生成的差异 JSON，批量浏览 `report-index` 生成的报告清单，并通过配置中心生成 `.agent-regression/config.json`。
 
 从源码仓库启动：
 
@@ -168,6 +169,24 @@ agent-regression ui \
 ```
 
 Viewer 是只读展示层：它不会重新执行 Agent、修改 baseline 或替代 Python 比较器。正式 compare 仍然由 CLI 生成 JSON/Markdown/JUnit 报告，页面只读取本地文件。
+
+批量报告清单的生成方式：
+
+```bash
+agent-regression report-index \
+  --report-dir outputs \
+  --out outputs/report-index.json
+
+# 需要把失败状态作为 CI 门禁时：
+agent-regression report-index \
+  --report-dir outputs \
+  --format markdown \
+  --out outputs/report-index.md \
+  --fail-on-regression
+```
+
+然后在浏览器中打开 `viewer/reports.html`，选择 `outputs/report-index.json`。
+索引不会复制完整差异或 Trace 内容，只保留报告类型、状态、指标和相对路径；要查看具体差异，再把原始 JSON 显式加载到 Trace Inspector。
 
 ### 项目边界
 
@@ -442,6 +461,17 @@ agent-regression history \
 
 仓库自带 [`examples/history/`](examples/history/) 作为最小示例。它是离线聚合器，不是数据库、在线 Dashboard 或自动判断模型质量的统计系统。
 
+如果需要一次查看一个目录里的当前报告，可以使用 `report-index`：
+
+```bash
+agent-regression report-index \
+  --report-dir outputs \
+  --format markdown \
+  --out outputs/report-index.md
+```
+
+它识别 compare、batch、stability 和 coverage 报告，忽略同目录中无法识别的 JSON，并输出 skipped 原因。`--fail-on-regression` 会在存在失败报告时返回 `1`；默认模式只生成索引，不改变当前命令的成功状态。
+
 ### CI 集成
 
 CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
@@ -479,13 +509,20 @@ jobs:
           baseline: baselines/my-agent.trace.json
           candidate: work/candidate.trace.json
           report: outputs/my-agent.junit.xml
+          json-report: outputs/my-agent.compare.json
+
+      - name: Build report index
+        if: always()
+        run: |
+          agent-regression report-index --report-dir outputs --out outputs/report-index.json
+          agent-regression report-index --report-dir outputs --format markdown --out outputs/report-index.md --fail-on-regression
 
       - name: Upload regression report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: agent-regression-report
-          path: outputs/my-agent.junit.xml
+          path: outputs/
 ```
 
 运行规则：`compare` 返回 `0`，PR 通过；返回 `1`，说明发现阻断性回归，PR 失败；返回 `2`，说明输入、Trace 或运行环境有问题。GitHub 会把 JUnit 文件作为构建产物保存，便于查看具体差异。
@@ -518,9 +555,9 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v3.2**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, Adapter Contract Diagnostics, explicit public API and Trace schema boundaries, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, local Trace Viewer and configuration center, optional framework compatibility checks, and matching policy controls in reusable GitHub Actions.
+Current release line: **v3.3**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, Adapter Contract Diagnostics, explicit public API and Trace schema boundaries, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, report-index batch handoff, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, local Trace Viewer, Report Index and configuration center, optional framework compatibility checks, and matching policy controls in reusable GitHub Actions.
 
-The v3.2 release also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
+The v3.3 release also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector, Report Index and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
 
 ```text
 Agent / MCP Server
@@ -547,9 +584,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **125 passed, 0 failed** |
+| Python unit and integration suite | **129 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-3.2.2-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-3.3.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -559,7 +596,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 125 tests in 8.6s
+Ran 129 tests in 8.6s
 
 OK
 ```

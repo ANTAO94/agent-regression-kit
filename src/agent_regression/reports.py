@@ -86,6 +86,35 @@ def render_markdown(report: Dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_report_index_markdown(report: Dict[str, Any]) -> str:
+    """Render the report index as a compact CI/navigation summary."""
+    status = "PASS" if report.get("passed") else "FAIL"
+    lines = [
+        "# Agent Regression Report Index",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Reports: `{report.get('report_count', 0)}`",
+        f"- Passed: `{report.get('passed_count', 0)}`",
+        f"- Failed: `{report.get('failed_count', 0)}`",
+        f"- Skipped: `{len(report.get('skipped', []))}`",
+        "",
+        "| Status | Type | Label | Relative path |",
+        "| --- | --- | --- | --- |",
+    ]
+    for entry in report.get("entries", []):
+        status_text = "passed" if entry.get("passed") else "failed"
+        report_type = str(entry.get("report_type", "")).replace("|", "\\|")
+        label = str(entry.get("label", "")).replace("|", "\\|")
+        source = str(entry.get("source", "")).replace("|", "\\|")
+        lines.append(f"| {status_text} | `{report_type}` | `{label}` | `{source}` |")
+    if report.get("skipped"):
+        lines.extend(["", "## Skipped", ""])
+        for item in report["skipped"]:
+            lines.append(f"- `{item.get('source')}`: {item.get('reason')}")
+    return "\n".join(lines) + "\n"
+
+
 def render_batch_markdown(report: Dict[str, Any]) -> str:
     """Render a batch comparison summary."""
     status = "PASS" if report.get("passed") else "FAIL"

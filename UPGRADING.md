@@ -68,6 +68,29 @@ getting-started guide, upgrade guide, and compatibility matrix under
 `share/agent-regression-kit/docs`. No runtime or Trace schema migration is
 required.
 
+## v3.2.2 → v3.3.0
+
+This is a feature release for team CI handoff. It adds `report-index`, which
+recognizes compare, batch, stability, and coverage JSON reports and emits a
+safe relative-path inventory for the local Report Index Viewer. The reusable
+GitHub Action also writes a machine-readable comparison JSON report, and the
+core workflow uploads the JSON and Markdown index alongside JUnit output.
+
+No AgentTrace schema migration is required. Existing baseline and candidate
+files remain valid. After upgrading, add the optional index step to a workflow:
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.3.0
+agent-regression --version
+agent-regression report-index \
+  --report-dir outputs \
+  --out outputs/report-index.json
+```
+
+Use `--fail-on-regression` when the index itself should be a CI gate. The local
+Viewer remains read-only and requires an explicit file selection for the index
+and original reports.
+
 ## English release checklist
 
 For each upgrade, record the package version, Trace schema version, test count,
@@ -78,8 +101,8 @@ boundaries are returned by `public_api_manifest()`.
 ## 中文说明
 
 升级原则是：**先升级回归工具，再审核行为差异；不要因为工具升级就自动
-覆盖 baseline。** 3.2.0 新增 Viewer、Trace 预检、Adapter 接入诊断、公共
-API 版本边界和 wheel 安装验证，但不会自动改变 AgentTrace `0.1` 的含义。
+覆盖 baseline。** 3.3.0 新增报告索引和 CI 机器可读报告，但不会改变
+AgentTrace `0.1` 的含义，也不会自动读取或覆盖 baseline。
 
 建议顺序：安装固定版本 → 检查 `--version` → `config validate` → `check` →
 运行 compare → 审核报告。回滚时只恢复工具版本，不要把 candidate 复制成

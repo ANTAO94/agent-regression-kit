@@ -4,6 +4,15 @@
 
 No unreleased changes.
 
+## 3.3.0 - 2026-09-18
+
+- Add `report-index` to build a redacted, relative-path inventory of compare,
+  batch, stability, and coverage JSON reports for CI handoff.
+- Add the local Viewer Report Index page and package it with source and wheel
+  distributions; it keeps navigation separate from the full Trace/Diff view.
+- Extend the reusable GitHub Action with a machine-readable JSON report and
+  publish JSON/Markdown report-index artifacts in the core workflow.
+
 ## 3.2.2 - 2026-09-18
 
 - Include the bilingual getting-started guide, upgrade guide, and compatibility

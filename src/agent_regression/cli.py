@@ -44,7 +44,9 @@ from .reports import (
     render_stability_markdown,
     render_session_junit,
     render_session_markdown,
+    render_report_index_markdown,
 )
+from .report_index import build_report_index
 from .replay import replay_trace
 from .scaffold import initialize_project
 from .session import AgentSession, compare_sessions
@@ -450,6 +452,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="config shape to validate (default: single)",
     )
 
+    report_index = subparsers.add_parser(
+        "report-index", help="index local JSON regression reports for CI and the Viewer"
+    )
+    report_index.add_argument("--report-dir", required=True)
+    report_index.add_argument("--pattern", default="*.json")
+    report_index.add_argument("--out")
+    report_index.add_argument("--format", choices=["json", "markdown"], default="json")
+    report_index.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="return exit code 1 when any indexed report failed",
+    )
+
     check = subparsers.add_parser(
         "check", help="preflight config and Trace inputs without comparing behavior"
     )
@@ -622,6 +637,16 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 _write_output(report_value, args.out)
             return 0 if report.passed else 1
+
+        if args.command == "report-index":
+            report = build_report_index(args.report_dir, pattern=args.pattern)
+            if args.format == "markdown":
+                _write_text(render_report_index_markdown(report), args.out)
+            else:
+                _write_output(report, args.out)
+            if args.fail_on_regression and not report["passed"]:
+                return 1
+            return 0
 
         if args.command == "stability":
             baseline = AgentTrace.from_dict(_read_json(args.baseline))

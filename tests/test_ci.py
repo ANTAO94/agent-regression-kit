@@ -12,6 +12,8 @@ class CiIntegrationTests(unittest.TestCase):
         )
         self.assertIn("final-answer-mode:", action)
         self.assertIn("allow-path:", action)
+        self.assertIn("json-report:", action)
+        self.assertIn('agent-regression "${args[@]}" --format json --out "$JSON_REPORT"', action)
         self.assertIn('args+=(--final-answer-mode "$FINAL_ANSWER_MODE")', action)
         self.assertIn('args+=(--allow-path "$path")', action)
 

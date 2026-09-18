@@ -100,7 +100,7 @@ agent-regression compare --config .agent-regression/config.json
 
 匹配时退出码是 `0`。发现阻断性回归时退出码是 `1`。配置、Trace 或运行环境无效时退出码是 `2`。
 
-### 本地查看器和配置中心（v3.2 MVP）
+### 本地查看器、报告索引和配置中心（v3.3）
 
 如果你希望用页面查看 Trace 和 compare 差异，可以启动仓库自带的本地 Viewer：
 
@@ -111,6 +111,25 @@ agent-regression ui --open-browser
 它默认只监听 `127.0.0.1`，不会上传或执行任何 Agent。Trace Inspector 读取
 baseline、candidate 和 compare JSON；配置中心可以生成 `.agent-regression/config.json`。
 Python CLI 仍然是比较结果的唯一来源，页面只是只读展示层。
+
+如果一次 CI 产生了多份 compare、batch、stability 或 coverage 报告，可以先生成一个
+只包含状态、指标和相对路径的索引：
+
+```bash
+agent-regression report-index \
+  --report-dir outputs \
+  --out outputs/report-index.json
+
+agent-regression report-index \
+  --report-dir outputs \
+  --format markdown \
+  --out outputs/report-index.md \
+  --fail-on-regression
+```
+
+再打开 `viewer/reports.html`，选择 `outputs/report-index.json`。报告索引不会把完整
+Trace 或差异复制到浏览器；维护者先看全局状态，再按相对路径把原始 JSON 显式加载到
+Trace Inspector。这是静态页面的安全边界：页面不会自动扫描你的本机目录。
 
 ## 4. 如何接入自己的 Agent
 

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v3.2 and its local Viewer. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
+This document describes Agent Regression Kit v3.3 and its local Viewer. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
 
 ```mermaid
 flowchart TD
@@ -38,7 +38,7 @@ flowchart TD
 The recorder is the stable center: adapters produce actions, executors isolate tool effects, and downstream comparison consumes only redacted AgentTrace documents.
 
 The Viewer is deliberately outside the evidence core. `agent-regression ui`
-serves static pages on loopback; it reads Trace and compare report files in the
+serves static Trace, Diff, report-index, and configuration pages on loopback; it reads Trace and compare report files in the
 browser, but it does not execute Agents, recompute policy decisions, mutate
 baselines, or upload evidence. The Python library and CLI remain the source of
 truth for comparison outcomes.
@@ -175,4 +175,4 @@ state.
 
 ## Version boundaries
 
-Agent Regression Kit v3.2 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, parallel-run summaries, stability reports, async execution metadata, adapter-template files, and history reports are optional, so v2.4-v3.1 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v3.3 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, parallel-run summaries, stability reports, async execution metadata, adapter-template files, history reports, and report indexes are optional, so v2.4-v3.2 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

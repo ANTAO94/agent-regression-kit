@@ -67,7 +67,9 @@ from .reports import (
     render_stability_markdown,
     render_session_junit,
     render_session_markdown,
+    render_report_index_markdown,
 )
+from .report_index import build_report_index
 from .scenario import StatefulFixtureTools, WorldState
 from .session import AgentSession, check_session_state_continuity, compare_sessions
 from .stability import (
@@ -158,6 +160,7 @@ __all__ = [
     "HistoryPoint",
     "HistoryReport",
     "build_history_report",
+    "build_report_index",
     "run_compatibility_smoke",
     "record_run",
     "record_session",
@@ -181,5 +184,6 @@ __all__ = [
     "render_coverage_markdown",
     "render_session_junit",
     "render_session_markdown",
+    "render_report_index_markdown",
     "__version__",
 ]

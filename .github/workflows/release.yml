@@ -36,6 +36,12 @@ jobs:
           DOC_ROOT="$(/tmp/agent-regression-release-venv/bin/python -c 'import sys; print(sys.prefix)')/share/agent-regression-kit/docs"
           test -f "$DOC_ROOT/UPGRADING.md"
           test -f "$DOC_ROOT/compatibility-matrix.md"
+          test -f "$DOC_ROOT/api.md"
+          test -f "$DOC_ROOT/architecture.md"
+          test -f "$DOC_ROOT/limitations.md"
+          test -f "$DOC_ROOT/maturity-roadmap.md"
+          VIEWER_ROOT="$(/tmp/agent-regression-release-venv/bin/python -c 'import sys; print(sys.prefix)')/share/agent-regression-kit/viewer"
+          test -f "$VIEWER_ROOT/reports.html"
       - name: Create GitHub release for a pushed tag
         if: startsWith(github.ref, 'refs/tags/')
         env:

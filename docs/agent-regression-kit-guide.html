@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v3.2 完整使用说明、接入指南和技术文档">
-  <title>Agent Regression Kit v3.2 · 完整使用与技术文档</title>
+  <meta name="description" content="Agent Regression Kit v3.3 完整使用说明、接入指南和技术文档">
+  <title>Agent Regression Kit v3.3 · 完整使用与技术文档</title>
   <style>
     :root {
       --ink: #152235;
@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v3.2 · Usage &amp; Technical Guide</small>
+          <small>v3.3 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -232,6 +232,7 @@
         <a href="#coverage">12. 场景与业务分支覆盖</a>
         <a href="#sdk">13. SDK 与模板</a>
         <a href="#history">14. 历史趋势</a>
+        <a class="sub" href="#history">14.1 报告索引</a>
         <a href="#ci">15. CI 集成</a>
         <a href="#reports">16. 报告与退出码</a>
         <a href="#architecture">17. 技术架构</a>
@@ -249,11 +250,12 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v3.2.2</span>
+            <span class="badge">v3.3.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
-            <span class="badge orange">125 tests passed</span>
+            <span class="badge orange">129 tests passed</span>
             <a class="badge" href="../viewer/index.html">打开 Trace 查看器 →</a>
+            <a class="badge" href="../viewer/reports.html">打开报告索引 →</a>
             <a class="badge" href="../viewer/config.html">打开配置中心 →</a>
           </div>
           <div class="summary-grid">
@@ -358,7 +360,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.2.2</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v3.3.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -947,6 +949,28 @@ cp outputs/stability-v3.0.json reports/agent-history/003-v3.0.json
               <tr><td>latest passed</td><td>最新可识别报告是否通过，决定命令退出码。</td></tr>
             </tbody>
           </table>
+          <h3>14.1 报告索引：先看全局，再钻取单份证据</h3>
+          <p>当一个 CI 任务同时生成 compare、batch、stability 和 coverage 报告时，逐个打开文件很容易漏掉失败项。<code>report-index</code> 会把这些报告整理成一个安全的索引：只保留状态、类型、标签、指标和相对于报告目录的路径，不复制完整 Trace、差异值或任意 metadata。</p>
+          <div class="mermaid-wrap">
+            <pre class="mermaid">flowchart LR
+  Outputs[outputs/*.json] --> Index[report-index]
+  Index --> JSON[report-index.json]
+  Index --> MD[report-index.md]
+  JSON --> Viewer[Report Index Viewer]
+  Viewer --> Trace[Trace Inspector]
+  Trace --> Original[原始 compare JSON]</pre>
+            <p class="diagram-note">图意：索引是导航和交接层，不替代 Python 比较器，也不让静态页面自动读取同目录文件。</p>
+          </div>
+          <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>agent-regression report-index \
+  --report-dir outputs \
+  --out outputs/report-index.json
+
+agent-regression report-index \
+  --report-dir outputs \
+  --format markdown \
+  --out outputs/report-index.md \
+  --fail-on-regression</code></pre></div>
+          <p class="small">打开 <a href="../viewer/reports.html">Report Index Viewer</a> 后显式选择 JSON。默认命令只生成索引；加上 <code>--fail-on-regression</code> 后，任一已识别报告失败会返回退出码 <code>1</code>。</p>
         </section>
 
         <section id="ci">
@@ -968,11 +992,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.2.2"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v3.3.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.2.2
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v3.3.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1157,6 +1181,7 @@ jobs:
               <tr><td><code>coverage</code></td><td>统计工具路径和业务分支覆盖。</td><td><code>--expected-path</code>、<code>--branch-path</code>、<code>--expected-branch</code></td></tr>
               <tr><td><code>session-record/compare</code></td><td>录制和比较多轮 Agent Session。</td><td><code>--scenario</code>、<code>--baseline</code>、<code>--candidate</code></td></tr>
               <tr><td><code>history</code></td><td>聚合历史报告并生成趋势。</td><td><code>--report-dir</code>、<code>--pattern</code>、<code>--format</code></td></tr>
+              <tr><td><code>report-index</code></td><td>为 CI 输出目录生成报告索引并交给批量 Viewer。</td><td><code>--report-dir</code>、<code>--pattern</code>、<code>--format</code>、<code>--fail-on-regression</code></td></tr>
               <tr><td><code>config validate</code></td><td>在 CI 运行前校验单用例或批量配置。</td><td><code>--config</code>、<code>--kind single|batch</code></td></tr>
               <tr><td><code>check</code></td><td>在比较前读取并校验配置引用的 Trace 和批量文件集合，不执行 Agent。</td><td><code>--config</code>、<code>--kind single|batch</code></td></tr>
             </tbody>
@@ -1219,7 +1244,7 @@ jobs:
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v3.2.2。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
+          <p>本文档面向 Agent Regression Kit v3.3.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

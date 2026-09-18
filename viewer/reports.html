@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Regression Kit local regression report index">
+  <title>Report Index · Agent Regression Kit</title>
+  <style>
+    :root {
+      --ink: #172434;
+      --ink-soft: #45596e;
+      --muted: #738396;
+      --surface: #f4f8fb;
+      --paper: #ffffff;
+      --paper-2: #edf3f7;
+      --line: #d7e1e9;
+      --line-strong: #b8cbd8;
+      --blue: #176aa9;
+      --blue-soft: #e5f2fb;
+      --teal: #087d77;
+      --teal-soft: #e2f5f1;
+      --amber: #ad5c11;
+      --amber-soft: #fff0dc;
+      --red: #b23c4b;
+      --red-soft: #ffe9ed;
+      --code: #152331;
+      --code-text: #e1eef7;
+      --shadow-sm: 0 5px 20px rgba(24, 51, 76, .06);
+      --shadow-lg: 0 22px 70px rgba(24, 51, 76, .12);
+      --radius: 15px;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    [data-theme="dark"] {
+      --ink: #eef6fc;
+      --ink-soft: #bdcedc;
+      --muted: #8da1b2;
+      --surface: #0e1924;
+      --paper: #172634;
+      --paper-2: #203441;
+      --line: #2d4354;
+      --line-strong: #456176;
+      --blue: #6bb7ec;
+      --blue-soft: #1e3b51;
+      --teal: #6bd0c4;
+      --teal-soft: #173e40;
+      --amber: #f0b36d;
+      --amber-soft: #4c351e;
+      --red: #ff9aa8;
+      --red-soft: #4c2932;
+      --code: #09121b;
+      --code-text: #dceefa;
+      --shadow-sm: 0 5px 20px rgba(0, 0, 0, .2);
+      --shadow-lg: 0 22px 70px rgba(0, 0, 0, .35);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: radial-gradient(circle at 8% 4%, rgba(23,106,169,.11), transparent 27rem), radial-gradient(circle at 94% 21%, rgba(8,125,119,.08), transparent 27rem), var(--surface);
+      font-family: var(--sans);
+      line-height: 1.55;
+      transition: color .2s ease, background .2s ease;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button, input, select { font: inherit; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid rgba(23,106,169,.35); outline-offset: 2px; }
+    code, pre { font-family: var(--mono); }
+    code { padding: .12em .32em; border: 1px solid var(--line); border-radius: 5px; background: var(--paper-2); font-size: .88em; }
+    .topbar { position: sticky; z-index: 10; top: 0; display: flex; min-height: 70px; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem clamp(1rem, 3vw, 3.3rem); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 91%, transparent); backdrop-filter: blur(18px); }
+    .brand { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+    .brand-mark { display: grid; width: 39px; height: 39px; flex: 0 0 auto; place-items: center; border-radius: 11px; color: #fff; background: linear-gradient(145deg, #176aa9, #087d77); box-shadow: 0 8px 20px rgba(23,106,169,.25); font-weight: 850; letter-spacing: -.08em; }
+    .brand-name { display: block; overflow: hidden; color: var(--ink); font-size: .92rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-sub { display: block; color: var(--muted); font-family: var(--mono); font-size: .67rem; letter-spacing: .04em; }
+    .top-actions { display: flex; align-items: center; gap: .35rem; }
+    .text-button, .icon-button, .primary-button, .secondary-button { min-height: 44px; border: 1px solid transparent; border-radius: 9px; cursor: pointer; transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease; }
+    .text-button { padding: .6rem .8rem; color: var(--blue); background: transparent; font-size: .82rem; font-weight: 780; }
+    .text-button:hover { background: var(--blue-soft); text-decoration: none; }
+    .icon-button { display: grid; width: 44px; place-items: center; color: var(--ink-soft); background: transparent; }
+    .icon-button:hover { background: var(--paper-2); }
+    .primary-button { padding: .65rem 1rem; color: #fff; background: var(--blue); box-shadow: 0 7px 16px rgba(23,106,169,.2); font-weight: 800; }
+    .primary-button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(23,106,169,.25); }
+    .secondary-button { padding: .65rem 1rem; border-color: var(--line-strong); color: var(--ink-soft); background: var(--paper); font-weight: 750; }
+    .secondary-button:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+    svg { display: block; }
+    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.25rem; max-width: 1450px; margin: 0 auto; padding: 1.55rem clamp(1rem, 3vw, 3.3rem) 4rem; }
+    .rail { position: sticky; top: 91px; align-self: start; }
+    .rail-card { padding: 1rem .85rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .rail-label { margin: .1rem .65rem .7rem; color: var(--muted); font-family: var(--mono); font-size: .65rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .rail-item { display: grid; grid-template-columns: 28px 1fr; gap: .55rem; align-items: center; min-height: 45px; padding: .35rem .55rem; border-radius: 9px; color: var(--ink-soft); font-size: .78rem; font-weight: 700; }
+    .rail-item:hover, .rail-item.active { color: var(--blue); background: var(--blue-soft); text-decoration: none; }
+    .rail-icon { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid var(--line-strong); border-radius: 7px; font-family: var(--mono); font-size: .66rem; }
+    .rail-note { margin: .9rem .3rem 0; padding: .7rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .71rem; }
+    .main { min-width: 0; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 1rem; align-items: end; margin-bottom: 1rem; padding: 1.55rem 1.65rem; overflow: hidden; border: 1px solid #c7ddea; border-radius: 20px; background: radial-gradient(circle at 95% 10%, rgba(8,125,119,.17), transparent 14rem), linear-gradient(135deg, var(--paper), var(--blue-soft)); box-shadow: var(--shadow-sm); }
+    .eyebrow { color: var(--teal); font-family: var(--mono); font-size: .68rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: -.025em; }
+    h1 { margin: .35rem 0 .45rem; font-size: clamp(1.75rem, 3.2vw, 2.8rem); }
+    h2 { margin: 0 0 .45rem; font-size: 1.2rem; }
+    h3 { margin: 0 0 .35rem; font-size: .98rem; }
+    p { margin: .4rem 0 .75rem; }
+    .lede { max-width: 720px; color: var(--ink-soft); font-size: .95rem; }
+    .run-id { padding: .9rem 1rem; border: 1px solid var(--line-strong); border-radius: 11px; background: color-mix(in srgb, var(--paper) 68%, transparent); }
+    .run-id-label { color: var(--muted); font-family: var(--mono); font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; }
+    .run-id strong { display: block; margin: .25rem 0 .2rem; overflow: hidden; font-family: var(--mono); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+    .run-id span { color: var(--ink-soft); font-size: .72rem; }
+    .status { display: inline-flex; align-items: center; gap: .38rem; padding: .33rem .6rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--paper); font-size: .72rem; font-weight: 800; }
+    .status.good { border-color: #a8d8cf; color: var(--teal); background: var(--teal-soft); }
+    .status.bad { border-color: #efbbc3; color: var(--red); background: var(--red-soft); }
+    .status.warn { border-color: #eec99a; color: var(--amber); background: var(--amber-soft); }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .load-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; margin-bottom: 1rem; padding: .9rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .load-copy strong { display: block; font-size: .81rem; }
+    .load-copy span { display: block; color: var(--muted); font-size: .71rem; }
+    .load-actions { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: flex-end; }
+    .file-label { display: inline-flex; min-height: 40px; align-items: center; padding: .5rem .7rem; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--blue); background: var(--paper-2); cursor: pointer; font-size: .73rem; font-weight: 780; }
+    .file-label:hover { border-color: var(--blue); background: var(--blue-soft); }
+    .file-label input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+    .metric { min-width: 0; padding: .95rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .metric-label { display: block; color: var(--muted); font-size: .7rem; font-weight: 760; }
+    .metric strong { display: block; margin-top: .15rem; color: var(--ink); font-family: var(--mono); font-size: 1.45rem; letter-spacing: -.06em; }
+    .metric small { display: block; margin-top: .15rem; color: var(--muted); font-size: .68rem; }
+    .panel { min-width: 0; overflow: hidden; margin-bottom: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; padding: 1rem 1.1rem .85rem; border-bottom: 1px solid var(--line); }
+    .panel-head p { margin: .2rem 0 0; color: var(--muted); font-size: .71rem; }
+    .toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) 180px auto; gap: .6rem; align-items: center; padding: .7rem 1.1rem; border-bottom: 1px solid var(--line); }
+    .toolbar label { color: var(--muted); font-size: .7rem; font-weight: 760; }
+    input[type="search"], select { min-height: 38px; width: 100%; padding: .45rem .6rem; border: 1px solid var(--line-strong); border-radius: 7px; color: var(--ink); background: var(--paper); font-size: .72rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: .8rem 1.1rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: .74rem; }
+    th { color: var(--muted); background: var(--paper-2); font-family: var(--mono); font-size: .64rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: color-mix(in srgb, var(--blue-soft) 38%, transparent); }
+    .entry-status { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+    .entry-status.good { color: var(--teal); }
+    .entry-status.bad { color: var(--red); }
+    .entry-status .status-dot { width: 6px; height: 6px; }
+    .type { display: inline-block; padding: .2rem .35rem; border-radius: 4px; color: var(--blue); background: var(--blue-soft); font-family: var(--mono); font-size: .63rem; white-space: nowrap; }
+    .path { display: block; max-width: 330px; overflow-wrap: anywhere; color: var(--ink-soft); font-family: var(--mono); font-size: .68rem; }
+    .label { display: block; margin-bottom: .18rem; color: var(--ink); font-weight: 800; }
+    .summary { display: flex; flex-wrap: wrap; gap: .3rem .55rem; color: var(--muted); font-family: var(--mono); font-size: .62rem; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .45rem; }
+    .small-button { min-height: 33px; padding: .32rem .5rem; border: 1px solid var(--line-strong); border-radius: 7px; color: var(--ink-soft); background: var(--paper); cursor: pointer; font-size: .66rem; font-weight: 750; }
+    .small-button:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+    .empty { padding: 2.5rem 1rem; color: var(--muted); text-align: center; }
+    .empty strong { display: block; margin-bottom: .35rem; color: var(--ink-soft); }
+    .info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .info-panel { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow-sm); }
+    .info-panel h3 { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .info-panel h3 span { color: var(--muted); font-family: var(--mono); font-size: .62rem; font-weight: 500; }
+    .info-panel p, .info-panel li { color: var(--muted); font-size: .73rem; }
+    .info-panel ul { margin: .45rem 0 0; padding-left: 1.1rem; }
+    .command { overflow: auto; margin: .55rem 0 0; padding: .65rem; border-radius: 8px; color: var(--code-text); background: var(--code); font-size: .66rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .skipped { margin-top: 1rem; padding: .8rem 1rem; border: 1px solid #eec99a; border-radius: 9px; color: var(--amber); background: var(--amber-soft); font-size: .71rem; }
+    .skipped summary { cursor: pointer; font-weight: 800; }
+    .skipped ul { margin: .55rem 0 0; padding-left: 1.1rem; }
+    .footer { margin-top: 1.5rem; color: var(--muted); font-size: .72rem; }
+    .toast { position: fixed; z-index: 40; right: 1.2rem; bottom: 1.2rem; max-width: min(380px, calc(100vw - 2.4rem)); padding: .8rem 1rem; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow-lg); font-size: .76rem; opacity: 0; pointer-events: none; transform: translateY(12px); transition: opacity .2s ease, transform .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 1050px) { .layout { grid-template-columns: 190px minmax(0, 1fr); } .info-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 760px) {
+      .topbar { padding-right: 1rem; padding-left: 1rem; }
+      .brand-sub, .top-actions .text-button { display: none; }
+      .layout { display: block; padding: 1rem; }
+      .rail { position: static; margin-bottom: 1rem; }
+      .rail-card { display: flex; align-items: center; gap: .5rem; overflow-x: auto; padding: .6rem; }
+      .rail-label, .rail-note { display: none; }
+      .rail-item { min-width: 145px; border: 1px solid var(--line); background: var(--paper); }
+      .hero { grid-template-columns: 1fr; }
+      .load-card { grid-template-columns: 1fr; }
+      .load-actions { justify-content: flex-start; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .toolbar { grid-template-columns: 1fr; }
+      .panel { overflow-x: auto; }
+      table { min-width: 760px; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) { h1 { font-size: 1.85rem; } .hero, .panel-head { padding: 1rem; } .metrics { gap: .5rem; } .metric { padding: .75rem; } .metric strong { font-size: 1.15rem; } .load-actions > * { flex: 1 1 auto; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">AR</div>
+      <div><span class="brand-name">Agent Regression Kit <span style="color:var(--blue)">/</span> Report Index</span><span class="brand-sub">v3.4 direction · evidence handoff</span></div>
+    </div>
+    <div class="top-actions">
+      <a class="text-button" href="index.html">Trace 查看器</a>
+      <a class="text-button" href="config.html">配置中心</a>
+      <a class="text-button" href="../docs/agent-regression-kit-guide.html#reports">使用说明</a>
+      <button class="icon-button" id="themeToggle" type="button" aria-label="切换深色模式" title="切换深色模式"><svg id="themeIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" aria-label="报告索引导航">
+      <div class="rail-card">
+        <div class="rail-label">Evidence handoff</div>
+        <a class="rail-item active" href="#overview"><span class="rail-icon">01</span><span>报告总览</span></a>
+        <a class="rail-item" href="#entries"><span class="rail-icon">02</span><span>报告清单</span></a>
+        <a class="rail-item" href="#how-to"><span class="rail-icon">03</span><span>如何生成</span></a>
+        <a class="rail-item" href="#next"><span class="rail-icon">04</span><span>下一步</span></a>
+        <p class="rail-note">本页只在浏览器本地读取 Report Index JSON，不会扫描目录、上传文件或重新执行 Agent。</p>
+      </div>
+    </aside>
+
+    <main class="main" id="overview">
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Make every CI result findable</div>
+          <h1>Report Index</h1>
+          <p class="lede">把一次回归任务产生的 compare、batch、stability 和 coverage 报告整理成一张安全的相对路径清单。维护者先看这里判断全局状态，再进入 Trace Inspector 复核单个证据。</p>
+          <span class="status bad" id="resultStatus"><span class="status-dot"></span><span id="resultStatusText">检测到失败报告</span></span>
+        </div>
+        <div class="run-id"><span class="run-id-label">source directory</span><strong id="sourceDir">demo/outputs</strong><span id="sourcePattern">pattern: *.json · schema 0.1</span></div>
+      </section>
+
+      <section class="load-card" aria-label="加载报告索引">
+        <div class="load-copy"><strong>加载本地 Report Index</strong><span>选择 <code>agent-regression report-index</code> 生成的 JSON；不选择时展示内置示例。</span></div>
+        <div class="load-actions">
+          <label class="file-label">选择索引 JSON<input id="indexFile" type="file" accept="application/json,.json"></label>
+          <button class="secondary-button" id="demoButton" type="button">恢复示例</button>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="报告索引摘要">
+        <div class="metric"><span class="metric-label">Reports</span><strong id="reportCount">4</strong><small>识别到的报告数量</small></div>
+        <div class="metric"><span class="metric-label">Passed</span><strong id="passedCount">3</strong><small>通过的报告</small></div>
+        <div class="metric"><span class="metric-label">Failed</span><strong id="failedCount">1</strong><small>需要复核的报告</small></div>
+        <div class="metric"><span class="metric-label">Skipped</span><strong id="skippedCount">1</strong><small>未识别或无法读取</small></div>
+      </section>
+
+      <section class="panel" id="entries">
+        <div class="panel-head"><div><h2>报告清单</h2><p>索引只保留状态、类型、标签、摘要和相对路径；完整差异仍在原始 JSON 中。</p></div><span class="status" id="visibleCount">4 entries</span></div>
+        <div class="toolbar">
+          <label for="search">筛选报告</label>
+          <input id="search" type="search" placeholder="按路径、标签或类型搜索" autocomplete="off">
+          <select id="statusFilter" aria-label="按状态筛选"><option value="all">全部状态</option><option value="passed">仅通过</option><option value="failed">仅失败</option></select>
+        </div>
+        <div id="tableHost"></div>
+      </section>
+
+      <details class="skipped" id="skippedDetails" hidden><summary id="skippedSummary">Skipped reports</summary><ul id="skippedList"></ul></details>
+
+      <div class="info-grid" id="how-to">
+        <section class="info-panel"><h3>生成索引 <span>local / CI</span></h3><p>在报告目录上运行索引命令。默认不改变退出码；需要门禁时加上 <code>--fail-on-regression</code>。</p><pre class="command">agent-regression report-index \
+  --report-dir outputs \
+  --out outputs/report-index.json</pre><button class="small-button" id="copyCommand" type="button">复制命令</button></section>
+        <section class="info-panel"><h3>怎么复核？ <span>evidence path</span></h3><ul><li>先看总览的 Failed 数量和状态。</li><li>再按相对路径定位具体 compare JSON。</li><li>打开 Trace Inspector 加载原始 JSON，查看事件和差异字段。</li></ul><a class="secondary-button" style="display:inline-flex;align-items:center" href="index.html">打开 Trace Inspector →</a></section>
+        <section class="info-panel" id="next"><h3>边界说明 <span>read-only</span></h3><p>浏览器不能安全地自动读取同目录其他文件，所以索引负责导航，原始报告仍需由你显式选择。这样可避免静态页面越权读取本机文件。</p><a class="secondary-button" style="display:inline-flex;align-items:center" href="../docs/agent-regression-kit-guide.html#reports">查看完整说明 →</a></section>
+      </div>
+
+      <p class="footer">Report Index 是本地只读报告导航页。它不替代 Python compare/history，也不上传或修改你的回归证据。</p>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      "use strict";
+      const demo = {
+        schema_version: "0.1",
+        report_type: "agent_report_index",
+        source_dir: "demo/outputs",
+        pattern: "*.json",
+        passed: false,
+        report_count: 4,
+        passed_count: 3,
+        failed_count: 1,
+        entries: [
+          { source: "compare/order-123.json", label: "order-123-candidate", report_type: "agent_compare", passed: false, metrics: { difference_count: 2, blocking_difference_count: 1 }, summary: { difference_count: 2, blocking_difference_count: 1 } },
+          { source: "compare/order-456.json", label: "order-456-candidate", report_type: "agent_compare", passed: true, metrics: { difference_count: 0, blocking_difference_count: 0 }, summary: { difference_count: 0, blocking_difference_count: 0 } },
+          { source: "batch/nightly.json", label: "nightly-2026-09-18", report_type: "agent_batch", passed: true, metrics: { pass_rate: 1, difference_count: 0, blocking_difference_count: 0 }, summary: { case_count: 8, passed_case_count: 8, failed_case_count: 0 } },
+          { source: "stability/v3.2.2.json", label: "v3.2.2", report_type: "agent_stability", passed: true, metrics: { pass_rate: 1, claims_match_rate: 1, tool_error_rate: 0, path_variant_count: 1 }, summary: { latest_label: "v3.2.2" } }
+        ],
+        skipped: [{ source: "notes.json", reason: "unrecognized regression report" }]
+      };
+      let state = { ...demo };
+      const $ = (id) => document.getElementById(id);
+      const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+      const prettyMetric = (key, value) => key.endsWith("rate") || key.endsWith("percent") ? `${(Number(value) * 100).toFixed(Number(value) % 1 ? 1 : 0)}%` : String(value);
+      function showToast(message) { const toast = $("toast"); toast.textContent = message; toast.classList.add("show"); window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2400); }
+      function setStatus() {
+        const failed = Number(state.failed_count || 0);
+        $("resultStatus").className = `status ${failed ? "bad" : "good"}`;
+        $("resultStatusText").textContent = failed ? `${failed} 份报告需要复核` : "全部报告通过";
+        $("reportCount").textContent = state.report_count || 0;
+        $("passedCount").textContent = state.passed_count || 0;
+        $("failedCount").textContent = state.failed_count || 0;
+        $("skippedCount").textContent = (state.skipped || []).length;
+        $("sourceDir").textContent = state.source_dir || "unknown";
+        $("sourcePattern").textContent = `pattern: ${state.pattern || "*.json"} · schema ${state.schema_version || "unknown"}`;
+      }
+      function renderSkipped() {
+        const skipped = state.skipped || [];
+        $("skippedDetails").hidden = !skipped.length;
+        $("skippedSummary").textContent = `${skipped.length} 个文件未纳入索引`;
+        $("skippedList").innerHTML = skipped.map((item) => `<li><code>${escapeHtml(item.source)}</code>：${escapeHtml(item.reason)}</li>`).join("");
+      }
+      function renderEntries() {
+        const query = $("search").value.trim().toLowerCase();
+        const filter = $("statusFilter").value;
+        const entries = (state.entries || []).filter((entry) => {
+          const haystack = `${entry.source} ${entry.label} ${entry.report_type}`.toLowerCase();
+          return (!query || haystack.includes(query)) && (filter === "all" || (filter === "passed" ? entry.passed : !entry.passed));
+        });
+        $("visibleCount").textContent = `${entries.length} / ${(state.entries || []).length} entries`;
+        if (!entries.length) { $("tableHost").innerHTML = '<div class="empty"><strong>没有匹配的报告</strong><span>换一个关键字或清除状态筛选。</span></div>'; return; }
+        const rows = entries.map((entry) => {
+          const metrics = Object.entries(entry.metrics || {}).slice(0, 4).map(([key, value]) => `<span>${escapeHtml(key)}=${escapeHtml(prettyMetric(key, value))}</span>`).join("");
+          const status = entry.passed ? "good" : "bad";
+          return `<tr><td><span class="entry-status ${status}"><span class="status-dot"></span>${entry.passed ? "passed" : "failed"}</span></td><td><span class="type">${escapeHtml(entry.report_type)}</span></td><td><span class="label">${escapeHtml(entry.label)}</span><div class="summary">${metrics || "<span>no metrics</span>"}</div></td><td><span class="path">${escapeHtml(entry.source)}</span><div class="row-actions"><button class="small-button copy-path" type="button" data-path="${escapeHtml(entry.source)}">复制路径</button><a class="small-button" href="index.html">打开 Trace Inspector</a></div></td></tr>`;
+        }).join("");
+        $("tableHost").innerHTML = `<table><caption class="sr-only">回归报告索引清单</caption><thead><tr><th>Status</th><th>Type</th><th>Label / metrics</th><th>Relative path / action</th></tr></thead><tbody>${rows}</tbody></table>`;
+        document.querySelectorAll(".copy-path").forEach((button) => button.addEventListener("click", async () => { try { await navigator.clipboard.writeText(button.dataset.path); showToast(`已复制：${button.dataset.path}`); } catch (_) { showToast(button.dataset.path); } }));
+      }
+      function render() { setStatus(); renderSkipped(); renderEntries(); }
+      function loadIndex(value, label) {
+        if (!value || value.report_type !== "agent_report_index" || !Array.isArray(value.entries)) { showToast("这不是有效的 Agent Regression Report Index JSON"); return; }
+        state = value; render(); showToast(`${label || "索引"}已加载`);
+      }
+      $("indexFile").addEventListener("change", (event) => { const file = event.target.files && event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { try { loadIndex(JSON.parse(reader.result), file.name); } catch (_) { showToast("JSON 解析失败，请选择 report-index 输出文件"); } }; reader.readAsText(file); });
+      $("demoButton").addEventListener("click", () => { state = { ...demo }; $("search").value = ""; $("statusFilter").value = "all"; render(); showToast("内置报告示例已恢复"); });
+      $("search").addEventListener("input", renderEntries);
+      $("statusFilter").addEventListener("change", renderEntries);
+      $("copyCommand").addEventListener("click", async () => { const command = "agent-regression report-index --report-dir outputs --out outputs/report-index.json"; try { await navigator.clipboard.writeText(command); showToast("生成命令已复制"); } catch (_) { showToast(command); } });
+      $("themeToggle").addEventListener("click", () => { const root = document.documentElement; const next = root.dataset.theme === "dark" ? "light" : "dark"; root.dataset.theme = next; $("themeIcon").innerHTML = next === "dark" ? '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/>' : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l-1.42 1.42M17.65 6.35l1.42-1.42"/>'; });
+      render();
+    }());
+  </script>
+</body>
+</html>

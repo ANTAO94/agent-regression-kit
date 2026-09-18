@@ -15,6 +15,10 @@ inputs:
     description: Path for the Markdown summary and optional GitHub step summary.
     required: false
     default: outputs/agent-regression.md
+  json-report:
+    description: Path for the machine-readable comparison JSON report.
+    required: false
+    default: outputs/agent-regression.json
   allow-category:
     description: Optional comma-separated difference categories to allow.
     required: false
@@ -37,6 +41,7 @@ runs:
         CANDIDATE: ${{ inputs.candidate }}
         REPORT: ${{ inputs.report }}
         SUMMARY: ${{ inputs.summary }}
+        JSON_REPORT: ${{ inputs['json-report'] }}
         ALLOW_CATEGORY: ${{ inputs['allow-category'] }}
         ALLOW_PATH: ${{ inputs['allow-path'] }}
         FINAL_ANSWER_MODE: ${{ inputs['final-answer-mode'] }}
@@ -44,6 +49,7 @@ runs:
         set -euo pipefail
         mkdir -p "$(dirname "$REPORT")"
         mkdir -p "$(dirname "$SUMMARY")"
+        mkdir -p "$(dirname "$JSON_REPORT")"
         args=(compare --baseline "$BASELINE" --candidate "$CANDIDATE")
         if [[ -n "$ALLOW_CATEGORY" ]]; then
           IFS=',' read -r -a categories <<< "$ALLOW_CATEGORY"
@@ -63,6 +69,8 @@ runs:
         comparison_status=$?
         agent-regression "${args[@]}" --format markdown --out "$SUMMARY"
         markdown_status=$?
+        agent-regression "${args[@]}" --format json --out "$JSON_REPORT"
+        json_status=$?
         set -e
         if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "$SUMMARY" ]]; then
           cat "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
@@ -70,4 +78,7 @@ runs:
         if [[ "$comparison_status" -ne 0 ]]; then
           exit "$comparison_status"
         fi
-        exit "$markdown_status"
+        if [[ "$markdown_status" -ne 0 ]]; then
+          exit "$markdown_status"
+        fi
+        exit "$json_status"
