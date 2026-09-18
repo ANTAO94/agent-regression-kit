@@ -13,6 +13,17 @@ class CapturingExecutor:
 
 
 class RedactionTests(unittest.TestCase):
+    def test_secret_values_configuration_is_not_echoed(self):
+        policy = RedactionPolicy(secret_values=("literal-secret",))
+        value = policy.redact(
+            {
+                "secret_values": ["literal-secret"],
+                "nested": {"api_key": "literal-secret"},
+            }
+        )
+        self.assertEqual("[REDACTED]", value["secret_values"])
+        self.assertEqual("[REDACTED]", value["nested"]["api_key"])
+
     def test_default_policy_redacts_sensitive_keys_but_executor_receives_raw_value(self):
         executor = CapturingExecutor()
         adapter = ScriptedAgentAdapter(

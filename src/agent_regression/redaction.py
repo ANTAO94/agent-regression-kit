@@ -15,6 +15,7 @@ DEFAULT_SECRET_KEYS = frozenset(
         "password",
         "passwd",
         "secret",
+        "secretvalues",
         "cookie",
         "setcookie",
     }

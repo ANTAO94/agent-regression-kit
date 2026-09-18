@@ -4,6 +4,8 @@
 
 - Add the v3.2 upgrade guide and an explicit Python/framework/MCP compatibility
   matrix for release review.
+- Harden output redaction for the `secret_values` configuration field and add a
+  regression test so `config`/`check` reports do not echo configured secrets.
 
 ## 3.2.0 - 2026-09-18
 

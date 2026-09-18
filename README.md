@@ -67,7 +67,7 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **124 项通过，0 项失败** |
+| Python 单元与集成测试 | **125 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
 | Wheel 构建 | `agent_regression_kit-3.2.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
@@ -547,7 +547,7 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **124 passed, 0 failed** |
+| Python unit and integration suite | **125 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
 | Wheel build | `agent_regression_kit-3.2.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
@@ -559,7 +559,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 124 tests in 8.6s
+Ran 125 tests in 8.6s
 
 OK
 ```
