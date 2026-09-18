@@ -39,3 +39,22 @@ class ScriptedAgentAdapter:
                 context.final_answer(action.get("text", ""), dict(action.get("claims", {})))
             else:
                 raise ValueError(f"unsupported scripted action: {action_type!r}")
+
+
+class ScriptedSessionAdapter:
+    """Deterministic multi-turn adapter with one plan per user turn."""
+
+    def __init__(self, identity: Mapping[str, Any], plans: List[List[Mapping[str, Any]]]):
+        self._identity = dict(identity)
+        self._plans = [[dict(action) for action in plan] for plan in plans]
+        self._turn = 0
+
+    @property
+    def identity(self) -> Mapping[str, Any]:
+        return self._identity
+
+    def run(self, request: Any, context: RunContext) -> None:
+        if self._turn >= len(self._plans):
+            raise ValueError("scripted session received more turns than configured plans")
+        ScriptedAgentAdapter(self._identity, self._plans[self._turn]).run(request, context)
+        self._turn += 1

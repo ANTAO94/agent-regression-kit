@@ -20,6 +20,21 @@ def trace_tool_path(trace: AgentTrace) -> PathSignature:
     )
 
 
+def trace_outcome_path(trace: AgentTrace) -> PathSignature:
+    """Return tool names annotated with the matching result outcome."""
+    trace.validate()
+    outcomes = {
+        event["call_id"]: "error" if event.get("is_error") else "ok"
+        for event in trace.events
+        if event["type"] == "tool_result"
+    }
+    return tuple(
+        f"{event['tool']}[{outcomes.get(event['call_id'], 'unknown')}]"
+        for event in trace.events
+        if event["type"] == "tool_call"
+    )
+
+
 def path_to_string(path: Sequence[str]) -> str:
     return " -> ".join(path) if path else "(no tool calls)"
 
@@ -65,6 +80,7 @@ def compare_trace_coverage(
     trace_dir: str | Path,
     *,
     expected_paths: Iterable[str | Sequence[str]] = (),
+    include_outcomes: bool = False,
     redaction_policy: RedactionPolicy | None = None,
 ) -> Dict[str, Any]:
     """Aggregate tool paths and report missing expected scenario branches.
@@ -77,7 +93,12 @@ def compare_trace_coverage(
     files = _trace_files(root)
     path_cases: Dict[PathSignature, List[str]] = {}
     for name, path in sorted(files.items()):
-        trace_path = trace_tool_path(_load_trace(path))
+        trace = _load_trace(path)
+        trace_path = (
+            trace_outcome_path(trace)
+            if include_outcomes
+            else trace_tool_path(trace)
+        )
         path_cases.setdefault(trace_path, []).append(name)
 
     expected = sorted({parse_path(path) for path in expected_paths})
@@ -88,6 +109,7 @@ def compare_trace_coverage(
         "schema_version": "0.1",
         "passed": not missing,
         "trace_dir": str(root),
+        "path_mode": "tool_outcome" if include_outcomes else "tool",
         "case_count": len(files),
         "unique_path_count": len(actual),
         "expected_path_count": len(expected),

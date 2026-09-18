@@ -253,14 +253,42 @@ agent-regression coverage \
 
 这里的 `expected-path` 是完整的工具调用路径。只要其中一条路径没有在目录中出现，命令就返回退出码 `1`，可以直接阻断 CI；没有配置期望路径时，命令只汇总实际观察到的路径。它衡量的是场景证据覆盖，不是代码覆盖率，也不是模型评分。
 
+如果要区分工具成功和工具失败，可以加 `--include-outcomes`，路径会变成 `get_order[ok]` 或 `get_order[error]`：
+
+```bash
+agent-regression coverage \
+  --trace-dir work/scenarios \
+  --include-outcomes \
+  --expected-path "get_order[error]" \
+  --format markdown
+```
+
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.3.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.4.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
 ```
+
+### 多轮 Agent Session
+
+如果一个业务流程包含连续追问，不要把每一轮拼成一个不可读的大 Trace。可以使用 Session 文件保存每一轮的独立证据：
+
+```bash
+agent-regression session-record \
+  --scenario examples/order-session/session.scenario.json \
+  --out work/order-session.json
+
+agent-regression session-compare \
+  --baseline baselines/order-session.json \
+  --candidate work/order-session.json \
+  --format markdown \
+  --out outputs/order-session.md
+```
+
+`record_session` 会复用同一个 Agent Adapter 和 Tool Executor，因此多轮之间可以保留 world state；比较器会逐轮报告差异，并在候选轮数变化时失败。真实 Agent 接入时，把示例中的 `ScriptedSessionAdapter` 换成你的 Adapter 即可。
 
 ## 6. 多用例和 CI
 
@@ -306,7 +334,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.3 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.4 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 

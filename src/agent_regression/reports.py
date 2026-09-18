@@ -200,3 +200,56 @@ def render_coverage_junit(report: Dict[str, Any]) -> str:
             )
             failure.text = signature
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
+
+
+def render_session_markdown(report: Dict[str, Any]) -> str:
+    """Render a multi-turn session comparison."""
+    status = "PASS" if report.get("passed") else "FAIL"
+    lines = [
+        "# Agent Regression Session",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Baseline session: `{report.get('baseline_session_id')}`",
+        f"- Candidate session: `{report.get('candidate_session_id')}`",
+        f"- Turns compared: `{report.get('turn_count', 0)}`",
+        f"- Blocking differences: `{report.get('blocking_difference_count', 0)}`",
+        "",
+        "| Status | Turn | Differences |",
+        "| --- | ---: | ---: |",
+    ]
+    for turn in report.get("turns", []):
+        turn_status = "passed" if turn.get("passed") else "failed"
+        lines.append(
+            f"| {turn_status} | {turn.get('turn')} | {turn.get('blocking_difference_count', 0)} |"
+        )
+    if not report.get("turns"):
+        lines.append("| failed | session | turn count mismatch |")
+    return "\n".join(lines) + "\n"
+
+
+def render_session_junit(report: Dict[str, Any]) -> str:
+    """Render one JUnit testcase per compared session turn."""
+    turns = report.get("turns", [])
+    failures = sum(1 for turn in turns if not turn.get("passed"))
+    if report.get("difference_count") and not turns:
+        failures = 1
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": "agent-regression-session",
+            "tests": str(len(turns) or 1),
+            "failures": str(failures),
+            "errors": "0",
+        },
+    )
+    for turn in turns:
+        testcase = ET.SubElement(
+            suite,
+            "testcase",
+            {"classname": "agent_regression.session", "name": f"turn-{turn.get('turn')}"},
+        )
+        if not turn.get("passed"):
+            failure = ET.SubElement(testcase, "failure", {"type": "AgentSessionFailure"})
+            failure.text = json.dumps(turn.get("differences", []), ensure_ascii=False, indent=2)
+    return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"

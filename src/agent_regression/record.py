@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Protocol
+from typing import Any, Dict, Mapping, Protocol, Sequence
 
 from .adapters import AgentAdapter
 from .model import AgentTrace, SUPPORTED_SCHEMA_VERSION
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
+from .session import AgentSession
 
 
 @dataclass(frozen=True)
@@ -137,3 +138,43 @@ def record_run(
     )
     trace.validate()
     return trace
+
+
+def record_session(
+    adapter: AgentAdapter,
+    requests: Sequence[Any],
+    tools: ToolExecutor,
+    *,
+    session_id: str,
+    metadata: Mapping[str, Any] | None = None,
+    turn_metadata: Sequence[Mapping[str, Any]] | None = None,
+    redaction_policy: RedactionPolicy | None = None,
+) -> AgentSession:
+    """Record multiple turns while preserving the same adapter and tool state."""
+    if not requests:
+        raise ValueError("session requests must not be empty")
+    if turn_metadata is not None and len(turn_metadata) != len(requests):
+        raise ValueError("turn_metadata must have one entry per request")
+    turns = []
+    for index, request in enumerate(requests, start=1):
+        current_metadata = {"session_id": session_id, "turn": index}
+        if turn_metadata is not None:
+            current_metadata.update(dict(turn_metadata[index - 1]))
+        turns.append(
+            record_run(
+                adapter,
+                request,
+                tools,
+                run_id=f"{session_id}-turn-{index}",
+                metadata=current_metadata,
+                redaction_policy=redaction_policy,
+            )
+        )
+    session = AgentSession(
+        session_id=session_id,
+        agent=dict(adapter.identity),
+        turns=turns,
+        metadata=dict(metadata or {}),
+    )
+    session.validate()
+    return session

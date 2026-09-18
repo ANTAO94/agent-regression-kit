@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 2.4.0 - 2026-09-18
+
+- Add validated multi-turn `AgentSession` evidence and session comparison.
+- Add `session-record` and `session-compare` CLI commands plus Markdown/JUnit
+  session reports.
+- Add `ScriptedSessionAdapter` and shared-state `record_session` support.
+- Add outcome-aware path coverage with `--include-outcomes`, distinguishing
+  `tool[ok]` from `tool[error]` branches.
+- Add a two-turn order-session fixture and bilingual documentation.
+
 ## 2.3.0 - 2026-09-18
 
 - Add `coverage` reporting for observed and missing ordered Agent tool paths.

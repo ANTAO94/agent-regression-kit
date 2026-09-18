@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-from .adapters import ScriptedAgentAdapter
+from .adapters import ScriptedAgentAdapter, ScriptedSessionAdapter
 from .batch import compare_trace_batch
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
@@ -22,7 +22,7 @@ from .mcp import (
     record_mcp_http_run,
     record_mcp_run,
 )
-from .record import FixtureTools, record_run
+from .record import FixtureTools, record_run, record_session
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 from .reports import (
     render_batch_junit,
@@ -31,12 +31,15 @@ from .reports import (
     render_coverage_markdown,
     render_junit,
     render_markdown,
+    render_session_junit,
+    render_session_markdown,
 )
 from .replay import replay_trace
 from .scaffold import initialize_project
+from .session import AgentSession, compare_sessions
 
 
-VERSION = "2.3.0"
+VERSION = "2.4.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -225,8 +228,29 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="expected tool path such as 'get_order -> cancel_order'; repeatable",
     )
+    coverage.add_argument(
+        "--include-outcomes",
+        action="store_true",
+        help="annotate each tool with [ok] or [error] in the path",
+    )
     coverage.add_argument("--out")
     coverage.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+
+    session_record = subparsers.add_parser(
+        "session-record", help="record a deterministic multi-turn session"
+    )
+    session_record.add_argument("--scenario", required=True)
+    session_record.add_argument("--out", required=True)
+    session_record.add_argument("--secret-value", action="append", default=[])
+
+    session_compare = subparsers.add_parser(
+        "session-compare", help="compare two multi-turn Agent sessions"
+    )
+    session_compare.add_argument("--baseline", required=True)
+    session_compare.add_argument("--candidate", required=True)
+    session_compare.add_argument("--out")
+    session_compare.add_argument("--format", choices=["json", "junit", "markdown"])
+    session_compare.add_argument("--secret-value", action="append", default=[])
 
     config = subparsers.add_parser("config", help="validate project comparison configuration")
     config_actions = config.add_subparsers(dest="config_action", required=True)
@@ -277,12 +301,48 @@ def main(argv: list[str] | None = None) -> int:
             report = compare_trace_coverage(
                 args.trace_dir,
                 expected_paths=args.expected_path,
+                include_outcomes=args.include_outcomes,
                 redaction_policy=redaction_policy,
             )
             if args.format == "junit":
                 _write_text(render_coverage_junit(report), args.out)
             elif args.format == "markdown":
                 _write_text(render_coverage_markdown(report), args.out)
+            else:
+                _write_output(report, args.out)
+            return 0 if report["passed"] else 1
+
+        if args.command == "session-record":
+            scenario = _read_json(args.scenario)
+            turns = scenario.get("turns")
+            if not isinstance(turns, list) or not turns:
+                raise ValueError("session scenario turns must be a non-empty array")
+            adapter = ScriptedSessionAdapter(
+                scenario["agent"],
+                [turn.get("plan", []) for turn in turns],
+            )
+            session = record_session(
+                adapter,
+                [turn.get("input") for turn in turns],
+                FixtureTools(scenario.get("tools", {})),
+                session_id=scenario["session_id"],
+                metadata=scenario.get("metadata"),
+                turn_metadata=[turn.get("metadata", {}) for turn in turns],
+                redaction_policy=redaction_policy,
+            )
+            _write_output(session.to_dict(), args.out)
+            return 0
+
+        if args.command == "session-compare":
+            report = compare_sessions(
+                AgentSession.from_dict(_read_json(args.baseline)),
+                AgentSession.from_dict(_read_json(args.candidate)),
+                redaction_policy=redaction_policy,
+            )
+            if args.format == "junit":
+                _write_text(render_session_junit(report), args.out)
+            elif args.format == "markdown":
+                _write_text(render_session_markdown(report), args.out)
             else:
                 _write_output(report, args.out)
             return 0 if report["passed"] else 1

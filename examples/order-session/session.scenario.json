@@ -1,0 +1,57 @@
+{
+  "session_id": "order-session-123",
+  "agent": {
+    "name": "scripted-order-session",
+    "version": "1.0.0"
+  },
+  "tools": {
+    "get_order": {
+      "order_id": "123",
+      "status": "paid"
+    },
+    "get_shipping": {
+      "order_id": "123",
+      "status": "processing"
+    }
+  },
+  "turns": [
+    {
+      "input": "查询订单 123",
+      "plan": [
+        {
+          "type": "tool_call",
+          "tool": "get_order",
+          "arguments": {
+            "order_id": "123"
+          }
+        },
+        {
+          "type": "final_answer",
+          "text": "订单已查询。",
+          "claims": {
+            "status": "paid"
+          }
+        }
+      ]
+    },
+    {
+      "input": "继续查询物流",
+      "plan": [
+        {
+          "type": "tool_call",
+          "tool": "get_shipping",
+          "arguments": {
+            "order_id": "123"
+          }
+        },
+        {
+          "type": "final_answer",
+          "text": "物流处理中。",
+          "claims": {
+            "status": "processing"
+          }
+        }
+      ]
+    }
+  ]
+}

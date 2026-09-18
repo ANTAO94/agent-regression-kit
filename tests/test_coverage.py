@@ -5,7 +5,12 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from agent_regression import AgentTrace, compare_trace_coverage, trace_tool_path
+from agent_regression import (
+    AgentTrace,
+    compare_trace_coverage,
+    trace_outcome_path,
+    trace_tool_path,
+)
 from agent_regression.cli import main
 from agent_regression.reports import render_coverage_junit, render_coverage_markdown
 
@@ -55,6 +60,27 @@ def make_trace(run_id, tools):
 class CoverageTests(unittest.TestCase):
     def test_trace_tool_path_preserves_order(self):
         self.assertEqual(("lookup", "cancel"), trace_tool_path(make_trace("one", ["lookup", "cancel"])))
+
+    def test_outcome_path_distinguishes_success_and_error(self):
+        trace = make_trace("one", ["lookup"])
+        trace.events[1]["is_error"] = True
+        self.assertEqual(("lookup[error]",), trace_outcome_path(trace))
+
+    def test_coverage_can_gate_on_outcome_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            trace = make_trace("one", ["lookup"])
+            trace.events[1]["is_error"] = True
+            (root / "error.trace.json").write_text(
+                json.dumps(trace.to_dict()), encoding="utf-8"
+            )
+            report = compare_trace_coverage(
+                root,
+                expected_paths=["lookup[error]"],
+                include_outcomes=True,
+            )
+        self.assertTrue(report["passed"])
+        self.assertEqual("tool_outcome", report["path_mode"])
 
     def test_coverage_reports_observed_and_missing_paths(self):
         with tempfile.TemporaryDirectory() as directory:

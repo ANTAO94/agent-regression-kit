@@ -253,14 +253,42 @@ agent-regression coverage \
 
 An `expected-path` is a complete ordered tool path. If any expected path is absent from the directory, the command returns exit code `1` and can fail CI. Without expected paths, it only summarizes what was observed. This measures scenario-evidence coverage, not source-code coverage or model quality.
 
+To distinguish successful and failed tool calls, add `--include-outcomes`; paths become `get_order[ok]` or `get_order[error]`:
+
+```bash
+agent-regression coverage \
+  --trace-dir work/scenarios \
+  --include-outcomes \
+  --expected-path "get_order[error]" \
+  --format markdown
+```
+
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.3.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.4.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
 ```
+
+### Multi-turn Agent Sessions
+
+When a business flow contains follow-up questions, do not flatten every turn into one opaque Trace. Save each turn as independent evidence inside a Session:
+
+```bash
+agent-regression session-record \
+  --scenario examples/order-session/session.scenario.json \
+  --out work/order-session.json
+
+agent-regression session-compare \
+  --baseline baselines/order-session.json \
+  --candidate work/order-session.json \
+  --format markdown \
+  --out outputs/order-session.md
+```
+
+`record_session` reuses the same Agent Adapter and Tool Executor, so world state can carry across turns. The comparator reports differences per turn and fails when the candidate changes the number of turns. For a real Agent, replace the example `ScriptedSessionAdapter` with your own Adapter.
 
 ## 6. Multiple cases and CI
 
@@ -306,7 +334,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.3 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.4 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 
