@@ -32,6 +32,15 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("--format markdown", action)
         self.assertIn("GITHUB_STEP_SUMMARY", action)
 
+    def test_core_workflow_uses_isolated_ci_report_directory(self):
+        workflow = (ROOT / ".github/workflows/regression.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("python -m pip install --upgrade pip setuptools wheel", workflow)
+        self.assertIn("id: install", workflow)
+        self.assertIn("work/ci-reports", workflow)
+        self.assertIn("steps.install.outcome == 'success'", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,14 @@
 
 No unreleased changes.
 
+## 3.4.1 - 2026-09-18
+
+- Isolate the core GitHub workflow's generated reports under
+  `work/ci-reports` so committed historical output fixtures cannot contaminate
+  the current report index.
+- Install explicit `pip`, `setuptools`, and `wheel` build tooling in the
+  Python matrix and skip report indexing when package installation failed.
+
 ## 3.4.0 - 2026-09-18
 
 - Add a reusable `agent-report-index` GitHub Action that writes JSON and

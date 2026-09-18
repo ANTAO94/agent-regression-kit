@@ -17,7 +17,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip setuptools wheel
       - name: Install
+        id: install
         run: python -m pip install --no-build-isolation .
       - name: Unit tests
         run: python -m unittest discover -s tests -v
@@ -45,18 +48,19 @@ jobs:
         with:
           baseline: baselines/order-123.trace.json
           candidate: work/candidate.trace.json
-          report: outputs/junit.xml
-          json-report: outputs/order-123.compare.json
+          report: work/ci-reports/order-123.junit.xml
+          summary: work/ci-reports/order-123.md
+          json-report: work/ci-reports/order-123.compare.json
       - name: Build report index for reviewers
-        if: always()
+        if: always() && steps.install.outcome == 'success'
         uses: ./.github/actions/agent-report-index
         with:
-          report-dir: outputs
-          json-report: outputs/report-index.json
-          markdown-report: outputs/report-index.md
+          report-dir: work/ci-reports
+          json-report: work/ci-reports/report-index.json
+          markdown-report: work/ci-reports/report-index.md
           fail-on-regression: 'true'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: agent-regression-report
-          path: outputs/
+          path: work/ci-reports/

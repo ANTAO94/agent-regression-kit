@@ -94,6 +94,19 @@ python -m pip install --upgrade agent-regression-kit==3.4.0
 agent-regression --version
 ```
 
+## v3.4.0 → v3.4.1
+
+This patch fixes the core GitHub workflow's release-quality matrix behavior.
+It installs explicit build tooling for Python 3.13, isolates generated CI
+reports under `work/ci-reports`, and avoids running the report-index Action when
+package installation itself failed. No Trace or configuration migration is
+required.
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.4.1
+agent-regression --version
+```
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which
@@ -128,7 +141,8 @@ boundaries are returned by `public_api_manifest()`.
 
 升级原则是：**先升级回归工具，再审核行为差异；不要因为工具升级就自动
 覆盖 baseline。** 3.3.0 新增报告索引和 CI 机器可读报告，3.3.1 增加 Job
-Summary 和配置中心交接，3.4.0 增加可复用的统一报告 Action，但不会改变
+Summary 和配置中心交接，3.4.0 增加可复用的统一报告 Action，3.4.1 修复
+Python matrix 和报告目录隔离，但不会改变
 AgentTrace `0.1` 的含义，也不会自动读取或覆盖 baseline。
 
 建议顺序：安装固定版本 → 检查 `--version` → `config validate` → `check` →
