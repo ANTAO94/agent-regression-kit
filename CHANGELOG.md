@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-No unreleased changes.
+- Add the v3.2 upgrade guide and an explicit Python/framework/MCP compatibility
+  matrix for release review.
 
 ## 3.2.0 - 2026-09-18
 

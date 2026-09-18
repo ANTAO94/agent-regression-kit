@@ -1,8 +1,9 @@
 include LICENSE
 include README.md
 include CHANGELOG.md
+include UPGRADING.md
 recursive-include schema *.json
-recursive-include examples *.json *.py
+recursive-include examples *.json *.py *.txt
 recursive-include baselines *.json
 recursive-include docs *.md *.html
 recursive-include viewer *.html

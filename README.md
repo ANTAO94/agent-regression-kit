@@ -8,7 +8,7 @@
 
 [中文新手接入指南](docs/usage-guide.zh-CN.md) | [English Getting Started](docs/usage-guide.en.md)
 
-[打开 Trace 查看器](viewer/index.html) | [打开配置中心](viewer/config.html) | [完整 HTML 技术文档](docs/agent-regression-kit-guide.html) | [成熟框架路线图](docs/maturity-roadmap.md)
+[打开 Trace 查看器](viewer/index.html) | [打开配置中心](viewer/config.html) | [完整 HTML 技术文档](docs/agent-regression-kit-guide.html) | [成熟框架路线图](docs/maturity-roadmap.md) | [升级指南](UPGRADING.md) | [兼容性矩阵](docs/compatibility-matrix.md)
 
 ## 中文说明
 
