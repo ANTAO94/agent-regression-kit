@@ -5,6 +5,7 @@ on:
     paths:
       - "src/**"
       - "examples/langchain_core_callback_example.py"
+      - "examples/langchain_core_event_example.py"
       - "examples/optional-requirements.txt"
       - ".github/workflows/framework-compatibility.yml"
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - "src/**"
       - "examples/langchain_core_callback_example.py"
+      - "examples/langchain_core_event_example.py"
       - "examples/optional-requirements.txt"
       - ".github/workflows/framework-compatibility.yml"
   workflow_dispatch:
@@ -37,3 +39,7 @@ jobs:
         run: python examples/langchain_core_callback_example.py
       - name: Validate generated Trace
         run: agent-regression validate --trace work/langchain-core.trace.json
+      - name: Run LangChain Core event-ingestion example
+        run: python examples/langchain_core_event_example.py
+      - name: Validate event-ingestion Trace
+        run: agent-regression validate --trace work/langchain-core-events.trace.json

@@ -199,6 +199,24 @@ No Trace schema migration is required. If a downstream consumer depends on
 the old positional result diff paths, set `result_alignment` to `order` during
 the migration and remove it after the consumer is updated.
 
+## v3.7.0 → v3.8.0
+
+This release adds a framework event-ingestion boundary. Use
+`FrameworkTraceRecorder` when a framework already owns tool execution and
+emits lifecycle callbacks; use `record_framework_run` to wrap a callback
+runner. The recorder validates call closure, final-answer ordering, explicit
+claims and redaction without requiring a model provider.
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.8.0
+python examples/langchain_core_event_example.py
+agent-regression validate --trace work/langchain-core-events.trace.json
+```
+
+The LangChain dependency remains optional. Existing `CallableAgentAdapter`,
+`AdapterSpec`, MCP and scripted adapters are unchanged; this is an additive
+integration surface and does not require a Trace schema migration.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v3.7.0 source. Package version 3.7.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
+Based on v3.8.0 source. Package version 3.8.0, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -98,6 +98,14 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | timestamp / sort | Fixed marker or repr-based list ordering, no user code execution |
+
+When a real framework already owns tool execution, use `FrameworkTraceRecorder`:
+call `on_tool_start` from the framework's tool-start callback, `on_tool_end`
+from its tool-end callback, and `on_final_answer` from the final-output
+callback; `finish()` returns a validated and redacted Trace. It does not take
+over the model, tools or framework threads. It owns only the evidence boundary,
+call_id association and lifecycle validation. `record_framework_run` is a thin
+wrapper for a one-run framework callback.
 
 Empty claims and broad ignores weaken coverage. When accepting alternative paths, retain outcome assertions, side-effect constraints and branch scenarios.
 

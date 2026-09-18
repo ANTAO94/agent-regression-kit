@@ -95,9 +95,9 @@ v3.5 核心已经可以作为开发团队的 Agent 回归测试工具使用；�
 
 ### v3.8：真实框架事件接入
 
-- [ ] 提供框架回调事件到 Trace 的统一事件接收器。
-- [ ] 用真实 LangChain Core 示例验证工具调用、结果和最终 claims 的关联。
-- [ ] 保持第三方依赖可选，并为每个适配器提供 contract diagnostics。
+- [x] 提供框架回调事件到 Trace 的统一事件接收器。
+- [x] 用真实 LangChain Core 示例验证工具调用、结果和最终 claims 的关联。
+- [x] 保持第三方依赖可选，并为每个适配器提供 contract diagnostics。
 
 ### v3.9：本地工作台与基线审核
 

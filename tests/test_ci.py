@@ -37,6 +37,11 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("GITHUB_STEP_SUMMARY", action)
         self.assertIn("required-reports:", action)
         self.assertIn("--required-report", action)
+        framework_workflow = (ROOT / ".github/workflows/framework-compatibility.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("langchain_core_event_example.py", framework_workflow)
+        self.assertIn("langchain-core-events.trace.json", framework_workflow)
 
     def test_core_workflow_uses_isolated_ci_report_directory(self):
         workflow = (ROOT / ".github/workflows/regression.yml").read_text(

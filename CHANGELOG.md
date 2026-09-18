@@ -7,6 +7,15 @@
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
 - Correct conflicting MCP limitations and stale adapter-template test instructions.
 
+## 3.8.0 - 2026-09-19
+
+- Add `FrameworkTraceRecorder` and `record_framework_run` for framework-owned
+  tool-start, tool-end and final-answer callback lifecycles.
+- Preserve explicit call_id correlation and out-of-order tool completion while
+  validating that every tool call closes before the final answer.
+- Add a real LangChain Core `RunnableLambda` event-ingestion example and run it
+  in the optional framework compatibility matrix without provider credentials.
+
 ## 3.7.0 - 2026-09-19
 
 - Align tool results by `call_id` by default to avoid false regressions when

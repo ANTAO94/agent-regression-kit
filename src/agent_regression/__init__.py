@@ -28,6 +28,7 @@ from .isolation import SnapshotBackend, StateIsolation
 from .compat import run_compatibility_smoke
 from .contracts import ContractPolicy
 from .history import HistoryPoint, HistoryReport, build_history_report
+from .framework import FrameworkTraceRecorder, record_framework_run
 from .mcp import (
     McpProtocolError,
     McpEventStream,
@@ -119,6 +120,7 @@ __all__ = [
     "ContractPolicy",
     "DEFAULT_REDACTION_POLICY",
     "FixtureTools",
+    "FrameworkTraceRecorder",
     "McpProtocolError",
     "McpEventStream",
     "McpToolExecutor",
@@ -166,6 +168,7 @@ __all__ = [
     "build_report_index",
     "run_compatibility_smoke",
     "record_run",
+    "record_framework_run",
     "ReplayMismatchError",
     "replay_agent_run",
     "record_session",

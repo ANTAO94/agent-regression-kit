@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v3.7.0 源码整理；产品版本 3.7.0、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
+依据 v3.8.0 源码整理；产品版本 3.8.0、PUBLIC_API_VERSION=3、AgentTrace/AgentSession schema=0.1 是三个独立边界。
 
 ## 1. 目标和适用场景
 
@@ -99,6 +99,13 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | side_effects | 约束已录制状态的 from/to 变化 |
 | required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
 | timestamp / sort | 固定时间标记或按 repr 排序列表，不执行用户脚本 |
+
+真实框架如果已经拥有工具执行生命周期，可以使用 `FrameworkTraceRecorder`：
+在框架的 tool-start 回调调用 `on_tool_start`，在 tool-end 回调调用
+`on_tool_end`，在最终输出回调调用 `on_final_answer`，最后 `finish()` 得到
+经过校验和脱敏的 Trace。它不会接管模型、工具或框架线程，只负责事件边界、
+call_id 关联和生命周期错误。`record_framework_run` 是一个更薄的包装器，
+适合把一次框架运行函数直接接入。
 
 采用 claims-only 并不自动证明业务正确；空 claims 或过宽忽略规则会削弱测试。允许替代路径时，补上结果断言、副作用约束与分支用例，避免单纯放宽路径。
 
