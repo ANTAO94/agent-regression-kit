@@ -70,7 +70,7 @@ flowchart LR
 | --- | --- |
 | Python 单元与集成测试 | **131 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-3.4.1-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-3.4.2-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -602,7 +602,7 @@ The following results were run locally on 2026-09-18:
 | --- | --- |
 | Python unit and integration suite | **131 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-3.4.1-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-3.4.2-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |

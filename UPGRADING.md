@@ -107,6 +107,17 @@ python -m pip install --upgrade agent-regression-kit==3.4.1
 agent-regression --version
 ```
 
+## v3.4.1 → v3.4.2
+
+This patch fixes the tag-triggered release workflow so its source-tree test
+suite can import the `src` layout before building and installing the wheel. No
+runtime, Trace schema, or configuration migration is required.
+
+```bash
+python -m pip install --upgrade agent-regression-kit==3.4.2
+agent-regression --version
+```
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

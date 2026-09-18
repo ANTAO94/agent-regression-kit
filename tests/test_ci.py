@@ -41,6 +41,13 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("work/ci-reports", workflow)
         self.assertIn("steps.install.outcome == 'success'", workflow)
 
+    def test_release_workflow_runs_source_tests_with_package_path(self):
+        workflow = (ROOT / ".github/workflows/release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("PYTHONPATH: src", workflow)
+        self.assertIn("python -m unittest discover -s tests -v", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

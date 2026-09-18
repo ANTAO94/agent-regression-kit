@@ -4,6 +4,12 @@
 
 No unreleased changes.
 
+## 3.4.2 - 2026-09-18
+
+- Fix the tag-triggered release workflow so its source-tree test suite receives
+  the `src` import path before the clean-wheel verification.
+- Add a CI regression test for the release workflow's source-test boundary.
+
 ## 3.4.1 - 2026-09-18
 
 - Isolate the core GitHub workflow's generated reports under
