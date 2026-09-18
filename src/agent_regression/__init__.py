@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.7.0"
+__version__ = "2.8.0"
 
 from .adapters import (
     AgentAdapter,
@@ -54,11 +54,20 @@ from .reports import (
     render_markdown,
     render_scenario_batch_junit,
     render_scenario_batch_markdown,
+    render_stability_junit,
+    render_stability_markdown,
     render_session_junit,
     render_session_markdown,
 )
 from .scenario import StatefulFixtureTools, WorldState
 from .session import AgentSession, check_session_state_continuity, compare_sessions
+from .stability import (
+    StabilityPolicy,
+    StabilityReport,
+    StabilityRun,
+    evaluate_stability,
+    record_stability,
+)
 from .rule_agent import (
     NORMAL,
     PARAMETER_REGRESSION,
@@ -110,6 +119,11 @@ __all__ = [
     "compare_traces",
     "compare_sessions",
     "check_session_state_continuity",
+    "StabilityPolicy",
+    "StabilityReport",
+    "StabilityRun",
+    "evaluate_stability",
+    "record_stability",
     "run_compatibility_smoke",
     "record_run",
     "record_session",
@@ -124,6 +138,8 @@ __all__ = [
     "render_batch_markdown",
     "render_scenario_batch_junit",
     "render_scenario_batch_markdown",
+    "render_stability_junit",
+    "render_stability_markdown",
     "render_coverage_junit",
     "render_coverage_markdown",
     "render_session_junit",

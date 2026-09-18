@@ -190,6 +190,71 @@ def render_scenario_batch_junit(report: Dict[str, Any]) -> str:
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
 
 
+def render_stability_markdown(report: Dict[str, Any]) -> str:
+    """Render repeated-run stability metrics for a CI summary."""
+    status = "PASS" if report.get("passed") else "FAIL"
+    lines = [
+        "# Agent Stability Evaluation",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Baseline: `{report.get('baseline_run_id')}`",
+        f"- Runs: `{report.get('run_count', 0)}`",
+        f"- Pass rate: `{report.get('pass_rate', 0.0):.1%}`",
+        f"- Claims match rate: `{report.get('claims_match_rate', 0.0):.1%}`",
+        f"- Tool error rate: `{report.get('tool_error_rate', 0.0):.1%}`",
+        f"- Path variants: `{report.get('path_variant_count', 0)}`",
+        "",
+        "| Status | Run | Path | Errors | Blocking differences |",
+        "| --- | --- | --- | ---: | ---: |",
+    ]
+    for run in report.get("runs", []):
+        run_status = "passed" if run.get("passed") else "failed"
+        path = " -> ".join(run.get("tool_path", [])) or "(no tools)"
+        lines.append(
+            f"| {run_status} | `{run.get('run_id')}` | `{path}` | "
+            f"{run.get('tool_error_count', 0)} | {run.get('blocking_difference_count', 0)} |"
+        )
+        if run.get("error"):
+            lines.append(f"| error | `{run.get('run_id')}` | `{run.get('error')}` | - | - |")
+    return "\n".join(lines) + "\n"
+
+
+def render_stability_junit(report: Dict[str, Any]) -> str:
+    """Render one JUnit testcase per repeated stability run."""
+    runs = report.get("runs", [])
+    failures = sum(1 for run in runs if not run.get("passed"))
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": "agent-regression-stability",
+            "tests": str(len(runs)),
+            "failures": str(failures),
+            "errors": "0",
+        },
+    )
+    for run in runs:
+        testcase = ET.SubElement(
+            suite,
+            "testcase",
+            {
+                "classname": "agent_regression.stability",
+                "name": str(run.get("run_id")),
+            },
+        )
+        if not run.get("passed"):
+            failure = ET.SubElement(
+                testcase,
+                "failure",
+                {"type": "AgentStabilityFailure"},
+            )
+            failure.text = json.dumps(run, ensure_ascii=False, indent=2)
+    properties = ET.SubElement(suite, "properties")
+    for key in ("pass_rate", "claims_match_rate", "tool_error_rate", "path_variant_count"):
+        ET.SubElement(properties, "property", {"name": key, "value": str(report.get(key, 0))})
+    return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
+
+
 def render_coverage_markdown(report: Dict[str, Any]) -> str:
     """Render a scenario path-coverage summary for a CI job summary."""
     status = "PASS" if report.get("passed") else "FAIL"

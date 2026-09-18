@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 2.8.0 - 2026-09-18
+
+- Add repeated-run stability evaluation with pass-rate, claims-match-rate,
+  tool-error-rate, and tool-path-variant thresholds.
+- Add `StabilityPolicy`, `StabilityReport`, `evaluate_stability`, and
+  `record_stability` APIs built on state isolation and parallel scenario runs.
+- Add the `stability` CLI command with JSON, Markdown, and JUnit output plus
+  explicit claims-only and allow-list comparison controls.
+- Add stability examples, six tests, and bilingual documentation for
+  non-deterministic Agent behavior.
+- Update package, CLI, MCP client identity, scaffold Action tag, and reports
+  to v2.8.0.
+
 ## 2.7.0 - 2026-09-18
 
 - Add `CallableAgentAdapter` to wrap framework-owned `invoke`/`run` callbacks

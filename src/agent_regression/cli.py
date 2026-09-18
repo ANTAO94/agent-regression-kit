@@ -34,15 +34,18 @@ from .reports import (
     render_markdown,
     render_scenario_batch_junit,
     render_scenario_batch_markdown,
+    render_stability_junit,
+    render_stability_markdown,
     render_session_junit,
     render_session_markdown,
 )
 from .replay import replay_trace
 from .scaffold import initialize_project
 from .session import AgentSession, compare_sessions
+from .stability import StabilityPolicy, record_stability
 
 
-VERSION = "2.7.0"
+VERSION = "2.8.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -327,6 +330,30 @@ def build_parser() -> argparse.ArgumentParser:
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
     )
 
+    stability = subparsers.add_parser(
+        "stability", help="repeat one scenario and evaluate Agent stability"
+    )
+    stability.add_argument("--baseline", required=True)
+    stability.add_argument("--scenario", required=True)
+    stability.add_argument("--repeats", type=int, default=5)
+    stability.add_argument("--workers", type=int, default=4)
+    stability.add_argument("--min-pass-rate", type=float, default=1.0)
+    stability.add_argument("--min-claims-match-rate", type=float, default=1.0)
+    stability.add_argument("--max-tool-error-rate", type=float, default=0.0)
+    stability.add_argument("--max-path-variants", type=int, default=1)
+    stability.add_argument(
+        "--final-answer-mode",
+        choices=["exact", "claims-only"],
+        default="exact",
+    )
+    stability.add_argument("--allow-category", action="append", default=[])
+    stability.add_argument("--allow-path", action="append", default=[])
+    stability.add_argument("--out")
+    stability.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    stability.add_argument(
+        "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
+    )
+
     session_record = subparsers.add_parser(
         "session-record", help="record a deterministic multi-turn session"
     )
@@ -441,6 +468,38 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 _write_output(report, args.report)
             return 0 if batch.passed else 1
+
+        if args.command == "stability":
+            baseline = AgentTrace.from_dict(_read_json(args.baseline))
+            scenario_path = Path(args.scenario).resolve()
+            scenario_root = scenario_path.parent
+            case = _load_scripted_batch_case(scenario_path, scenario_root)
+            report = record_stability(
+                baseline,
+                case,
+                repeats=args.repeats,
+                max_workers=args.workers,
+                comparison_policy=ComparisonPolicy(
+                    allowed_categories=set(args.allow_category),
+                    allowed_paths=set(args.allow_path),
+                    final_answer_mode=args.final_answer_mode,
+                ),
+                policy=StabilityPolicy(
+                    min_pass_rate=args.min_pass_rate,
+                    min_claims_match_rate=args.min_claims_match_rate,
+                    max_tool_error_rate=args.max_tool_error_rate,
+                    max_path_variants=args.max_path_variants,
+                ),
+                redaction_policy=redaction_policy,
+            )
+            report_value = report.to_dict()
+            if args.format == "junit":
+                _write_text(render_stability_junit(report_value), args.out)
+            elif args.format == "markdown":
+                _write_text(render_stability_markdown(report_value), args.out)
+            else:
+                _write_output(report_value, args.out)
+            return 0 if report.passed else 1
 
         if args.command == "session-record":
             scenario = _read_json(args.scenario)

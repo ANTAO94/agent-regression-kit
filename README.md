@@ -51,6 +51,7 @@ flowchart LR
 - Business Branch Coverage：按结构化 claims 统计 `paid`、`cancelled`、`not_found` 等业务结果分支。
 - 可执行状态隔离：通过统一的 `snapshot()` / `restore(snapshot)` 边界包住内存 Fixture、数据库、缓存或服务模拟器；用例结束自动恢复，避免测试污染。
 - 框架桥接与并行场景：`CallableAgentAdapter` 可以包住任意框架的 `invoke` 回调；`record_scenario_batch` 和 `batch-record` 可以并行录制独立场景，并按 case ID 稳定输出结果。
+- 重复运行稳定性评测：`record_stability` 和 `stability` 可以隔离重复执行同一个场景，统计通过率、claims 一致率、工具错误率和工具路径变体，并把阈值接入 CI。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -59,9 +60,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **89 项通过，0 项失败** |
+| Python 单元与集成测试 | **95 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-2.7.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-2.8.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -271,6 +272,49 @@ agent-regression batch-record \
 
 命令会为每个 `*.scenario.json` 生成对应的 `*.trace.json`，并在报告中记录每个场景的状态和错误；任何场景失败都会返回退出码 `1`，不会因为线程完成顺序而改变报告顺序。
 
+### 重复运行稳定性评测（v2.8）
+
+一次回放只能回答“这次行为是否等于 baseline”，但 Agent 可能因为模型采样、工具时序或外部依赖，在同一个输入上偶尔走另一条路径。v2.8 提供稳定性评测：用同一个 baseline 重复执行场景，每次都创建独立 Agent、工具和状态，再按阈值判断这组运行是否足够稳定。
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/baseline.scenario.json \
+  --repeats 10 \
+  --workers 4 \
+  --min-pass-rate 0.95 \
+  --min-claims-match-rate 1.0 \
+  --max-tool-error-rate 0.05 \
+  --max-path-variants 1 \
+  --final-answer-mode claims-only \
+  --format markdown \
+  --out outputs/stability.md
+```
+
+报告会同时保留每一次运行的比较结果，汇总以下四类门禁：
+
+- `pass_rate`：与 baseline 比较通过的重复运行比例；
+- `claims_match_rate`：结构化业务结果是否一致；
+- `tool_error_rate`：工具结果中显式错误的比例；
+- `path_variant_count`：包含 baseline 在内观察到的工具调用路径数量。
+
+同一能力也可以直接从 Python 调用；`examples/stability_example.py` 是离线可运行的完整例子：
+
+```python
+from agent_regression import StabilityPolicy, record_stability
+
+report = record_stability(
+    baseline,
+    scenario_case,
+    repeats=10,
+    max_workers=4,
+    policy=StabilityPolicy(min_pass_rate=0.95, max_path_variants=1),
+)
+assert report.passed
+```
+
+这不是统计学意义上的模型质量证明，也不是 LLM Judge；它只对已经记录下来的结构化 Trace 和显式阈值做重复性检查。
+
 ### CI 集成
 
 CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
@@ -347,7 +391,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v2.7**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
+Current release line: **v2.8**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
 ```text
 Agent / MCP Server
@@ -374,9 +418,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **89 passed, 0 failed** |
+| Python unit and integration suite | **95 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-2.7.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-2.8.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -386,7 +430,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 89 tests in 8.2s
+Ran 95 tests in 8.2s
 
 OK
 ```
@@ -599,6 +643,36 @@ The command writes one `*.trace.json` per scenario and a summary with
 per-case errors. Any failed scenario returns exit code `1`; report order does
 not depend on thread completion order.
 
+### Repeated-run stability evaluation (v2.8)
+
+One replay answers whether one candidate run equals the baseline. A sampled or
+tool-dependent Agent can still be flaky across repeated runs, however. v2.8
+adds a stability gate that repeats one isolated scenario, compares every run
+with the reviewed baseline, and reports pass rate, structured-claims match
+rate, tool-error rate, and the number of observed tool paths.
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/baseline.scenario.json \
+  --repeats 10 \
+  --workers 4 \
+  --min-pass-rate 0.95 \
+  --min-claims-match-rate 1.0 \
+  --max-tool-error-rate 0.05 \
+  --max-path-variants 1 \
+  --final-answer-mode claims-only \
+  --format markdown \
+  --out outputs/stability.md
+```
+
+The same operation is available as `record_stability(baseline, case, ...)`;
+see [`examples/stability_example.py`](examples/stability_example.py). Each
+repeat uses fresh factories and optional state isolation, so a mutation in one
+run cannot silently become the next run's starting state. This is a
+deterministic evidence gate, not a statistical proof of model quality or an
+LLM judge.
+
 ## Public API
 
 The same flow is available through `record_run`, `record_mcp_run`, `replay_trace`, and `compare_traces`. A real integration implements the small `AgentAdapter` protocol: expose an `identity`, execute one request, route tool calls through `RunContext.call_tool`, and finish through `RunContext.final_answer`.
@@ -691,14 +765,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v2.7. In addition to
+The HTTP client is intentionally synchronous in v2.8. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v2.7; use
+supported. The generic AgentTrace recorder remains sequential in v2.8; use
 `AgentSession` when you need several terminal-answer turns.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned

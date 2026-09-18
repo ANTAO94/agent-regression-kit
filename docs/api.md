@@ -95,6 +95,50 @@ temporary schema, emulator snapshot, or equivalent. The kit can only restore
 what the backend exposes; hidden writes in another service still need their own
 cleanup mechanism.
 
+## Repeated-run stability
+
+`StabilityPolicy` defines explicit thresholds for a repeated scenario:
+
+```python
+from agent_regression import StabilityPolicy, record_stability
+
+report = record_stability(
+    baseline,
+    scenario_case,
+    repeats=10,
+    max_workers=4,
+    policy=StabilityPolicy(
+        min_pass_rate=0.95,
+        min_claims_match_rate=1.0,
+        max_tool_error_rate=0.05,
+        max_path_variants=1,
+    ),
+)
+assert report.passed
+```
+
+`record_stability` reuses the isolated `ScenarioCase` factory boundary from
+the batch recorder. It creates a fresh Agent and tool executor for every
+repeat, compares every trace to `baseline`, and captures an exception as a
+failed repeat instead of hiding it. `evaluate_stability` performs the same
+aggregation for traces that were already recorded.
+
+`StabilityReport.to_dict()` contains `pass_rate`, `claims_match_rate`,
+`tool_error_rate`, `path_variant_count`, the active policies, and one result
+per repeat. The CLI equivalent is:
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/baseline.scenario.json \
+  --repeats 10 --workers 4 --format markdown \
+  --out outputs/stability.md
+```
+
+Use `--final-answer-mode claims-only` only when final prose is intentionally
+allowed to vary. The stability evaluator remains structural and deterministic;
+it does not call a model to judge semantic similarity.
+
 ## MCP
 
 - `StdioMcpClient` implements the documented MCP 2025-11-25 subset and accepts newline or Content-Length framing through its `framing` parameter.
@@ -150,6 +194,8 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   scenario-path coverage reports for CI.
 - `render_session_junit(report)` and `render_session_markdown(report)` render
   multi-turn comparison reports.
+- `render_stability_junit(report)` and `render_stability_markdown(report)`
+  render one testcase/table row per repeated run plus aggregate metrics.
 - `render_markdown(report)` renders a compact human-readable comparison summary for CI job summaries.
 
 Default comparison is strict and deterministic. No public API invokes an LLM judge.

@@ -178,7 +178,7 @@ This ignores only `final_answer.text`. It still checks claims, tool calls, argum
 
 ### Baseline checks and noise filtering
 
-In v2.7, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
+In v2.8, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
 
 ```json
 {
@@ -323,6 +323,37 @@ All-success returns `0`; any failed scenario returns `1`. It is bounded,
 in-process thread concurrency and does not make an unsafe framework
 thread-safe or isolate process-global environment variables automatically.
 
+### Repeated-run stability evaluation (v2.8)
+
+A single replay checks one candidate run. If sampling or an external tool can
+make the same input take a different path, repeat the isolated scenario and
+gate the aggregate behavior:
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/baseline.scenario.json \
+  --repeats 10 \
+  --workers 4 \
+  --min-pass-rate 0.95 \
+  --min-claims-match-rate 1.0 \
+  --max-tool-error-rate 0.05 \
+  --max-path-variants 1 \
+  --final-answer-mode claims-only \
+  --format markdown \
+  --out outputs/stability.md
+```
+
+The report exposes `pass_rate`, `claims_match_rate`, `tool_error_rate`, and
+`path_variant_count`. A threshold failure returns exit code `1`, so this is a
+direct CI gate. The same operation is available as
+`record_stability(baseline, scenario_case, ...)`; see
+[`examples/stability_example.py`](../examples/stability_example.py).
+
+Every repeat gets fresh Agent and tool factories, with optional state
+isolation. This is a deterministic check over recorded evidence, not a
+statistical proof of model quality and not an LLM judge.
+
 ### Scenario-suite path coverage
 
 Once you have normal, error, permission, or side-effect scenario traces, aggregate them to see which ordered tool paths the Agent has actually exercised:
@@ -357,7 +388,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.7.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.8.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -429,7 +460,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.7 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.8 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 

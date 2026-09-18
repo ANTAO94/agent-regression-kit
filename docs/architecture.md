@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v2.7. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, or making a large scenario suite run serially?
+This document describes Agent Regression Kit v2.8. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, or hiding repeat-run instability?
 
 ```mermaid
 flowchart TD
@@ -25,6 +25,8 @@ flowchart TD
     Coverage -->|missing branches + exit code| CI
     Suite[ScenarioCase factories] -->|fresh Agent + tools| Parallel[Parallel scenario runner]
     Parallel -->|sorted Trace results + failures| Trace
+    Trace -->|repeat isolated scenario| Stability[Stability evaluator]
+    Stability -->|pass rate + claims + errors + paths| CI
 ```
 
 The recorder is the stable center: adapters produce actions, executors isolate tool effects, and downstream comparison consumes only redacted AgentTrace documents.
@@ -37,6 +39,7 @@ The recorder is the stable center: adapters produce actions, executors isolate t
 - `StatefulFixtureTools` owns a detached mutable `WorldState` for business scenarios. Its `snapshot()` boundary lets the recorder prove initial/final state and lets the comparator report field-level side effects.
 - `SnapshotBackend` is the minimal external-state contract: `snapshot()` captures a detached test-safe representation and `restore(snapshot)` rolls it back. `StateIsolation` applies that contract as a context manager; `isolated_record_run` and `isolated_record_session` guarantee cleanup after normal or exceptional Agent execution.
 - `ScenarioCase` owns factories for one Agent and one tool executor. `record_scenario_batch` runs those independent cases with bounded threads, captures failures per case, and sorts results by `case_id` so concurrency does not make reports flaky.
+- `record_stability` reuses the same factory and isolation boundary for repeated runs, compares every run to one baseline, and turns pass rate, claims match, tool errors, and path variants into explicit thresholds.
 - `record_run` sequences events, pairs calls/results, applies redaction, and validates AgentTrace.
 - `record_session` runs multiple requests through the same adapter and executor, producing one validated AgentTrace per turn inside an `AgentSession`.
 - `StdioMcpClient` owns the pinned MCP lifecycle and newline-delimited JSON-RPC transport. It does not know about comparison policy.
@@ -79,6 +82,28 @@ sequenceDiagram
 
 The same tool-result event shape records success, MCP tool errors, protocol errors, and timeouts; the metadata makes the no-retry safety policy explicit.
 
+## Stability evaluation flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Reviewed baseline
+    participant E as Stability evaluator
+    participant F as Fresh ScenarioCase factory
+    participant A as Agent + tools
+    participant R as Stability report
+    loop repeat N times
+        E->>F: create isolated Agent/tools
+        F->>A: record one run
+        A-->>E: validated Trace or error
+        E->>B: structural comparison
+    end
+    E->>R: aggregate thresholds and per-run evidence
+```
+
+The evaluator is intentionally not a sampler or judge: it does not infer
+quality from prose. It only aggregates comparisons and explicit policies.
+
 ## Version boundaries
 
-Agent Regression Kit v2.7 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, and parallel-run summaries are optional, so v2.4-v2.6 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v2.8 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, parallel-run summaries, and stability reports are optional, so v2.4-v2.7 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

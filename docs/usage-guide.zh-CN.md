@@ -178,7 +178,7 @@ agent-regression compare \
 
 ### baseline 检查项和噪音过滤
 
-v2.7 在完整 AgentTrace 之上提供了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
+v2.8 在完整 AgentTrace 之上提供了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
 
 ```json
 {
@@ -306,6 +306,42 @@ agent-regression batch-record \
 
 命令会把 `*.scenario.json` 生成成对应的 `*.trace.json`，全部成功返回 `0`，任意场景失败返回 `1`。它是单进程有界线程并发，不会自动替你解决框架线程安全或跨进程环境变量隔离。
 
+### 重复运行稳定性评测（v2.8）
+
+回放一次只能检查一次 candidate；如果模型采样或外部工具让同一个输入偶尔走不同路径，就需要重复执行。稳定性评测会为每次重复创建新的 Agent、工具和可选的隔离状态，并把所有结果与审核过的 baseline 比较：
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/baseline.scenario.json \
+  --repeats 10 \
+  --workers 4 \
+  --min-pass-rate 0.95 \
+  --min-claims-match-rate 1.0 \
+  --max-tool-error-rate 0.05 \
+  --max-path-variants 1 \
+  --final-answer-mode claims-only \
+  --format markdown \
+  --out outputs/stability.md
+```
+
+报告中的关键指标是：`pass_rate`（通过率）、`claims_match_rate`（结构化结果一致率）、`tool_error_rate`（工具错误率）和 `path_variant_count`（观察到的工具路径数量）。阈值不满足时命令返回退出码 `1`，可以直接作为 CI 门禁。`examples/stability_example.py` 展示了对应的 Python API：
+
+```python
+from agent_regression import StabilityPolicy, record_stability
+
+report = record_stability(
+    baseline,
+    scenario_case,
+    repeats=10,
+    max_workers=4,
+    policy=StabilityPolicy(min_pass_rate=0.95, max_path_variants=1),
+)
+assert report.passed
+```
+
+它是对结构化 Trace 的重复性检查，不是模型质量的统计学证明，也不是 LLM Judge。
+
 ### 场景集合覆盖率
 
 当你已经有多份正常、异常、权限或副作用场景 Trace 时，可以统计 Agent 实际走过的工具路径：
@@ -340,7 +376,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.7.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.8.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -412,7 +448,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.7 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.8 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 

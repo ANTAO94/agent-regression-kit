@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v2.7 deliberately stays small.
+Agent Regression Kit v2.8 deliberately stays small.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
 - Tool calls are aligned by event order, not by an optimal sequence-matching algorithm.
@@ -11,7 +11,7 @@ Agent Regression Kit v2.7 deliberately stays small.
 - Default redaction recognizes common sensitive key names. Values embedded in free-form text require `--secret-value` or `RedactionPolicy(secret_values=...)`. Redaction reduces accidental leakage; it is not a data-loss-prevention system.
 - An external MCP server runs as a local child process with the current user's permissions. Only run commands you trust. The bundled fixture performs no network or durable side effects.
 - Baseline acceptance is explicit but unsigned. Review baseline changes in version control. `claims-only` final-answer comparison is also explicit: it ignores prose differences only when selected, and still requires structured claims to be present and equal. It is not semantic judging and does not infer claims from free-form text.
-- Contract normalizers intentionally include only deterministic timestamp and list sorting rules in v2.7. World-state comparison and isolation are snapshot-based: `StateIsolation` restores only the database, cache, or service-emulator state exposed by the supplied `SnapshotBackend`; hidden writes to another service still require project-specific cleanup. Session comparison requires one terminal answer per turn; streaming conversation state is represented as separate turns, not a hidden live transcript. Business branch coverage depends on structured claims; it cannot infer a reliable business state from free-form prose. Arbitrary regex rewriting, model-based judging, and framework-specific semantic policies remain outside the core.
+- Contract normalizers intentionally include only deterministic timestamp and list sorting rules in v2.8. World-state comparison and isolation are snapshot-based: `StateIsolation` restores only the database, cache, or service-emulator state exposed by the supplied `SnapshotBackend`; hidden writes to another service still require project-specific cleanup. Session comparison requires one terminal answer per turn; streaming conversation state is represented as separate turns, not a hidden live transcript. Business branch coverage depends on structured claims; it cannot infer a reliable business state from free-form prose. Arbitrary regex rewriting, model-based judging, and framework-specific semantic policies remain outside the core.
 - Scenario path coverage measures ordered tool-call paths represented by recorded
   traces. It is not source-code coverage, model-quality scoring, or proof that
   every hidden branch inside a framework was reached.
@@ -19,3 +19,8 @@ Agent Regression Kit v2.7 deliberately stays small.
   each case to create an independent Agent and tool executor; it does not make a
   thread-unsafe framework safe, isolate process-global environment variables, or
   roll back an external service unless a `SnapshotBackend` is supplied.
+- Stability evaluation is evidence-based, not a statistical guarantee. It only
+  observes the requested repeat count, and `claims-only` still requires the
+  adapter to emit structured claims. Repeats do not discover all possible model
+  paths, and the default thresholds are intentionally strict rather than a
+  universal reliability standard.
