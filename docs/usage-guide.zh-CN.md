@@ -178,7 +178,7 @@ agent-regression compare \
 
 ### baseline 检查项和噪音过滤
 
-v2.6 在完整 AgentTrace 之上提供了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
+v2.7 在完整 AgentTrace 之上提供了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
 
 ```json
 {
@@ -264,6 +264,48 @@ trace = isolated_record_run(
 
 录制期间，Trace 仍会保存运行前后的状态，便于比较副作用；代码块结束后，状态后端会自动恢复，即使 Agent 抛出异常也一样。多轮流程使用 `isolated_record_session`，它会让状态在 Session 的各轮之间连续，整个 Session 结束后再恢复一次。这个边界只能恢复适配器暴露出来的状态；如果 Agent 还写入了另一个未接入的服务，需要由项目自己的测试清理机制负责。可运行的离线示例见 [`examples/external_state_backend_example.py`](../examples/external_state_backend_example.py)。
 
+### 用框架回调并行录制多个场景（v2.7）
+
+如果你的 Agent 框架已经有 `invoke`、`run` 或 `execute` 方法，可以用 `CallableAgentAdapter` 只包一层回调，不需要重复实现完整 Adapter。多个场景则用 `ScenarioCase` 提供独立工厂：
+
+```python
+from agent_regression import CallableAgentAdapter, ScenarioCase, record_scenario_batch
+
+
+def invoke_framework(request, context):
+    result = context.call_tool("get_order", {"order_id": request["order_id"]})
+    context.final_answer(
+        f"status={result['status']}",
+        {"order_status": result["status"]},
+    )
+
+
+case = ScenarioCase(
+    case_id="order-123",
+    request={"order_id": "123"},
+    run_id="order-123",
+    adapter_factory=lambda: CallableAgentAdapter(
+        {"name": "my-framework-agent", "version": "1.0.0"},
+        invoke_framework,
+    ),
+    tools_factory=make_test_tools,
+    isolate=True,
+)
+result = record_scenario_batch([case], max_workers=4)
+```
+
+`tools_factory` 和 `adapter_factory` 必须每次返回新对象，不能让多个线程共享同一个有状态 Agent 或工具。执行结果会按 `case_id` 排序；某个场景失败会被收集到报告中，不会遮住其他场景的失败。目录中的确定性场景可以直接批量录制：
+
+```bash
+agent-regression batch-record \
+  --scenario-dir examples/order-123 \
+  --out-dir work/scenarios \
+  --workers 4 \
+  --report outputs/batch-record.json
+```
+
+命令会把 `*.scenario.json` 生成成对应的 `*.trace.json`，全部成功返回 `0`，任意场景失败返回 `1`。它是单进程有界线程并发，不会自动替你解决框架线程安全或跨进程环境变量隔离。
+
 ### 场景集合覆盖率
 
 当你已经有多份正常、异常、权限或副作用场景 Trace 时，可以统计 Agent 实际走过的工具路径：
@@ -298,7 +340,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.6.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.7.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -370,7 +412,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.6 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.7 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 

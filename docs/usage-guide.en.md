@@ -178,7 +178,7 @@ This ignores only `final_answer.text`. It still checks claims, tool calls, argum
 
 ### Baseline checks and noise filtering
 
-In v2.6, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
+In v2.7, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
 
 ```json
 {
@@ -273,6 +273,56 @@ can only restore what the adapter exposes; writes to another untracked service
 still need project-specific cleanup. See the runnable offline example at
 [`examples/external_state_backend_example.py`](../examples/external_state_backend_example.py).
 
+### Bridge a framework callback and record scenarios in parallel (v2.7)
+
+If your Agent framework already exposes `invoke`, `run`, or `execute`, use
+`CallableAgentAdapter` as a small wrapper instead of reimplementing a complete
+Adapter class. Give each `ScenarioCase` a fresh Agent and tool factory:
+
+```python
+from agent_regression import CallableAgentAdapter, ScenarioCase, record_scenario_batch
+
+
+def invoke_framework(request, context):
+    result = context.call_tool("get_order", {"order_id": request["order_id"]})
+    context.final_answer(
+        f"status={result['status']}",
+        {"order_status": result["status"]},
+    )
+
+
+case = ScenarioCase(
+    case_id="order-123",
+    request={"order_id": "123"},
+    run_id="order-123",
+    adapter_factory=lambda: CallableAgentAdapter(
+        {"name": "my-framework-agent", "version": "1.0.0"},
+        invoke_framework,
+    ),
+    tools_factory=make_test_tools,
+    isolate=True,
+)
+result = record_scenario_batch([case], max_workers=4)
+```
+
+`tools_factory` and `adapter_factory` must return new objects for every case;
+do not share a mutable Agent or tool executor across workers. Results are
+sorted by `case_id`, and a failed case is collected without hiding failures in
+other cases. For deterministic JSON scenarios, use the CLI:
+
+```bash
+agent-regression batch-record \
+  --scenario-dir examples/order-123 \
+  --out-dir work/scenarios \
+  --workers 4 \
+  --report outputs/batch-record.json
+```
+
+The command turns each `*.scenario.json` into a matching `*.trace.json`.
+All-success returns `0`; any failed scenario returns `1`. It is bounded,
+in-process thread concurrency and does not make an unsafe framework
+thread-safe or isolate process-global environment variables automatically.
+
 ### Scenario-suite path coverage
 
 Once you have normal, error, permission, or side-effect scenario traces, aggregate them to see which ordered tool paths the Agent has actually exercised:
@@ -307,7 +357,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.6.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.7.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -379,7 +429,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.6 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.7 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 

@@ -1,10 +1,11 @@
 # Architecture
 
-This document describes Agent Regression Kit v2.6. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework or leaking mutable test state between cases?
+This document describes Agent Regression Kit v2.7. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, or making a large scenario suite run serially?
 
 ```mermaid
 flowchart TD
     Scenario[Scenario or real AgentAdapter] -->|tool requests and final answer| Recorder[Trace recorder]
+    Framework[Framework invoke callback] -->|CallableAgentAdapter| Scenario
     Recorder -->|tool name and raw arguments| Executor{{Tool executor boundary}}
     Executor -->|offline lookup| Fixture[FixtureTools or StatefulFixtureTools]
     Fixture -->|initial/final snapshot| World[(World state)]
@@ -22,6 +23,8 @@ flowchart TD
     BusinessGate --> CI
     Trace -->|scenario suite| Coverage[Path coverage]
     Coverage -->|missing branches + exit code| CI
+    Suite[ScenarioCase factories] -->|fresh Agent + tools| Parallel[Parallel scenario runner]
+    Parallel -->|sorted Trace results + failures| Trace
 ```
 
 The recorder is the stable center: adapters produce actions, executors isolate tool effects, and downstream comparison consumes only redacted AgentTrace documents.
@@ -29,9 +32,11 @@ The recorder is the stable center: adapters produce actions, executors isolate t
 ## Component boundaries
 
 - `AgentAdapter` translates one framework-specific run into `RunContext.call_tool` and `RunContext.final_answer` calls. It does not compare or score.
+- `CallableAgentAdapter` is the low-boilerplate bridge for a framework's `invoke` callback. It standardizes the boundary but deliberately does not auto-discover or control framework internals.
 - `ToolExecutor` owns tool execution. `FixtureTools` is deterministic and in-process; `McpToolExecutor` delegates to either a child process or an HTTP endpoint.
 - `StatefulFixtureTools` owns a detached mutable `WorldState` for business scenarios. Its `snapshot()` boundary lets the recorder prove initial/final state and lets the comparator report field-level side effects.
 - `SnapshotBackend` is the minimal external-state contract: `snapshot()` captures a detached test-safe representation and `restore(snapshot)` rolls it back. `StateIsolation` applies that contract as a context manager; `isolated_record_run` and `isolated_record_session` guarantee cleanup after normal or exceptional Agent execution.
+- `ScenarioCase` owns factories for one Agent and one tool executor. `record_scenario_batch` runs those independent cases with bounded threads, captures failures per case, and sorts results by `case_id` so concurrency does not make reports flaky.
 - `record_run` sequences events, pairs calls/results, applies redaction, and validates AgentTrace.
 - `record_session` runs multiple requests through the same adapter and executor, producing one validated AgentTrace per turn inside an `AgentSession`.
 - `StdioMcpClient` owns the pinned MCP lifecycle and newline-delimited JSON-RPC transport. It does not know about comparison policy.
@@ -76,4 +81,4 @@ The same tool-result event shape records success, MCP tool errors, protocol erro
 
 ## Version boundaries
 
-Agent Regression Kit v2.6 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, and isolation metadata are optional, so v2.4 and v2.5 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v2.7 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, and parallel-run summaries are optional, so v2.4-v2.6 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

@@ -50,6 +50,7 @@ flowchart LR
 - Multi-turn Sessions：把连续追问保存为可验证的 Session，逐轮比较工具行为、答案和状态变化。
 - Business Branch Coverage：按结构化 claims 统计 `paid`、`cancelled`、`not_found` 等业务结果分支。
 - 可执行状态隔离：通过统一的 `snapshot()` / `restore(snapshot)` 边界包住内存 Fixture、数据库、缓存或服务模拟器；用例结束自动恢复，避免测试污染。
+- 框架桥接与并行场景：`CallableAgentAdapter` 可以包住任意框架的 `invoke` 回调；`record_scenario_batch` 和 `batch-record` 可以并行录制独立场景，并按 case ID 稳定输出结果。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -58,9 +59,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **84 项通过，0 项失败** |
+| Python 单元与集成测试 | **89 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-2.6.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-2.7.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -225,6 +226,51 @@ trace = isolated_record_run(
 
 这里的 `TestDatabaseState` 可以连接测试数据库、Redis、服务模拟器或你自己的内存状态；它不要求生产系统暴露内部实现，只要求测试适配器能够保存和恢复可验证的状态。完整的离线示例见 [`examples/external_state_backend_example.py`](examples/external_state_backend_example.py)。多轮流程使用 `isolated_record_session`，它会在整个 Session 完成后恢复一次，而不会在每一轮之间重置状态。
 
+### 框架桥接与并行录制（v2.7）
+
+如果你的框架已经有 `invoke`、`run` 或 `execute` 方法，不必为每个项目重复写一整个 Adapter 类。用 `CallableAgentAdapter` 把框架回调接到统一的 `context`，再用 `ScenarioCase` 为每个场景创建独立 Agent 和工具：
+
+```python
+from agent_regression import CallableAgentAdapter, ScenarioCase, record_scenario_batch
+
+
+def invoke_framework(request, context):
+    result = context.call_tool("get_order", {"order_id": request["order_id"]})
+    context.final_answer(
+        f"status={result['status']}",
+        {"order_status": result["status"]},
+    )
+
+
+cases = [
+    ScenarioCase(
+        case_id="order-123",
+        request={"order_id": "123"},
+        run_id="order-123",
+        adapter_factory=lambda: CallableAgentAdapter(
+            {"name": "my-framework-agent", "version": "1.0.0"},
+            invoke_framework,
+        ),
+        tools_factory=make_test_tools,
+        isolate=True,
+    )
+]
+result = record_scenario_batch(cases, max_workers=4)
+assert result.passed
+```
+
+并行执行的关键不是“共享一个 Agent 加线程”，而是每个 `ScenarioCase` 都通过工厂创建自己的 Agent、工具和状态；结果即使完成顺序不同，也会按 `case_id` 稳定返回。仓库自带的完整示例是 [`examples/parallel_scenarios_example.py`](examples/parallel_scenarios_example.py)。对于目录中的确定性 JSON 场景，也可以直接使用：
+
+```bash
+agent-regression batch-record \
+  --scenario-dir examples/order-123 \
+  --out-dir work/scenarios \
+  --workers 4 \
+  --report outputs/batch-record.json
+```
+
+命令会为每个 `*.scenario.json` 生成对应的 `*.trace.json`，并在报告中记录每个场景的状态和错误；任何场景失败都会返回退出码 `1`，不会因为线程完成顺序而改变报告顺序。
+
 ### CI 集成
 
 CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
@@ -301,7 +347,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v2.6**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
+Current release line: **v2.7**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
 ```text
 Agent / MCP Server
@@ -328,9 +374,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **84 passed, 0 failed** |
+| Python unit and integration suite | **89 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-2.6.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-2.7.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -340,7 +386,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 84 tests in 8.2s
+Ran 89 tests in 8.2s
 
 OK
 ```
@@ -498,6 +544,61 @@ for a runnable offline example. For a multi-turn flow, use
 `isolated_record_session`; it restores once after the whole Session so state
 can intentionally carry between turns.
 
+### Framework bridge and parallel recording (v2.7)
+
+If your framework already exposes `invoke`, `run`, or `execute`, you do not
+need to repeat a full Adapter class for every project. Wrap the framework
+callback with `CallableAgentAdapter`, then give each `ScenarioCase` factories
+for its own Agent and tools:
+
+```python
+from agent_regression import CallableAgentAdapter, ScenarioCase, record_scenario_batch
+
+
+def invoke_framework(request, context):
+    result = context.call_tool("get_order", {"order_id": request["order_id"]})
+    context.final_answer(
+        f"status={result['status']}",
+        {"order_status": result["status"]},
+    )
+
+
+cases = [
+    ScenarioCase(
+        case_id="order-123",
+        request={"order_id": "123"},
+        run_id="order-123",
+        adapter_factory=lambda: CallableAgentAdapter(
+            {"name": "my-framework-agent", "version": "1.0.0"},
+            invoke_framework,
+        ),
+        tools_factory=make_test_tools,
+        isolate=True,
+    )
+]
+result = record_scenario_batch(cases, max_workers=4)
+assert result.passed
+```
+
+The important rule is not to share one mutable Agent across threads: every
+case factory creates its own Agent, tools, and state. Results are sorted by
+`case_id`, so completion timing cannot make CI reports flaky. See the complete
+offline example at
+[`examples/parallel_scenarios_example.py`](examples/parallel_scenarios_example.py).
+For deterministic JSON scenarios in a directory, use:
+
+```bash
+agent-regression batch-record \
+  --scenario-dir examples/order-123 \
+  --out-dir work/scenarios \
+  --workers 4 \
+  --report outputs/batch-record.json
+```
+
+The command writes one `*.trace.json` per scenario and a summary with
+per-case errors. Any failed scenario returns exit code `1`; report order does
+not depend on thread completion order.
+
 ## Public API
 
 The same flow is available through `record_run`, `record_mcp_run`, `replay_trace`, and `compare_traces`. A real integration implements the small `AgentAdapter` protocol: expose an `identity`, execute one request, route tool calls through `RunContext.call_tool`, and finish through `RunContext.final_answer`.
@@ -590,14 +691,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v2.6. In addition to
+The HTTP client is intentionally synchronous in v2.7. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v2.6; use
+supported. The generic AgentTrace recorder remains sequential in v2.7; use
 `AgentSession` when you need several terminal-answer turns.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned

@@ -1,12 +1,12 @@
-# Agent Regression Kit v2.6 verification
+# Agent Regression Kit v2.7 verification
 
 Verified on 2026-09-18 with Python 3.9.6.
 
 ## Results
 
 - Runtime: Python 3.9.6.
-- Unit and integration tests: 84 passed, 0 failed.
-- Wheel build: `agent_regression_kit-2.6.0-py3-none-any.whl` succeeded.
+- Unit and integration tests: 89 passed, 0 failed.
+- Wheel build: `agent_regression_kit-2.7.0-py3-none-any.whl` succeeded.
 - Scenario path coverage: observed and missing branch reports passed.
 - Multi-turn session record/compare and outcome-aware path coverage passed.
 - Session state continuity and claims-based business branch coverage passed.
@@ -14,6 +14,9 @@ Verified on 2026-09-18 with Python 3.9.6.
   adapters, multi-turn sessions, and exceptional Agent exits.
 - External state backend example: passed; the recorded mutation was visible in
   the Trace and the test store returned to its original state.
+- Callable framework bridge: passed with a framework-like invoke callback.
+- Parallel scenario recording: passed with fresh per-case state, stable case
+  ordering, failure collection, and CLI Trace output.
 - Agent Contract Testing: passed assertions, nested ignore paths, normalizers, required/forbidden tools, step limits, allowed paths, isolated world state, and side-effect checks.
 - Config preflight validation: passed for single-case and batch config shapes.
 - Documentation QA: bilingual getting-started guides, Mermaid onboarding flow,
@@ -38,8 +41,8 @@ Verified on 2026-09-18 with Python 3.9.6.
 
 ## Scope
 
-The implementation contains AgentTrace v0.1, deterministic and MCP stdio/HTTP adapters, record/replay/validate/compare and baseline APIs/CLI, order-123 examples, strict and allow-list comparison, default redaction, JSON/JUnit output, offline CI, snapshot/restore isolation for internal and external test state, packaging, API/architecture/limitations documentation, MIT license, and CHANGELOG. It intentionally does not include a dashboard, general scorer platform, model calls, or framework-specific integrations.
+The implementation contains AgentTrace v0.1, deterministic and MCP stdio/HTTP adapters, record/replay/validate/compare and baseline APIs/CLI, framework callback bridging, parallel scenario recording with JSON/Markdown/JUnit batch reports, order-123 examples, strict and allow-list comparison, default redaction, JSON/JUnit output, offline CI, snapshot/restore isolation for internal and external test state, packaging, API/architecture/limitations documentation, MIT license, and CHANGELOG. It intentionally does not include a dashboard, general scorer platform, model calls, or automatic framework discovery.
 
 ## Remaining compatibility boundary
 
-The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v2.6 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Contract assertions, state snapshots, session continuity, snapshot/restore isolation, path coverage, business branch coverage, and normalizers are deterministic; claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator. An external `SnapshotBackend` can only restore state it exposes; unrelated service writes still require project-specific cleanup.
+The bundled fixture is a deliberately narrow 2025-11-25 test server, not a full conformance implementation. The client supports the documented v2.7 stdio and Streamable HTTP subset, but OAuth negotiation, every optional MCP capability, the handshake-free 2026-07-28 protocol, and broad framework compatibility remain outside the current release line. Default tests stay offline. Contract assertions, state snapshots, session continuity, snapshot/restore isolation, path coverage, business branch coverage, parallel recording, and normalizers are deterministic; claims-only mode is explicit structural comparison, not semantic judging or an LLM-based evaluator. An external `SnapshotBackend` can only restore state it exposes; unrelated service writes still require project-specific cleanup.

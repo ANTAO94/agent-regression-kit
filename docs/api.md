@@ -2,6 +2,46 @@
 
 The supported imports are exported from `agent_regression`.
 
+## Framework bridge and parallel recording
+
+- `CallableAgentAdapter(identity, runner)` wraps a framework-owned callable
+  with the stable `AgentAdapter` boundary. The callable receives
+  `(request, context)` and reports tools and the final answer through the
+  context; the kit does not auto-detect or take over a framework.
+- `ScenarioCase` describes one independent case with an adapter factory, tool
+  executor factory, optional state backend factory, and an `isolate` flag.
+- `record_scenario_batch(cases, max_workers=4, redaction_policy=None)` records
+  cases concurrently, captures per-case failures, and returns results sorted by
+  `case_id` regardless of completion order. Factories are required so workers
+  do not accidentally share mutable Agent or tool state.
+- `ScenarioResult` contains either a validated `trace` or a redacted `error`;
+  `ScenarioBatchResult.to_dict()` is a compact CI-friendly summary.
+
+Example framework bridge:
+
+```python
+from agent_regression import CallableAgentAdapter, record_run
+
+
+def invoke_framework(request, context):
+    result = context.call_tool("get_order", {"order_id": request["order_id"]})
+    context.final_answer(
+        f"status={result['status']}",
+        {"order_status": result["status"]},
+    )
+
+
+adapter = CallableAgentAdapter(
+    {"name": "my-framework-agent", "version": "1.0.0"},
+    invoke_framework,
+)
+trace = record_run(adapter, {"order_id": "123"}, my_tools, run_id="order-123")
+```
+
+For parallel recording, each `ScenarioCase` should construct its own adapter
+and tools. Set `isolate=True` when the tools or state backend implements
+`snapshot()` and `restore(snapshot)`.
+
 ## Evidence
 
 - `AgentTrace.from_dict(value)` parses and validates AgentTrace v0.1.

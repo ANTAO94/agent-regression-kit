@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Protocol
+from typing import Any, Callable, Dict, List, Mapping, Protocol
 
 
 class RunContext(Protocol):
@@ -16,6 +16,29 @@ class AgentAdapter(Protocol):
     def identity(self) -> Mapping[str, Any]: ...
 
     def run(self, request: Any, context: RunContext) -> None: ...
+
+
+class CallableAgentAdapter:
+    """Adapt a framework-owned callable to the stable AgentAdapter boundary.
+
+    The callable receives the framework request and the kit's ``RunContext``.
+    A real integration can therefore keep its framework-specific ``invoke``
+    code in one function without re-implementing the recorder protocol for
+    every test case.
+    """
+
+    def __init__(self, identity: Mapping[str, Any], runner: Callable[[Any, RunContext], None]):
+        if not callable(runner):
+            raise TypeError("Agent runner must be callable")
+        self._identity = dict(identity)
+        self._runner = runner
+
+    @property
+    def identity(self) -> Mapping[str, Any]:
+        return self._identity
+
+    def run(self, request: Any, context: RunContext) -> None:
+        self._runner(request, context)
 
 
 class ScriptedAgentAdapter:

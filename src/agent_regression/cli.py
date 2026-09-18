@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from .adapters import ScriptedAgentAdapter, ScriptedSessionAdapter
 from .batch import compare_trace_batch
+from .batch_record import ScenarioCase, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
 from .config import load_batch_compare_config, load_compare_config
@@ -31,6 +32,8 @@ from .reports import (
     render_coverage_markdown,
     render_junit,
     render_markdown,
+    render_scenario_batch_junit,
+    render_scenario_batch_markdown,
     render_session_junit,
     render_session_markdown,
 )
@@ -39,7 +42,7 @@ from .scaffold import initialize_project
 from .session import AgentSession, compare_sessions
 
 
-VERSION = "2.6.0"
+VERSION = "2.7.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -66,6 +69,39 @@ def _write_text(value: str, out: str | None = None) -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(value, encoding="utf-8")
     print(value, end="")
+
+
+def _write_json_file(value: Dict[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _load_scripted_batch_case(path: Path, root: Path) -> ScenarioCase:
+    scenario = _read_json(str(path))
+    relative = path.relative_to(root)
+    return ScenarioCase(
+        case_id=str(relative),
+        request=scenario.get("input"),
+        run_id=scenario["run_id"],
+        adapter_factory=lambda scenario=scenario: ScriptedAgentAdapter(
+            scenario["agent"], scenario["plan"]
+        ),
+        tools_factory=lambda scenario=scenario: FixtureTools(scenario.get("tools", {})),
+        metadata=scenario.get("metadata"),
+    )
+
+
+def _trace_path_for_scenario(path: Path, scenario_root: Path, trace_root: Path) -> Path:
+    relative = path.relative_to(scenario_root)
+    name = str(relative)
+    suffix = ".scenario.json"
+    if not name.endswith(suffix):
+        raise ValueError(f"scenario file must end with {suffix}: {path}")
+    trace_relative = Path(name[: -len(suffix)] + ".trace.json")
+    return trace_root / trace_relative
 
 
 def _parse_headers(values: list[str]) -> Dict[str, str]:
@@ -279,6 +315,18 @@ def build_parser() -> argparse.ArgumentParser:
     coverage.add_argument("--out")
     coverage.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
 
+    batch_record = subparsers.add_parser(
+        "batch-record", help="record independent scenario files in parallel"
+    )
+    batch_record.add_argument("--scenario-dir", required=True)
+    batch_record.add_argument("--out-dir", required=True)
+    batch_record.add_argument("--workers", type=int, default=4)
+    batch_record.add_argument("--report")
+    batch_record.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    batch_record.add_argument(
+        "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
+    )
+
     session_record = subparsers.add_parser(
         "session-record", help="record a deterministic multi-turn session"
     )
@@ -358,6 +406,41 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 _write_output(report, args.out)
             return 0 if report["passed"] else 1
+
+        if args.command == "batch-record":
+            scenario_root = Path(args.scenario_dir).resolve()
+            if not scenario_root.is_dir():
+                raise ValueError(f"scenario directory not found: {args.scenario_dir}")
+            scenario_paths = sorted(scenario_root.rglob("*.scenario.json"))
+            if not scenario_paths:
+                raise ValueError(
+                    f"scenario directory contains no *.scenario.json files: {args.scenario_dir}"
+                )
+            cases = [_load_scripted_batch_case(path, scenario_root) for path in scenario_paths]
+            batch = record_scenario_batch(
+                cases,
+                max_workers=args.workers,
+                redaction_policy=redaction_policy,
+            )
+            trace_root = Path(args.out_dir).resolve()
+            report = batch.to_dict()
+            report["scenario_dir"] = str(scenario_root)
+            report["trace_dir"] = str(trace_root)
+            report_cases = {case["case_id"]: case for case in report["cases"]}
+            for result in batch.results:
+                if result.trace is None:
+                    continue
+                source = scenario_root / result.case_id
+                destination = _trace_path_for_scenario(source, scenario_root, trace_root)
+                _write_json_file(result.trace.to_dict(), destination)
+                report_cases[result.case_id]["trace"] = str(destination)
+            if args.format == "junit":
+                _write_text(render_scenario_batch_junit(report), args.report)
+            elif args.format == "markdown":
+                _write_text(render_scenario_batch_markdown(report), args.report)
+            else:
+                _write_output(report, args.report)
+            return 0 if batch.passed else 1
 
         if args.command == "session-record":
             scenario = _read_json(args.scenario)

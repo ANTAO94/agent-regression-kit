@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 2.7.0 - 2026-09-18
+
+- Add `CallableAgentAdapter` to wrap framework-owned `invoke`/`run` callbacks
+  without repeating the AgentAdapter boilerplate.
+- Add `ScenarioCase`, `ScenarioResult`, `ScenarioBatchResult`, and
+  `record_scenario_batch` for bounded parallel recording with fresh per-case
+  factories, state isolation, failure collection, and deterministic ordering.
+- Add the `batch-record` CLI command for recursively recording JSON scenarios
+  into a Trace directory and CI-friendly batch summary.
+- Add parallel recording and framework bridge examples plus five tests.
+- Update package, CLI, MCP client identity, scaffold Action tag, and bilingual
+  documentation to v2.7.0.
+
 ## 2.6.0 - 2026-09-18
 
 - Add the `SnapshotBackend` protocol and `StateIsolation` context manager for

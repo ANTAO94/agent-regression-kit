@@ -1,9 +1,16 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.6.0"
+__version__ = "2.7.0"
 
-from .adapters import AgentAdapter, RunContext, ScriptedAgentAdapter, ScriptedSessionAdapter
+from .adapters import (
+    AgentAdapter,
+    CallableAgentAdapter,
+    RunContext,
+    ScriptedAgentAdapter,
+    ScriptedSessionAdapter,
+)
 from .batch import compare_trace_batch
+from .batch_record import ScenarioBatchResult, ScenarioCase, ScenarioResult, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
 from .coverage import (
     compare_trace_coverage,
@@ -45,6 +52,8 @@ from .reports import (
     render_coverage_markdown,
     render_junit,
     render_markdown,
+    render_scenario_batch_junit,
+    render_scenario_batch_markdown,
     render_session_junit,
     render_session_markdown,
 )
@@ -59,9 +68,14 @@ from .rule_agent import (
 
 __all__ = [
     "AgentAdapter",
+    "CallableAgentAdapter",
     "AgentTrace",
     "AgentSession",
     "compare_trace_batch",
+    "record_scenario_batch",
+    "ScenarioBatchResult",
+    "ScenarioCase",
+    "ScenarioResult",
     "compare_trace_coverage",
     "ComparisonPolicy",
     "ContractPolicy",
@@ -108,6 +122,8 @@ __all__ = [
     "render_markdown",
     "render_batch_junit",
     "render_batch_markdown",
+    "render_scenario_batch_junit",
+    "render_scenario_batch_markdown",
     "render_coverage_junit",
     "render_coverage_markdown",
     "render_session_junit",

@@ -134,6 +134,62 @@ def render_batch_junit(report: Dict[str, Any]) -> str:
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
 
 
+def render_scenario_batch_markdown(report: Dict[str, Any]) -> str:
+    """Render a parallel scenario-recording summary."""
+    status = "PASS" if report.get("passed") else "FAIL"
+    lines = [
+        "# Agent Scenario Batch Recording",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Cases: `{report.get('case_count', 0)}`",
+        f"- Passed: `{report.get('passed_case_count', 0)}`",
+        f"- Failed: `{report.get('failed_case_count', 0)}`",
+        f"- Max workers: `{report.get('max_workers', 0)}`",
+        "",
+        "| Status | Case | Run | Events / Error |",
+        "| --- | --- | --- | --- |",
+    ]
+    for case in report.get("cases", []):
+        case_status = "passed" if case.get("passed") else "failed"
+        detail = case.get("event_count", case.get("error", ""))
+        lines.append(
+            f"| {case_status} | `{case.get('case_id')}` | `{case.get('run_id')}` | `{detail}` |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def render_scenario_batch_junit(report: Dict[str, Any]) -> str:
+    """Render one JUnit testcase per parallel recording case."""
+    cases = report.get("cases", [])
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": "agent-regression-scenario-recording",
+            "tests": str(len(cases)),
+            "failures": str(report.get("failed_case_count", 0)),
+            "errors": "0",
+        },
+    )
+    for case in cases:
+        testcase = ET.SubElement(
+            suite,
+            "testcase",
+            {
+                "classname": "agent_regression.scenario_batch",
+                "name": str(case.get("case_id")),
+            },
+        )
+        if not case.get("passed"):
+            failure = ET.SubElement(
+                testcase,
+                "failure",
+                {"type": "AgentScenarioRecordingFailure"},
+            )
+            failure.text = str(case.get("error", "scenario recording failed"))
+    return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
+
+
 def render_coverage_markdown(report: Dict[str, Any]) -> str:
     """Render a scenario path-coverage summary for a CI job summary."""
     status = "PASS" if report.get("passed") else "FAIL"
