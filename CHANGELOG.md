@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 2.6.0 - 2026-09-18
+
+- Add the `SnapshotBackend` protocol and `StateIsolation` context manager for
+  deterministic snapshot/restore boundaries around mutable test state.
+- Add `isolated_record_run` and `isolated_record_session`, restoring state after
+  successful or failed Agent execution while preserving state between turns.
+- Extend `WorldState` and `StatefulFixtureTools` with explicit restore support
+  and a convenient isolation context.
+- Add an offline external-state backend example, five isolation tests, and
+  bilingual API, architecture, usage, and limitation documentation.
+- Update package, CLI, MCP client identity, scaffold Action tag, and validation
+  records to v2.6.0.
+
 ## 2.5.0 - 2026-09-18
 
 - Add multi-turn world-state continuity checks with explicit

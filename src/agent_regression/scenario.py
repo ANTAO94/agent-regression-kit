@@ -5,6 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Callable, Dict, Mapping
 
+from .isolation import StateIsolation
+
 
 class WorldState:
     """Mutable, snapshot-able state owned by one scenario execution.
@@ -24,6 +26,10 @@ class WorldState:
     def reset(self, initial: Mapping[str, Any] | None = None) -> None:
         """Reset this state to a detached copy of ``initial``."""
         self.data = deepcopy(dict(initial or {}))
+
+    def restore(self, snapshot: Mapping[str, Any]) -> None:
+        """Restore a previously captured snapshot."""
+        self.data = deepcopy(dict(snapshot))
 
 
 ToolHandler = Callable[[WorldState, Dict[str, Any]], Any]
@@ -63,6 +69,13 @@ class StatefulFixtureTools:
 
     def reset(self) -> None:
         self.world.reset(self._initial_state)
+
+    def restore(self, snapshot: Mapping[str, Any]) -> None:
+        self.world.restore(snapshot)
+
+    def isolation(self) -> StateIsolation:
+        """Create a context manager that restores this fixture on exit."""
+        return StateIsolation(self)
 
     def fresh(self) -> "StatefulFixtureTools":
         """Return a new executor with the original state and same handlers."""

@@ -1,6 +1,6 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.5.0"
+__version__ = "2.6.0"
 
 from .adapters import AgentAdapter, RunContext, ScriptedAgentAdapter, ScriptedSessionAdapter
 from .batch import compare_trace_batch
@@ -11,6 +11,7 @@ from .coverage import (
     trace_outcome_path,
     trace_tool_path,
 )
+from .isolation import SnapshotBackend, StateIsolation
 from .compat import run_compatibility_smoke
 from .contracts import ContractPolicy
 from .mcp import (
@@ -30,6 +31,8 @@ from .record import (
     ToolExecutionResult,
     ToolExecutor,
     WorldStateProvider,
+    isolated_record_run,
+    isolated_record_session,
     record_run,
     record_session,
 )
@@ -78,6 +81,8 @@ __all__ = [
     "ScriptedAgentAdapter",
     "ScriptedSessionAdapter",
     "StatefulFixtureTools",
+    "StateIsolation",
+    "SnapshotBackend",
     "StdioMcpClient",
     "StreamableHttpMcpClient",
     "TraceValidationError",
@@ -94,6 +99,8 @@ __all__ = [
     "run_compatibility_smoke",
     "record_run",
     "record_session",
+    "isolated_record_run",
+    "isolated_record_session",
     "record_mcp_run",
     "record_mcp_http_run",
     "replay_trace",

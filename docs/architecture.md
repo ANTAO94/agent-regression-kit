@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes Agent Regression Kit v2.5. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework?
+This document describes Agent Regression Kit v2.6. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework or leaking mutable test state between cases?
 
 ```mermaid
 flowchart TD
@@ -8,6 +8,9 @@ flowchart TD
     Recorder -->|tool name and raw arguments| Executor{{Tool executor boundary}}
     Executor -->|offline lookup| Fixture[FixtureTools or StatefulFixtureTools]
     Fixture -->|initial/final snapshot| World[(World state)]
+    World -->|snapshot / restore| Isolation[StateIsolation sandbox]
+    Isolation -->|rollback after run or failure| Fixture
+    Isolation -->|external adapter boundary| External[(DB / cache / service emulator)]
     Executor -->|JSON-RPC over stdio| MCP[MCP server subprocess]
     Executor -->|Streamable HTTP JSON or SSE| HTTP[MCP HTTP server]
     Recorder -->|redacted AgentTrace v0.1| Trace[(Trace JSON)]
@@ -28,6 +31,7 @@ The recorder is the stable center: adapters produce actions, executors isolate t
 - `AgentAdapter` translates one framework-specific run into `RunContext.call_tool` and `RunContext.final_answer` calls. It does not compare or score.
 - `ToolExecutor` owns tool execution. `FixtureTools` is deterministic and in-process; `McpToolExecutor` delegates to either a child process or an HTTP endpoint.
 - `StatefulFixtureTools` owns a detached mutable `WorldState` for business scenarios. Its `snapshot()` boundary lets the recorder prove initial/final state and lets the comparator report field-level side effects.
+- `SnapshotBackend` is the minimal external-state contract: `snapshot()` captures a detached test-safe representation and `restore(snapshot)` rolls it back. `StateIsolation` applies that contract as a context manager; `isolated_record_run` and `isolated_record_session` guarantee cleanup after normal or exceptional Agent execution.
 - `record_run` sequences events, pairs calls/results, applies redaction, and validates AgentTrace.
 - `record_session` runs multiple requests through the same adapter and executor, producing one validated AgentTrace per turn inside an `AgentSession`.
 - `StdioMcpClient` owns the pinned MCP lifecycle and newline-delimited JSON-RPC transport. It does not know about comparison policy.
@@ -72,4 +76,4 @@ The same tool-result event shape records success, MCP tool errors, protocol erro
 
 ## Version boundaries
 
-Agent Regression Kit v2.5 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, and coverage metadata are optional, so v2.4 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v2.6 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, and isolation metadata are optional, so v2.4 and v2.5 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

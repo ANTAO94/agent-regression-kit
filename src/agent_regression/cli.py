@@ -39,7 +39,7 @@ from .scaffold import initialize_project
 from .session import AgentSession, compare_sessions
 
 
-VERSION = "2.5.0"
+VERSION = "2.6.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:

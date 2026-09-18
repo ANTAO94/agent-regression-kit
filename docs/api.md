@@ -10,17 +10,50 @@ The supported imports are exported from `agent_regression`.
 
 ## Recording
 
-- `record_run(adapter, request, tools, *, run_id, metadata=None, redaction_policy=None)` records any `AgentAdapter` with any `ToolExecutor`.
-- `record_session(adapter, requests, tools, *, session_id, metadata=None, turn_metadata=None, redaction_policy=None)` records multiple turns with the same adapter and tool executor, preserving shared state between turns.
+- `record_run(adapter, request, tools, *, run_id, metadata=None, redaction_policy=None, state_backend=None)` records any `AgentAdapter` with any `ToolExecutor`. When supplied, `state_backend.snapshot()` is used for the recorded initial/final world state instead of the tool executor.
+- `record_session(adapter, requests, tools, *, session_id, metadata=None, turn_metadata=None, redaction_policy=None, state_backend=None)` records multiple turns with the same adapter and tool executor, preserving shared state between turns and observing the optional external state backend.
+- `isolated_record_run(...)` and `isolated_record_session(...)` wrap the corresponding recorder in a `StateIsolation` context and restore the state backend after the run, including when the Agent raises an exception.
 - `ScriptedAgentAdapter` is the deterministic reference adapter.
 - `ScriptedSessionAdapter` provides one deterministic action plan per session turn.
 - `FixtureTools` supplies fixed offline results.
 - `ToolExecutionResult` lets an executor preserve explicit error state and execution metadata.
 - `WorldState` provides a detached mutable state object for deterministic scenario fixtures.
-- `StatefulFixtureTools(initial_state, handlers)` executes tools against one owned world and exposes `snapshot()`, `reset()`, and `fresh()` for case isolation. A recorder automatically stores `metadata.world_state.initial` and `metadata.world_state.final` when an executor exposes `snapshot()`.
+- `StatefulFixtureTools(initial_state, handlers)` executes tools against one owned world and exposes `snapshot()`, `restore()`, `reset()`, `fresh()`, and `isolation()` for case isolation. A recorder automatically stores `metadata.world_state.initial` and `metadata.world_state.final` when an executor exposes `snapshot()`.
+- `SnapshotBackend` is the small protocol for a database, cache, or service-emulator fixture: implement `snapshot()` and `restore(snapshot)`.
+- `StateIsolation(backend)` captures a detached snapshot on entry and restores it on exit. Use it directly when a test needs to perform setup and assertions around the Agent run, or use the `isolated_record_*` helpers for the common record-and-restore flow.
 - `RedactionPolicy` controls sensitive keys and literal value removal. Default key redaction is always active unless a caller explicitly supplies another policy.
 
 An adapter must expose an `identity` mapping and implement `run(request, context)`. It must route calls through `context.call_tool` and finish exactly once with `context.final_answer`.
+
+For an external mutable state source, keep the state adapter separate from the
+tool executor and pass it explicitly:
+
+```python
+from agent_regression import isolated_record_run
+
+
+class TestDatabaseState:
+    def snapshot(self):
+        return read_order_rows_as_json()
+
+    def restore(self, snapshot):
+        replace_order_rows_from_json(snapshot)
+
+
+trace = isolated_record_run(
+    MyOrderAgent(),
+    "cancel order 123",
+    my_tools,
+    state_backend=TestDatabaseState(),
+    run_id="order-123",
+)
+# The database fixture is restored here, even when the Agent fails.
+```
+
+The backend should be a test-safe boundary: use a transaction rollback,
+temporary schema, emulator snapshot, or equivalent. The kit can only restore
+what the backend exposes; hidden writes in another service still need their own
+cleanup mechanism.
 
 ## MCP
 

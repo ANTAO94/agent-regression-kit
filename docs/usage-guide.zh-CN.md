@@ -178,7 +178,7 @@ agent-regression compare \
 
 ### baseline 检查项和噪音过滤
 
-v2.5 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
+v2.6 在完整 AgentTrace 之上提供了可执行的 Agent Contract。你可以同时配置“哪些差异不阻断”和“候选行为必须满足什么条件”：
 
 ```json
 {
@@ -237,6 +237,33 @@ v2.5 在完整 AgentTrace 之上增加了可执行的 Agent Contract。你可以
 
 比较器会把变化报告成 `state_change`，而 `side_effects` 可以把允许的业务变化写成明确契约。每个用例都应创建新的 `StatefulFixtureTools`，或调用 `.fresh()`，避免上一个用例取消的订单污染下一个用例。
 
+### 外部状态的自动隔离（v2.6）
+
+如果工具背后连接的不是内存 Fixture，而是测试数据库、Redis 或服务模拟器，可以把它包装成一个 `SnapshotBackend`。它只需要提供两个方法：`snapshot()` 返回可序列化的当前状态，`restore(snapshot)` 把状态恢复回去。然后用 `isolated_record_run` 包住录制过程：
+
+```python
+from agent_regression import isolated_record_run
+
+
+class TestOrderDatabase:
+    def snapshot(self):
+        return read_test_order_rows_as_json()
+
+    def restore(self, snapshot):
+        replace_test_order_rows_from_json(snapshot)
+
+
+trace = isolated_record_run(
+    MyOrderAgent(),
+    "取消订单 123",
+    my_tools,
+    state_backend=TestOrderDatabase(),
+    run_id="order-123",
+)
+```
+
+录制期间，Trace 仍会保存运行前后的状态，便于比较副作用；代码块结束后，状态后端会自动恢复，即使 Agent 抛出异常也一样。多轮流程使用 `isolated_record_session`，它会让状态在 Session 的各轮之间连续，整个 Session 结束后再恢复一次。这个边界只能恢复适配器暴露出来的状态；如果 Agent 还写入了另一个未接入的服务，需要由项目自己的测试清理机制负责。可运行的离线示例见 [`examples/external_state_backend_example.py`](../examples/external_state_backend_example.py)。
+
 ### 场景集合覆盖率
 
 当你已经有多份正常、异常、权限或副作用场景 Trace 时，可以统计 Agent 实际走过的工具路径：
@@ -271,7 +298,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.5.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.6.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -343,7 +370,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.5 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。v2.6 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
 **能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
 

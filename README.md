@@ -49,6 +49,7 @@ flowchart LR
 - Scenario Path Coverage：汇总多份 Trace 的工具调用路径，发现缺失的正常、异常或副作用分支，并可直接作为 CI 门禁。
 - Multi-turn Sessions：把连续追问保存为可验证的 Session，逐轮比较工具行为、答案和状态变化。
 - Business Branch Coverage：按结构化 claims 统计 `paid`、`cancelled`、`not_found` 等业务结果分支。
+- 可执行状态隔离：通过统一的 `snapshot()` / `restore(snapshot)` 边界包住内存 Fixture、数据库、缓存或服务模拟器；用例结束自动恢复，避免测试污染。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -57,9 +58,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **79 项通过，0 项失败** |
+| Python 单元与集成测试 | **84 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-2.5.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-2.6.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -197,6 +198,33 @@ agent-regression compare \
 
 如果你的 MCP Server 是 Streamable HTTP，只需将 `record_mcp_run` 换成 `record_mcp_http_run` 并传入 `/mcp` 地址；如果你的 Agent 已经有自己的工具执行层，也可以直接使用通用的 `record_run`。仓库中的 `examples/rule_agent_mcp_example.py` 是可以直接运行的完整参考，`examples/stateful_order_example.py` 展示了状态快照、副作用和多路径契约，`examples/order-123/` 则是 CLI 演示数据，不是用户必须采用的 Agent 格式。
 
+### 外部状态隔离（v2.6）
+
+如果 Agent 会修改订单、库存、权限、缓存等外部状态，只记录 Trace 还不够：一次测试留下的副作用可能污染下一次测试。v2.6 提供统一的 `snapshot()` / `restore(snapshot)` 边界，录制器可以在运行结束后自动恢复状态；Agent 抛异常时也会执行恢复。
+
+```python
+from agent_regression import isolated_record_run
+
+
+class TestDatabaseState:
+    def snapshot(self):
+        return read_test_rows_as_json()
+
+    def restore(self, snapshot):
+        replace_test_rows_from_json(snapshot)
+
+
+trace = isolated_record_run(
+    MyOrderAgent(),
+    "取消订单 123",
+    my_tools,
+    state_backend=TestDatabaseState(),
+    run_id="order-123",
+)
+```
+
+这里的 `TestDatabaseState` 可以连接测试数据库、Redis、服务模拟器或你自己的内存状态；它不要求生产系统暴露内部实现，只要求测试适配器能够保存和恢复可验证的状态。完整的离线示例见 [`examples/external_state_backend_example.py`](examples/external_state_backend_example.py)。多轮流程使用 `isolated_record_session`，它会在整个 Session 完成后恢复一次，而不会在每一轮之间重置状态。
+
 ### CI 集成
 
 CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
@@ -273,7 +301,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v2.5**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
+Current release line: **v2.6**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
 ```text
 Agent / MCP Server
@@ -300,9 +328,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **79 passed, 0 failed** |
+| Python unit and integration suite | **84 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-2.5.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-2.6.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -312,7 +340,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 79 tests in 8.2s
+Ran 84 tests in 8.2s
 
 OK
 ```
@@ -432,6 +460,44 @@ URL. For an Agent that already owns tool execution, use the framework-neutral
 [`examples/rule_agent_mcp_example.py`](examples/rule_agent_mcp_example.py) for
 a runnable reference.
 
+### Isolate external mutable state (v2.6)
+
+Recording a Trace is not enough when an Agent changes an order, inventory,
+permission, cache, or other mutable state. A test that leaves its side effects
+behind can contaminate the next case. v2.6 defines a small
+`snapshot()` / `restore(snapshot)` boundary and provides isolated recorders
+that restore the state after the run, including when the Agent raises:
+
+```python
+from agent_regression import isolated_record_run
+
+
+class TestDatabaseState:
+    def snapshot(self):
+        return read_test_rows_as_json()
+
+    def restore(self, snapshot):
+        replace_test_rows_from_json(snapshot)
+
+
+trace = isolated_record_run(
+    MyOrderAgent(),
+    "cancel order 123",
+    my_tools,
+    state_backend=TestDatabaseState(),
+    run_id="order-123",
+)
+```
+
+`TestDatabaseState` can wrap a test database transaction, Redis fixture,
+service emulator, or in-memory store. The production system does not need to
+expose its internals; the test adapter only needs to provide a safe,
+restorable boundary. See
+[`examples/external_state_backend_example.py`](examples/external_state_backend_example.py)
+for a runnable offline example. For a multi-turn flow, use
+`isolated_record_session`; it restores once after the whole Session so state
+can intentionally carry between turns.
+
 ## Public API
 
 The same flow is available through `record_run`, `record_mcp_run`, `replay_trace`, and `compare_traces`. A real integration implements the small `AgentAdapter` protocol: expose an `identity`, execute one request, route tool calls through `RunContext.call_tool`, and finish through `RunContext.final_answer`.
@@ -524,14 +590,14 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v2.5. In addition to
+The HTTP client is intentionally synchronous in v2.6. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v2.5; use
+supported. The generic AgentTrace recorder remains sequential in v2.6; use
 `AgentSession` when you need several terminal-answer turns.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned

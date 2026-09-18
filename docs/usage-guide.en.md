@@ -178,7 +178,7 @@ This ignores only `final_answer.text`. It still checks claims, tool calls, argum
 
 ### Baseline checks and noise filtering
 
-In v2.5, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
+In v2.6, a complete AgentTrace can be combined with an executable Agent Contract. You can configure both which baseline differences should not block and what the candidate behavior must satisfy:
 
 ```json
 {
@@ -237,6 +237,42 @@ A normal Trace says which tools the Agent called. A stateful scenario also prove
 
 The comparator emits field-level `state_change` differences, while `side_effects` turns an allowed business transition into an explicit contract. Create a new `StatefulFixtureTools` for each case, or call `.fresh()`, so a cancellation in one case cannot leak into the next case.
 
+### Automatically isolate external state (v2.6)
+
+When the tools use a test database, Redis, or a service emulator instead of an
+in-memory fixture, wrap it in the small `SnapshotBackend` boundary. It only
+needs `snapshot()` to return a serializable state and `restore(snapshot)` to
+put that state back. Then use `isolated_record_run`:
+
+```python
+from agent_regression import isolated_record_run
+
+
+class TestOrderDatabase:
+    def snapshot(self):
+        return read_test_order_rows_as_json()
+
+    def restore(self, snapshot):
+        replace_test_order_rows_from_json(snapshot)
+
+
+trace = isolated_record_run(
+    MyOrderAgent(),
+    "cancel order 123",
+    my_tools,
+    state_backend=TestOrderDatabase(),
+    run_id="order-123",
+)
+```
+
+The Trace still records the before/after state so side effects can be
+compared, but the backend is restored after the block, even if the Agent
+raises. For a multi-turn flow, use `isolated_record_session`: state carries
+between turns and is restored once after the complete Session. The boundary
+can only restore what the adapter exposes; writes to another untracked service
+still need project-specific cleanup. See the runnable offline example at
+[`examples/external_state_backend_example.py`](../examples/external_state_backend_example.py).
+
 ### Scenario-suite path coverage
 
 Once you have normal, error, permission, or side-effect scenario traces, aggregate them to see which ordered tool paths the Agent has actually exercised:
@@ -271,7 +307,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.5.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.6.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -343,7 +379,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 **Do I need a mature Agent first?** No. Start with the bundled fixture or a fake ToolExecutor to verify recording, replay, and comparison before connecting a real Agent.
 
-**Is this an LLM judge?** No. v2.5 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
+**Is this an LLM judge?** No. v2.6 compares explicitly recorded structural evidence and deterministic contracts; it does not call a model to decide whether prose is “probably correct.”
 
 **Does it support LangChain, Spring AI, or a custom framework?** Yes. Implement the small `AgentAdapter` boundary; the Trace and comparator remain framework-neutral.
 
