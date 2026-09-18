@@ -1,0 +1,147 @@
+# Agent Regression Kit technical design
+
+[中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
+
+Based on v3.4.3 source. Package version 3.4.3, PUBLIC_API_VERSION=3 and Trace/Session schema=0.1 are independent compatibility boundaries.
+
+## 1. Purpose and ownership
+
+The kit records observable Agent behavior and checks it after changes to prompts, models, tools or orchestration. Integrators own business expectations, input sets, instrumentation and environment isolation. The kit owns recording, validation, structural comparison, contracts and reporting.
+
+It can check arguments, structured conclusions, forbidden tools, turn continuity, business side effects and repeat-run stability. Open-ended prose quality and unobserved reasoning are outside deterministic evidence checks.
+
+## 2. Architecture
+
+```mermaid
+flowchart TD
+    Agent[Agent adapter] -->|tool calls and final claims| Recorder[Recorder]
+    Recorder -->|execute tool arguments| Tools[Fixture or MCP executor]
+    Tools -->|result or error| Recorder
+    Recorder -->|validate and redact| Trace[Candidate Trace]
+    Baseline[Reviewed baseline] -->|expected evidence| Compare[Compare and Contract]
+    Trace -->|actual evidence| Compare
+    Compare -->|differences and status| Reports[JSON Markdown JUnit]
+    Reports -->|exit code 0 or 1| CI[CI gate]
+    Reports -->|selected files| Viewer[Local Viewer]
+```
+
+Adapters supply observable events; comparison consumes Trace and policy; reports feed CI and the local Viewer.
+
+| Layer | Source modules | Responsibility |
+| --- | --- | --- |
+| Integration | adapters.py, sdk.py, templates.py | Agent identity and sync/async callback boundary |
+| Recording | record.py, async_record.py | Pairing, sequencing, redaction and validation |
+| Execution | record.py, mcp.py, scenario.py | Fixed/stateful fixtures or MCP tool calls |
+| Isolation | isolation.py | Snapshot and restore explicitly connected state |
+| Model | model.py, session.py | Trace and turn invariants |
+| Comparison | compare.py, contracts.py | Structural differences and behavioral constraints |
+| Evaluation | batch.py, batch_record.py, stability.py, coverage.py | Bounded parallel cases, thresholds, coverage |
+| Handoff | history.py, report_index.py, reports.py | File aggregation and rendering |
+| Entry points | cli.py, config.py, preflight.py | Config precedence, paths, validation and exit codes |
+| UI | ui.py, viewer/*.html | Static local file inspection and config export |
+
+Python modules live in src/agent_regression/. The core has no required third-party runtime dependencies. LangChain Core is an optional example dependency. There is no separate database or application backend.
+
+## 3. Execution and failure behavior
+
+```mermaid
+sequenceDiagram
+    participant A as Agent adapter
+    participant C as Recording context
+    participant T as Tool executor
+    participant V as Trace validator
+    A->>C: call_tool(name, arguments)
+    C->>T: call with raw arguments
+    alt result returned
+        T-->>C: result or ToolExecutionResult
+        C-->>A: redacted result
+        A->>C: final_answer(text, claims)
+        C->>V: completed Trace
+        V-->>C: valid Trace
+    else executor raises
+        T--xC: exception
+        C--xA: record error event and re-raise
+        Note over A,C: Unhandled error aborts record_run; no successful Trace returned
+    end
+```
+
+The context records a call before executing it. If a synchronous executor raises, it records an error event and re-raises; record_run returns a complete Trace only after Agent completion and validation. Internal error events are not automatically persisted crash reports.
+
+A ToolExecutionResult can carry is_error/error/metadata; this differs from an executor raising a Python exception. Integrations must handle the distinction. The synchronous context returns redacted results to the Agent, which can affect logic using sensitive fields.
+
+## 4. Evidence model
+
+AgentTrace contains schema_version, run_id, agent, events and metadata. call_id pairs tool_call/tool_result; sequence identifies event order; final_answer contains text and optional claims.
+
+- run_id identifies evidence, not a business requirement.
+- Agent identity and optional model/prompt metadata document provenance.
+- Claims are integration-provided facts, not automatically extracted truth.
+- Optional world_state initial/final snapshots make exposed side effects observable.
+- schema/agent-trace-v0.1.schema.json describes shape; runtime validation also checks event invariants.
+- AgentSession holds ordered per-turn traces; shared Agent/tool instances preserve conversation state and exposed snapshot continuity can be checked.
+
+## 5. Comparison and contracts
+
+compare_traces accepts validated baseline/candidate and ComparisonPolicy. Default alignment extracts event types and compares calls/results by order, including names, arguments, results, error states and final text/claims. It is neither a full-file JSON diff nor optimal sequence alignment.
+
+ContractPolicy exposes tool_calls, tool_results, final_answer and world_state projections. ignore_paths and normalizers affect comparable values; assertions examine the raw candidate projection. Argument/result mismatches can be reported at whole-object paths; world-state differences can be field-level.
+
+| Policy | Semantics |
+| --- | --- |
+| exact | Default final text and claims comparison |
+| claims-only | Skip prose; meaningful business claims still need instrumentation |
+| allow_categories / allow_paths | Permit named categories or exact reported paths |
+| equals / contains / exists | Candidate field assertions |
+| must_call / must_not_call | Required or forbidden tools and optional arguments |
+| max_steps | Maximum number of tool calls |
+| path_rules.any_of | Explicit accepted tool paths; changes strict path alignment behavior |
+| side_effects | Expected from/to state transitions |
+| timestamp / sort | Fixed marker or repr-based list ordering, no user code execution |
+
+Empty claims and broad ignores weaken coverage. When accepting alternative paths, retain outcome assertions, side-effect constraints and branch scenarios.
+
+## 6. Replay versus re-execution
+
+replay_trace validates existing evidence and returns paired calls/results plus the answer. It never invokes the executor or Agent. Regression requires a new candidate recorded from changed code.
+
+ScriptedAgentAdapter executes a fixed plan, including potentially prewritten answers. It validates the testing mechanism, not real model interpretation. Real integrations must derive or expose conclusions and claims from actual results.
+
+## 7. Concurrency, state and nondeterminism
+
+Batch recording uses bounded threads and independent adapter/tool factories, then stable case_id ordering. Async recording assigns call IDs in creation order and captures explicit parallel groups; completion order differs from emitted evidence order.
+
+SnapshotBackend defines snapshot()/restore(). Integrators implement actual database, cache or emulator rollback. Unregistered writes and process-global state are not automatically isolated.
+
+record_stability aggregates pass rate, claims agreement, tool errors and path variants over fresh runs. Finite repeats are not a population reliability guarantee. CLI stability uses scripted scenarios; model-backed evaluation uses ScenarioCase factories through the Python API.
+
+## 8. MCP boundary
+
+MCP is the tool protocol boundary. Clients target protocol 2025-11-25 with stdio and Streamable HTTP. They expose discovery, calls, resources, prompts, pagination, progress, explicit cancellation, streams and controlled server-request/task handling.
+
+Client methods are not automatically used by every Trace recorder. Lifecycle design is synchronous and single-session; automatic OAuth, all optional extensions and unknown protocol versions are not guaranteed. Reconnecting transport does not make business calls safe to retry.
+
+Local fixtures verify controlled behavior; official Everything Server smoke checks verify basic interoperability/discovery; the LangChain example verifies a callback. None is a complete protocol certification or proof that arbitrary production Agents are instrumented.
+
+## 9. Reports and CI
+
+JSON preserves machine-readable results; Markdown supports review and Job Summary; JUnit supports test tooling. report-index includes compare/batch/stability/coverage/history summaries without embedding complete differences or traces.
+
+history uses sorted relative filenames, not inferred timestamps, and does not automatically group cases or report types. Build meaningful trends from comparable runs. The main CI's mixed report aggregation demonstrates the interface, not a cross-release performance trend.
+
+Comparison/check commands use 0/1/2. history follows the last recognized point. report-index --fail-on-regression requires all recognized entries to pass and fails on an empty inventory. Malformed/unrecognized JSON may be listed as skipped: the index does not prove that every expected report exists, so preserve producer exit codes.
+
+Use compare --config for custom contracts; the existing compare Action has no config/contract input. CI records, preflights, compares and uploads, without automatically accepting baseline changes.
+
+## 10. Security and deployment
+
+ui defaults to 127.0.0.1 but allows --host overrides. It is a static server without authentication, tenancy, remote runners, database or approval service.
+
+Default redaction recognizes common keys; free text needs explicit secret_values. Filenames, paths, summaries and external logs may remain sensitive. Review artifacts before upload. MCP subprocesses run with the current user's permissions; use trusted tools and isolated test data.
+
+## 11. Acceptance and evolution
+
+Recorded v3.4.3 evidence includes 132 local tests, Python 3.9/3.11/3.13 core CI, LangChain Core callback checks, wheel/source builds and clean installation. This demonstrates covered paths, not years of production usage or automatic support for every Agent.
+
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647124) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647091) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3)
+
+Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

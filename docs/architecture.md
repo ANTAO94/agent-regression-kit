@@ -1,5 +1,7 @@
 # Architecture
 
+See the [current technical design](technical-design.en.md) / [中文技术方案](technical-design.zh-CN.md) for a layered explanation, exact replay semantics and failure boundaries.
+
 This document describes Agent Regression Kit v3.4 and its local Viewer. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
 
 ```mermaid

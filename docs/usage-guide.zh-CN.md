@@ -1,5 +1,7 @@
 # Agent Regression Kit：新手接入指南
 
+> 从零接入请先阅读[新版使用手册](user-manual.zh-CN.md)；本文保留高级 API 与场景示例。架构与边界见[技术方案](technical-design.zh-CN.md)。
+
 这份指南只回答一个问题：**我已经有一个 AI Agent，怎样在几分钟内把它接入回归测试？**
 
 ## 1. 先理解它解决什么问题
@@ -431,7 +433,7 @@ agent-regression adapter-init \
   --name my-order-agent \
   --mode both
 cd my-agent-regression
-PYTHONPATH=.. python -m unittest discover -s tests -v
+PYTHONPATH=. python -m unittest discover -s tests -v
 ```
 
 生成目录中有 `adapter.py`、`tests/test_adapter_contract.py` 和双语 `README.md`。你只需要把 `adapter.py` 里的示例逻辑换成自己的 LangChain、Spring AI 或自研框架调用；测试会持续检查工具调用经过 `context.call_tool`，并且最终回答经过 `context.final_answer`。
@@ -609,9 +611,9 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 **需要先有一个成熟的 Agent 吗？** 不需要。先用仓库自带 Fixture 或一个假的 ToolExecutor 验证录制、回放、比较链路，再接真实 Agent。
 
-**它是 LLM Judge 吗？** 不是。v2.8 只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
+**它是 LLM Judge 吗？** 不是。当前实现只比较明确记录下来的结构化证据和确定性契约，不调用模型替你判断“这句话大概对不对”。
 
-**能不能支持 LangChain、Spring AI 或自研框架？** 可以，只要在框架边界实现 `AgentAdapter`；核心 Trace 和 compare 不绑定语言框架。
+**能不能支持 LangChain、Spring AI 或自研框架？** Python 可实现 `AgentAdapter`；Java/TypeScript 需自行插桩输出 Trace JSON 或实现桥接，尚无内置语言 SDK。
 
 **baseline 什么时候更新？** 只有当行为变化是有意且经过审核的产品变更时更新。不要让 CI 自动接受 candidate。
 

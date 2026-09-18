@@ -277,7 +277,7 @@ agent-regression history \
 ## Report index
 
 `build_report_index` is the batch handoff layer for a CI output directory. It
-recognizes compare, batch, stability, and coverage JSON reports, but deliberately
+recognizes compare, batch, stability, coverage, and history JSON reports, but deliberately
 does not embed their full `differences`, Trace events, or arbitrary metadata.
 Each entry contains a safe relative path, report type, label, pass/fail status,
 and normalized metrics:

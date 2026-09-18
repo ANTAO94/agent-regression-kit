@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-No unreleased changes.
+- Rewrite the bilingual README around installation, policy configuration, Agent integration and CI.
+- Add bilingual technical design and user manuals with explicit replay, SDK, contract and security boundaries.
+- Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
+- Correct conflicting MCP limitations and stale adapter-template test instructions.
 
 ## 3.4.3 - 2026-09-18
 

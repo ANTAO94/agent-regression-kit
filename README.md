@@ -4,1291 +4,198 @@
 [![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression-kit)](https://github.com/ANTAO94/agent-regression-kit/releases)
 [![License](https://img.shields.io/github/license/ANTAO94/agent-regression-kit)](LICENSE)
 
-[中文说明](#中文说明) | [English](#english)
+[中文](#中文) · [English](#english)
 
-[中文新手接入指南](docs/usage-guide.zh-CN.md) | [English Getting Started](docs/usage-guide.en.md)
+## 中文
 
-[打开 Trace 查看器](viewer/index.html) | [打开报告索引](viewer/reports.html) | [打开配置中心](viewer/config.html) | [完整 HTML 技术文档](docs/agent-regression-kit-guide.html) | [成熟框架路线图](docs/maturity-roadmap.md) | [升级指南](UPGRADING.md) | [兼容性矩阵](docs/compatibility-matrix.md)
+**为 Agent 的工具调用、结构化结论和业务状态建立可审核的回归测试。**
 
-## 中文说明
+改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
-Agent Regression Kit 是一个面向 AI Agent 的、与框架无关的回归测试工具包。它把一次 Agent 运行记录成版本化、脱敏的 JSON Trace，再将候选版本与经过审核的基线进行结构化比较。
+当前版本：[v3.4.3](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
 
-一句话理解：**它像给 Agent 的单元测试——关注 Agent 调用了什么工具、传了什么参数、拿到了什么结果，以及是否正确回答，而不是只看最后一句话。**
+### 从这里开始
 
-如果你只想先跑通，请直接复制下面四步；如果你要接入自己的 Agent，请看[新手接入指南](docs/usage-guide.zh-CN.md)。
+| 你想做什么 | 文档 |
+| --- | --- |
+| 从安装到首个成功/失败用例 | [使用手册](docs/user-manual.zh-CN.md) |
+| 配置检查项、断言和噪声过滤 | [策略配置](docs/user-manual.zh-CN.md#4-配置断言噪声过滤与比较范围) |
+| 接入自己的 Agent | [接入步骤](docs/user-manual.zh-CN.md#5-接入自己的-agent) |
+| 同一策略集成 CI | [完整 CI 工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁) |
+| 理解架构、实现和边界 | [技术方案](docs/technical-design.zh-CN.md) |
+| 查 API 与高级场景 | [API](docs/api.md) · [高级指南](docs/usage-guide.zh-CN.md) |
+| 阅读 HTML 讲解 | [HTML 文档](docs/agent-regression-kit-guide.html)，下载后本地打开 |
 
-当你修改 Prompt、模型、工具 Schema 或 Agent Adapter 时，项目可以在 CI 中明确告诉你：工具名称、参数、工具结果、最终答案或交互流程是否发生了回归，而不是依赖人工观察。
-
-### 核心流程
+### 工作方式
 
 ```mermaid
-flowchart LR
-    Change[修改 Prompt / 模型 / 工具] --> Run[运行 Agent]
-    Run --> Candidate[candidate Trace]
-    Baseline[审核后的 baseline] --> Compare[结构化 compare]
-    Candidate --> Compare
-    Compare -->|通过| Pass[CI 通过]
-    Compare -->|发现回归| Fail[CI 失败 + Diff 报告]
+flowchart TD
+    A[修改 Agent] -->|实际运行| C[Candidate Trace]
+    B[人工审核的 Baseline] -->|预期证据| D[Compare + Contract]
+    C -->|实际证据| D
+    P[检查项与噪声规则] -->|比较策略| D
+    D -->|通过: exit 0| OK[CI 通过]
+    D -->|回归: exit 1| FAIL[CI 失败与差异报告]
 ```
 
-这张图回答的是：一次 Agent 改动如何变成 CI 中可以审核的证据。
+Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际；Contract 是字段和行为约束。Claims 是由接入代码提供的结构化业务结论。
 
-### 当前能力
+### 五分钟体验
 
-- AgentTrace v0.1：事件序列、工具调用/结果配对、最终答案和结构化 claims。
-- MCP stdio 与 Streamable HTTP：JSON/SSE、会话、分页、取消、重连、进度和并发调用。
-- 服务端请求处理：sampling、elicitation，以及 HTTP POST-SSE 流中的双向请求响应。
-- 任务化工具调用：任务创建、状态轮询、结果获取和取消。
-- 严格结构化对比：支持单用例和批量 JSON、Markdown、JUnit 报告以及 CI exit code。
-- 非确定性文本控制：`claims-only` 模式允许最终措辞变化，但仍严格比较结构化 claims、工具调用和工具结果。
-- 项目配置：`compare --config` 可复用 baseline、candidate、报告格式和比较策略，命令行参数优先。
-- CI 策略一致：GitHub Action 支持 `final-answer-mode`、`allow-category` 和 `allow-path`。
-- 批量配置：`batch-compare --config` 支持多用例目录的可复用配置。
-- 稳定配置契约：`config validate` 可校验配置形状；`check` 进一步检查配置引用的 Trace 文件、批量目录和文件集合是否真的可用。
-- Agent Contract Testing：支持字段断言、动态字段忽略/归一化、必须/禁止工具调用和最大步骤约束。
-- Stateful Scenario Testing：支持每个用例独立的 world state、业务副作用断言、状态差异报告和多条合法工具路径。
-- Scenario Path Coverage：汇总多份 Trace 的工具调用路径，发现缺失的正常、异常或副作用分支，并可直接作为 CI 门禁。
-- Multi-turn Sessions：把连续追问保存为可验证的 Session，逐轮比较工具行为、答案和状态变化。
-- Business Branch Coverage：按结构化 claims 统计 `paid`、`cancelled`、`not_found` 等业务结果分支。
-- 可执行状态隔离：通过统一的 `snapshot()` / `restore(snapshot)` 边界包住内存 Fixture、数据库、缓存或服务模拟器；用例结束自动恢复，避免测试污染。
-- 框架桥接与并行场景：`CallableAgentAdapter` 可以包住任意框架的 `invoke` 回调；`record_scenario_batch` 和 `batch-record` 可以并行录制独立场景，并按 case ID 稳定输出结果。
-- 重复运行稳定性评测：`record_stability` 和 `stability` 可以隔离重复执行同一个场景，统计通过率、claims 一致率、工具错误率和工具路径变体，并把阈值接入 CI。
-- 异步并行事件 Trace：`AsyncCallableAgentAdapter`、`async_record_run` 和 `async-record` 支持一次 Agent 运行内并发调用多个工具，保留 `call_id`、并行组和稳定事件顺序。
-- 接入 SDK 与模板：`AdapterSpec` 统一同步/异步 Agent 身份和回调边界，`adapter-init` 生成可运行的接入代码、双语说明和离线契约测试；`check_adapter_contract` 提供结构化的接入失败诊断。
-- 公共兼容边界：`PUBLIC_API_VERSION`、`public_api_manifest()` 和 `SUPPORTED_TRACE_SCHEMA_VERSIONS` 明确 Python API 与 Trace schema 的版本策略。
-- 可选真实框架示例：`examples/langchain_core_callback_example.py` 使用 LangChain Core 的 `RunnableLambda`，不需要模型密钥；依赖单独放在 `examples/optional-requirements.txt`，不会污染默认测试。
-- 历史趋势与长期回归：`build_history_report` 和 `history` 聚合多次 stability、compare、batch 或 coverage 报告，展示最新状态、指标首末变化和历史失败点。
-- CI 报告索引：`report-index` 为一个输出目录生成安全的相对路径清单；Viewer 的 Report Index 先展示全局通过/失败，再把维护者带到具体 compare、batch、stability、coverage 或 history 证据。
-- 默认脱敏：避免 API Key 等敏感字段进入 Trace。
+macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
 
-### 验证结果
+```bash
+git clone --branch v3.4.3 https://github.com/ANTAO94/agent-regression-kit.git
+cd agent-regression-kit
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+agent-regression --version
 
-以下结果于 2026-09-18 在本地运行：
+agent-regression record \
+  --scenario examples/order-123/candidate-ok.scenario.json \
+  --out work/candidate.trace.json
+agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/candidate.trace.json \
+  --out work/reports/compare.json
+```
 
-| 检查项 | 结果 |
+预期：passed=true，退出码 0。再故意录制一个错误版本：
+
+```bash
+agent-regression record \
+  --scenario examples/order-123/candidate-regression.scenario.json \
+  --out work/bad.trace.json
+agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/bad.trace.json \
+  --out work/reports/regression.json
+```
+
+预期：退出码 1，JSON 显示阻断差异。退出码 2 表示输入或校验错误。[使用手册](docs/user-manual.zh-CN.md)说明配置策略、审核 baseline、接入真实 Agent 和排错。
+
+### 能力与边界
+
+| 能力 | 可做的事情 | 使用边界 |
+| --- | --- | --- |
+| Trace / Compare | 记录工具名、参数、结果、错误、答案和 claims | 按顺序对齐，需显式插桩 |
+| Contract | 字段断言、噪声过滤、归一化、工具/路径/副作用约束 | 业务期望由你定义 |
+| 状态 / 多轮 / 异步 | 快照隔离、逐轮检查、并行组记录 | 外部状态和线程安全由接入方负责 |
+| Stability / Coverage | 重复运行阈值、工具路径与业务分支覆盖 | 不是模型质量或代码覆盖率 |
+| MCP | stdio / Streamable HTTP 工具接入及 Fixture | MCP 服务不等同于完整 Agent |
+| SDK | Python 同步/异步 Adapter 与模板 | 无现成 Java/TypeScript SDK |
+| CI / Viewer | JSON、Markdown、JUnit、报告索引、配置导出 | 页面是本地静态工具，无账号/远程执行 |
+
+**replay 只检查已有 Trace，不重新运行 Agent 或工具。** 测新版本必须重新录制 candidate。claims-only 允许措辞变化，但需要有意义的 claims 和业务断言。
+
+
+```bash
+agent-regression ui
+```
+
+打开终端提示的地址，默认 http://127.0.0.1:8765/index.html，选择本地 Trace/报告。配置中心导出 JSON 后再运行 CLI。GitHub 不直接运行这些 HTML 页面。
+
+自定义断言的 CI 请使用 **compare --config**：v3.4.3 比较 Action 不接收 contract/config，也不会自动加载项目策略。[可复制工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁)保留失败退出码并上传三种报告。
+
+### 验证与维护
+
+v3.4.3 已记录的发布验收：
+
+| 检查 | 证据 |
 | --- | --- |
-| Python 单元与集成测试 | **132 项通过，0 项失败** |
-| 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-3.4.3-py3-none-any.whl` 构建成功 |
-| 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
-| 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
-| MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
+| 核心测试 | 132 项；[Python 3.9/3.11/3.13 CI](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647124) |
+| 框架回调 | [LangChain Core 三版本矩阵](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647091) |
+| 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647344) |
+| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3) |
 
-核心测试可以这样复现：
+这些验证覆盖已实现路径，生产接入仍需要自己的业务用例。官方 MCP 检查是独立的[可选工作流](.github/workflows/mcp-compatibility.yml)，不等于完整协议认证。文档更新以 main 为准，发布 tag 内容固定。
+
+[升级](UPGRADING.md) · [变更](CHANGELOG.md) · [限制](docs/limitations.md) · [兼容矩阵](docs/compatibility-matrix.md) · [贡献](CONTRIBUTING.md)
+
+## English
+
+**Regression tests for Agent tool calls, structured conclusions and business state.**
+
+After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
+
+Release: [v3.4.3](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v3.4.3). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+
+### Documentation
+
+| Goal | Read |
+| --- | --- |
+| Install and reproduce pass/fail behavior | [User manual](docs/user-manual.en.md) |
+| Configure assertions and noise filtering | [Comparison policy](docs/user-manual.en.md#4-configure-assertions-and-noise-filtering) |
+| Connect your own Agent | [Integration](docs/user-manual.en.md#5-integrate-your-own-agent) |
+| Use the same policy in CI | [Complete workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) |
+| Understand architecture and boundaries | [Technical design](docs/technical-design.en.md) |
+| Explore advanced APIs | [API reference](docs/api.md) · [Advanced guide](docs/usage-guide.en.md) |
+
+### Quick start
+
+Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
+
+```bash
+git clone --branch v3.4.3 https://github.com/ANTAO94/agent-regression-kit.git
+cd agent-regression-kit
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+agent-regression --version
+
+agent-regression record \
+  --scenario examples/order-123/candidate-ok.scenario.json \
+  --out work/candidate.trace.json
+agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/candidate.trace.json \
+  --out work/reports/compare.json
+```
+
+Expected: passed=true and exit 0. Prove a regression fails:
+
+```bash
+agent-regression record \
+  --scenario examples/order-123/candidate-regression.scenario.json \
+  --out work/bad.trace.json
+agent-regression compare \
+  --baseline baselines/order-123.trace.json \
+  --candidate work/bad.trace.json \
+  --out work/reports/regression.json
+```
+
+Expected: exit 1 and blocking differences. Exit 2 means invalid inputs or validation failure.
+
+A Trace records one run; baseline is reviewed expectation; candidate is new evidence. Contracts express explicit business rules. Claims are structured conclusions emitted by the integration, not inferred automatically from prose.
+
+### Capabilities and boundaries
+
+| Feature | Provides | Boundary |
+| --- | --- | --- |
+| Trace / Compare | Calls, arguments, results, errors, answer and claims comparison | Ordered alignment, explicit instrumentation |
+| Contracts | Assertions, noise filters, normalizers, tool/path/state constraints | Integrator-owned expectations |
+| State / sessions / async | Snapshot isolation, per-turn checks, parallel groups | Integrator-owned cleanup and thread safety |
+| Stability / coverage | Repeat thresholds and observed tool/business branches | Not model quality or code coverage |
+| MCP | stdio / Streamable HTTP tools and controlled fixtures | Not a complete Agent framework |
+| SDK | Python sync/async adapters and templates | No bundled Java/TypeScript SDK |
+| Reports / UI | JSON, Markdown, JUnit, index and config export | Local static UI, no hosted management backend |
+
+**replay inspects recorded evidence; it does not re-execute Agents or tools.** Record a new candidate to test changes. claims-only permits prose changes but needs meaningful claims and business assertions.
+
+Run agent-regression ui, open the printed loopback URL and select local files. Save exported configuration before CLI checks. GitHub HTML links display source rather than a running page.
+
+Use **compare --config** for custom contracts in CI. The v3.4.3 comparison Action has no config/contract input and does not automatically load project policy. The [documented workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) preserves exit codes and uploads all three report formats.
+
+### Verification and maintenance
+
+Recorded v3.4.3 evidence: [132 core tests across Python 3.9/3.11/3.13](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647124), [LangChain Core callback checks](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647091), and [build/clean-install verification](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35349647344).
+
+These checks cover implemented paths; production integrations need their own scenarios. The [optional MCP workflow](.github/workflows/mcp-compatibility.yml) is separate and does not certify every protocol behavior. Main contains documentation updates; published tags are fixed snapshots.
+
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -q
 ```
 
-### 快速开始
-
-```bash
-python -m venv .venv
-.venv/bin/pip install -e .
-
-# 为自己的项目生成 Agent、baseline 和 GitHub Actions 模板
-agent-regression init
-
-# 生成一份 candidate Trace（先用模板验证，再替换成自己的 Agent）
-python scripts/record_agent.py --out work/my-agent.trace.json
-
-agent-regression record \
-  --scenario examples/order-123/baseline.scenario.json \
-  --out work/baseline.trace.json
-
-agent-regression record \
-  --scenario examples/order-123/candidate-regression.scenario.json \
-  --out work/candidate.trace.json
-
-agent-regression compare \
-  --baseline work/baseline.trace.json \
-  --candidate work/candidate.trace.json \
-  --out work/diff.json
-```
-
-候选版本发生回归时，`compare` 返回退出码 `1`；匹配时返回 `0`；输入或 Trace 无效时返回 `2`。
-
-如果 Agent 的最终回答每次措辞可能不同，但你已经让 Agent 输出结构化
-`claims`，可以显式只比较 claims：
-
-```bash
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/candidate.trace.json \
-  --final-answer-mode claims-only
-```
-
-这个模式只忽略 `final_answer.text` 的差异；claims、工具名称、参数、工具结果
-和错误状态仍然会阻断回归。默认模式仍是 `exact`。
-
-`agent-regression init` 还会生成 `.agent-regression/config.json`。配置好后，
-可以把重复参数收进文件：
-
-```bash
-agent-regression compare --config .agent-regression/config.json
-```
-
-配置中的路径默认相对于项目根目录；直接传入的 `--baseline`、`--candidate`、
-`--format`、`--out` 等参数会覆盖配置文件。
-
-在 CI 中正式比较前，可以先校验配置并输出规范化后的路径：
-
-```bash
-agent-regression config validate \
-  --config .agent-regression/config.json \
-  --kind single
-
-# 不执行 Agent、不比较行为，只检查配置引用的 Trace 是否存在且合法
-agent-regression check \
-  --config .agent-regression/config.json \
-  --kind single
-```
-
-`config validate` 只检查配置字段和路径规范；`check` 是 CI 中更靠前的一道
-无副作用预检，会读取 baseline/candidate Trace 并校验其 schema、事件结构和批量
-用例集合，但不会执行 Agent、写入 baseline，也不会把差异判为通过或失败。
-
-### 本地查看器、报告索引和配置中心（v3.4）
-
-项目提供一个不需要后端的本地 Viewer：可以查看 baseline/candidate 的 Trace 时间线、Python compare 生成的差异 JSON，批量浏览 `report-index` 生成的报告清单，并通过配置中心生成 `.agent-regression/config.json`。
-
-从源码仓库启动：
-
-```bash
-agent-regression ui --open-browser
-```
-
-默认只绑定 `127.0.0.1`，不会把 Trace 暴露到局域网。也可以手动指定目录和端口：
-
-```bash
-agent-regression ui \
-  --directory viewer \
-  --host 127.0.0.1 \
-  --port 8765
-```
-
-Viewer 是只读展示层：它不会重新执行 Agent、修改 baseline 或替代 Python 比较器。正式 compare 仍然由 CLI 生成 JSON/Markdown/JUnit 报告，页面只读取本地文件。
-
-批量报告清单的生成方式：
-
-```bash
-agent-regression report-index \
-  --report-dir outputs \
-  --out outputs/report-index.json
-
-# 需要把失败状态作为 CI 门禁时：
-agent-regression report-index \
-  --report-dir outputs \
-  --format markdown \
-  --out outputs/report-index.md \
-  --fail-on-regression
-```
-
-然后在浏览器中打开 `viewer/reports.html`，选择 `outputs/report-index.json`。
-索引不会复制完整差异或 Trace 内容，只保留报告类型、状态、指标和相对路径；要查看具体差异，再把原始 JSON 显式加载到 Trace Inspector。
-
-### 项目边界
-
-它不是通用 Agent 框架、评分平台、LLM Judge 或在线多租户 Dashboard。仓库里的订单 Agent 和 MCP Server 是确定性的测试 Fixture，用来证明接入边界可以在没有模型和网络依赖的情况下运行；Viewer 是一个本地只读的证据查看层。
-
-### 别人如何接入自己的 Agent
-
-最重要的一点：这个项目不会替你调用 LLM，也不会自动接管一个现有 Agent。你需要写一个很薄的 `AgentAdapter`，把 Agent 的工具调用转发给 `context.call_tool`，把最终回答转发给 `context.final_answer`。之后，回归工具负责录制 Trace、保存 baseline、比较 candidate，并在 CI 中阻断变化。
-
-下面是一个完整的最小接入例子。真实项目里，`MyOrderAgent.run` 内部可以换成你的 LangChain、Spring AI、OpenAI SDK 或自研 Agent 调用；关键是把工具调用和最终回答接到两个 `context` 方法上：
-
-```python
-# scripts/record_agent.py
-import json
-import sys
-from pathlib import Path
-
-from agent_regression import record_mcp_run
-
-
-class MyOrderAgent:
-    identity = {"name": "my-order-agent", "version": "1.0.0"}
-
-    def run(self, request, context):
-        order_id = str(request).rsplit(" ", 1)[-1]
-        order = context.call_tool("get_order", {"order_id": order_id})
-        status = order["status"]
-        text = f"订单 {order_id} 的状态是 {status}。"
-        context.final_answer(
-            text,
-            {"order_id": order_id, "order_status": status},
-        )
-
-
-trace = record_mcp_run(
-    MyOrderAgent(),
-    "查询订单 123",
-    [sys.executable, "src/agent_regression/fixtures/mcp_stdio_server.py"],
-    run_id="my-order-agent-123",
-)
-Path("work/my-order-agent.trace.json").parent.mkdir(parents=True, exist_ok=True)
-Path("work/my-order-agent.trace.json").write_text(
-    json.dumps(trace.to_dict(), ensure_ascii=False, indent=2) + "\n",
-    encoding="utf-8",
-)
-```
-
-实际使用时通常是四步：
-
-```bash
-# 1. 第一次确认行为正确时，生成并审核 baseline
-python scripts/record_agent.py
-cp work/my-order-agent.trace.json baselines/my-order-agent.trace.json
-
-# 2. 修改 Prompt、模型、工具或 Agent 代码后，再录一份 candidate
-python scripts/record_agent.py
-
-# 3. 比较两次运行
-agent-regression compare \
-  --baseline baselines/my-order-agent.trace.json \
-  --candidate work/my-order-agent.trace.json \
-  --format junit \
-  --out outputs/my-order-agent.junit.xml
-
-# 4. 在 CI 中使用同一个 compare 命令；退出码 1 就表示检测到阻断性回归
-```
-
-如果你的 MCP Server 是 Streamable HTTP，只需将 `record_mcp_run` 换成 `record_mcp_http_run` 并传入 `/mcp` 地址；如果你的 Agent 已经有自己的工具执行层，也可以直接使用通用的 `record_run`。仓库中的 `examples/rule_agent_mcp_example.py` 是可以直接运行的完整参考，`examples/stateful_order_example.py` 展示了状态快照、副作用和多路径契约，`examples/order-123/` 则是 CLI 演示数据，不是用户必须采用的 Agent 格式。
-
-### 外部状态隔离（v2.6）
-
-如果 Agent 会修改订单、库存、权限、缓存等外部状态，只记录 Trace 还不够：一次测试留下的副作用可能污染下一次测试。v2.6 提供统一的 `snapshot()` / `restore(snapshot)` 边界，录制器可以在运行结束后自动恢复状态；Agent 抛异常时也会执行恢复。
-
-```python
-from agent_regression import isolated_record_run
-
-
-class TestDatabaseState:
-    def snapshot(self):
-        return read_test_rows_as_json()
-
-    def restore(self, snapshot):
-        replace_test_rows_from_json(snapshot)
-
-
-trace = isolated_record_run(
-    MyOrderAgent(),
-    "取消订单 123",
-    my_tools,
-    state_backend=TestDatabaseState(),
-    run_id="order-123",
-)
-```
-
-这里的 `TestDatabaseState` 可以连接测试数据库、Redis、服务模拟器或你自己的内存状态；它不要求生产系统暴露内部实现，只要求测试适配器能够保存和恢复可验证的状态。完整的离线示例见 [`examples/external_state_backend_example.py`](examples/external_state_backend_example.py)。多轮流程使用 `isolated_record_session`，它会在整个 Session 完成后恢复一次，而不会在每一轮之间重置状态。
-
-### 框架桥接与并行录制（v2.7）
-
-如果你的框架已经有 `invoke`、`run` 或 `execute` 方法，不必为每个项目重复写一整个 Adapter 类。用 `CallableAgentAdapter` 把框架回调接到统一的 `context`，再用 `ScenarioCase` 为每个场景创建独立 Agent 和工具：
-
-```python
-from agent_regression import CallableAgentAdapter, ScenarioCase, record_scenario_batch
-
-
-def invoke_framework(request, context):
-    result = context.call_tool("get_order", {"order_id": request["order_id"]})
-    context.final_answer(
-        f"status={result['status']}",
-        {"order_status": result["status"]},
-    )
-
-
-cases = [
-    ScenarioCase(
-        case_id="order-123",
-        request={"order_id": "123"},
-        run_id="order-123",
-        adapter_factory=lambda: CallableAgentAdapter(
-            {"name": "my-framework-agent", "version": "1.0.0"},
-            invoke_framework,
-        ),
-        tools_factory=make_test_tools,
-        isolate=True,
-    )
-]
-result = record_scenario_batch(cases, max_workers=4)
-assert result.passed
-```
-
-并行执行的关键不是“共享一个 Agent 加线程”，而是每个 `ScenarioCase` 都通过工厂创建自己的 Agent、工具和状态；结果即使完成顺序不同，也会按 `case_id` 稳定返回。仓库自带的完整示例是 [`examples/parallel_scenarios_example.py`](examples/parallel_scenarios_example.py)。对于目录中的确定性 JSON 场景，也可以直接使用：
-
-```bash
-agent-regression batch-record \
-  --scenario-dir examples/order-123 \
-  --out-dir work/scenarios \
-  --workers 4 \
-  --report outputs/batch-record.json
-```
-
-命令会为每个 `*.scenario.json` 生成对应的 `*.trace.json`，并在报告中记录每个场景的状态和错误；任何场景失败都会返回退出码 `1`，不会因为线程完成顺序而改变报告顺序。
-
-### 重复运行稳定性评测（v2.8）
-
-一次回放只能回答“这次行为是否等于 baseline”，但 Agent 可能因为模型采样、工具时序或外部依赖，在同一个输入上偶尔走另一条路径。v2.8 提供稳定性评测：用同一个 baseline 重复执行场景，每次都创建独立 Agent、工具和状态，再按阈值判断这组运行是否足够稳定。
-
-```bash
-agent-regression stability \
-  --baseline baselines/order-123.trace.json \
-  --scenario examples/order-123/baseline.scenario.json \
-  --repeats 10 \
-  --workers 4 \
-  --min-pass-rate 0.95 \
-  --min-claims-match-rate 1.0 \
-  --max-tool-error-rate 0.05 \
-  --max-path-variants 1 \
-  --final-answer-mode claims-only \
-  --format markdown \
-  --out outputs/stability.md
-```
-
-报告会同时保留每一次运行的比较结果，汇总以下四类门禁：
-
-- `pass_rate`：与 baseline 比较通过的重复运行比例；
-- `claims_match_rate`：结构化业务结果是否一致；
-- `tool_error_rate`：工具结果中显式错误的比例；
-- `path_variant_count`：包含 baseline 在内观察到的工具调用路径数量。
-
-同一能力也可以直接从 Python 调用；`examples/stability_example.py` 是离线可运行的完整例子：
-
-```python
-from agent_regression import StabilityPolicy, record_stability
-
-report = record_stability(
-    baseline,
-    scenario_case,
-    repeats=10,
-    max_workers=4,
-    policy=StabilityPolicy(min_pass_rate=0.95, max_path_variants=1),
-)
-assert report.passed
-```
-
-这不是统计学意义上的模型质量证明，也不是 LLM Judge；它只对已经记录下来的结构化 Trace 和显式阈值做重复性检查。
-
-### 一次运行内的异步并行工具调用（v2.9）
-
-v2.8 的 `record_scenario_batch` 是多个独立场景之间并行；v2.9 进一步支持一个 Agent 在同一轮里同时调用多个工具。例如 Agent 可以并行查询订单和物流，再合并结果回答。Trace 会先保存调用创建顺序，再保存对应结果，并在 `metadata.execution.parallel_groups` 中明确记录并行组，因此工具完成先后变化不会让 baseline 随机漂移。
-
-```bash
-agent-regression async-record \
-  --scenario examples/async-order/parallel.scenario.json \
-  --format markdown \
-  --out outputs/async-order.md
-```
-
-真实异步框架使用 `AsyncCallableAgentAdapter` 和 `record_async_run`：
-
-```python
-import asyncio
-from agent_regression import AsyncCallableAgentAdapter, record_async_run
-
-
-async def invoke_framework(request, context):
-    order, shipping = await asyncio.gather(
-        context.call_tool("get_order", {"order_id": "123"}, parallel_group="lookup"),
-        context.call_tool("get_shipping", {"order_id": "123"}, parallel_group="lookup"),
-    )
-    context.final_answer("done", {"order": order, "shipping": shipping})
-
-
-trace = record_async_run(
-    AsyncCallableAgentAdapter({"name": "my-async-agent"}, invoke_framework),
-    "查询订单 123",
-    my_async_tools,
-    run_id="async-order-123",
-)
-```
-
-如果调用方本身已经在事件循环中，使用 `await async_record_run(...)`；同步脚本使用 `record_async_run(...)` 即可。并行工具执行器应当自己保证线程/异步安全，工具副作用仍需通过状态隔离或幂等设计管理。完整离线示例见 [`examples/async_parallel_example.py`](examples/async_parallel_example.py)。
-
-### 接入 SDK 与模板（v3.0）
-
-如果你不确定自己的框架应该把代码放在哪里，先生成接入模板：
-
-```bash
-agent-regression adapter-init \
-  --directory my-agent-regression \
-  --name my-order-agent \
-  --mode both
-
-cd my-agent-regression
-PYTHONPATH=.. python -m unittest discover -s tests -v
-```
-
-模板包含三个文件：`adapter.py` 是需要替换框架调用的边界，`tests/test_adapter_contract.py` 是离线契约测试，`README.md` 解释 `context.call_tool` 和 `context.final_answer` 的职责。`--mode sync` 只生成同步模板，`--mode async` 生成并行工具调用模板，`--mode both` 同时提供两种版本。
-
-如果项目已经有自己的目录结构，也可以只使用 SDK 的 `AdapterSpec`：
-
-```python
-from agent_regression import AdapterSpec
-
-SPEC = AdapterSpec(
-    name="my-order-agent",
-    version="1.0.0",
-    metadata={"framework": "your-framework"},
-)
-adapter = SPEC.build_sync(invoke_framework)
-# 异步框架使用：async_adapter = SPEC.build_async(invoke_async_framework)
-```
-
-SDK 不会自动猜测框架内部状态，也不会替你生成业务 claims；它只把身份、同步/异步回调和 Trace 记录边界固定下来。接入 LangChain、Spring AI 或自研框架时，只需要在回调内部把框架的工具调用映射到这两个 context 方法。
-
-### 历史趋势与长期回归报告（v3.1）
-
-当项目运行了很多版本后，单份 compare 报告无法回答“稳定性是在变好还是变坏”。v3.1 可以读取历史目录中的 JSON 报告，支持 stability、compare、batch 和 coverage 四种报告类型：
-
-```bash
-agent-regression history \
-  --report-dir reports/agent-history \
-  --format markdown \
-  --out outputs/history.md
-```
-
-建议用 `001-v2.8.json`、`002-v2.9.json` 这样的文件名前缀表达时间顺序。报告会展示每个版本的通过状态、`pass_rate`、claims 一致率、工具错误率、路径变体、覆盖率或阻断差异，并计算首个点到最新点的 `delta`、最小值和最大值。历史目录中最新报告通过时命令返回 `0`；最新报告失败时返回 `1`，但旧失败仍会保留在表格里而不会被隐藏。
-
-```text
-历史报告目录
-  ├── 001-v2.8.json  ─┐
-  ├── 002-v2.9.json  ─┼─> history ─> 趋势表 + 最新门禁 + JUnit
-  └── 003-v3.0.json  ─┘
-```
-
-仓库自带 [`examples/history/`](examples/history/) 作为最小示例。它是离线聚合器，不是数据库、在线 Dashboard 或自动判断模型质量的统计系统。
-
-如果需要一次查看一个目录里的当前报告，可以使用 `report-index`：
-
-```bash
-agent-regression report-index \
-  --report-dir outputs \
-  --format markdown \
-  --out outputs/report-index.md
-```
-
-它识别 compare、batch、stability、coverage 和 history 报告，忽略同目录中无法识别的 JSON，并输出 skipped 原因。`--fail-on-regression` 会在存在失败报告时返回 `1`；默认模式只生成索引，不改变当前命令的成功状态。
-
-### CI 集成
-
-CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
-
-在你的项目中提交一份类似下面的 `.github/workflows/agent-regression.yml`：
-
-```yaml
-name: agent-regression
-
-on:
-  pull_request:
-
-jobs:
-  regression:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      # 从 GitHub 安装 Agent Regression Kit
-      - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
-
-      # 这是你的脚本：启动真实 Agent，生成 work/candidate.trace.json
-      - name: Record candidate trace
-        run: python scripts/record_agent.py
-
-      # 远程复用本项目提供的比较 Action
-      - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@main
-        with:
-          baseline: baselines/my-agent.trace.json
-          candidate: work/candidate.trace.json
-          report: outputs/my-agent.junit.xml
-          json-report: outputs/my-agent.compare.json
-
-      - name: Build report index
-        if: always()
-        run: |
-          agent-regression report-index --report-dir outputs --out outputs/report-index.json
-          agent-regression report-index --report-dir outputs --format markdown --out outputs/report-index.md --fail-on-regression
-
-      - name: Upload regression report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent-regression-report
-          path: outputs/
-```
-
-运行规则：`compare` 返回 `0`，PR 通过；返回 `1`，说明发现阻断性回归，PR 失败；返回 `2`，说明输入、Trace 或运行环境有问题。GitHub 会把 JUnit 文件作为构建产物保存，便于查看具体差异。
-
-如果项目有多个用例，可以把 baseline 和 candidate 按相同的相对路径放进两个目录：
-
-```bash
-agent-regression batch-compare \
-  --baseline-dir baselines \
-  --candidate-dir work/candidate \
-  --format markdown \
-  --out outputs/batch-summary.md
-```
-
-这个命令会递归匹配所有 `*.trace.json`，汇总通过、失败和缺失用例；任何 baseline/candidate 缺失都会让 CI 返回 `1`。
-
-如果一个工作流会同时产生 compare、coverage、stability 或 history 报告，可以直接复用报告索引 Action。仓库自己的主回归工作流会把四类 JSON 都写入 `work/ci-reports/`，再把 Markdown 索引追加到 Job Summary：
-
-```yaml
-- name: Build report index
-  if: always()
-  uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@main
-  with:
-    report-dir: outputs
-    fail-on-regression: 'true'
-```
-
-它会在 `outputs/` 中生成 `report-index.json` 和 `report-index.md`，并把 Markdown
-索引追加到 GitHub Job Summary；JSON、Markdown、JUnit 和原始报告可以一起作为
-artifact 上传。`agent-coverage` Action 也支持 `json-report`，因此覆盖率报告可以
-进入同一份索引。
-
-多用例项目也可以把目录和报告设置放进配置文件：
-
-```bash
-agent-regression batch-compare --config .agent-regression/batch.json
-```
-
-配置至少包含 `baseline_dir` 和 `candidate_dir`，路径相对于项目根目录。
-
-详细 API、架构、限制和完整英文文档见后面的 [English](#english) 部分，以及 [`docs/`](docs/) 目录。
-
-## English
-
-Agent Regression Kit is a small, framework-neutral regression-testing layer for AI Agents. It turns an Agent run into versioned, redacted JSON evidence, then compares a candidate run with a reviewed baseline. A changed prompt, model, tool schema, or adapter should produce a visible diff in CI instead of a silent behavior change.
-
-For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
-
-Current release line: **v3.4**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, an AdapterSpec integration SDK, sync/async adapter templates and contract tests, Adapter Contract Diagnostics, explicit public API and Trace schema boundaries, historical trend aggregation, latest-status gating, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, report-index batch handoff, reusable report-index and coverage JSON Actions, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, local Trace Viewer, Report Index and configuration center, optional framework compatibility checks, and matching policy controls in reusable GitHub Actions.
-
-The v3.4 release also includes a loopback-only `agent-regression ui` command that serves the Trace Inspector, Report Index and configuration viewer. It is intentionally a read-only presentation layer; the Python comparator remains the source of truth.
-
-```text
-Agent / MCP Server
-        │
-        ▼
-  record a Trace  ──────►  reviewed baseline
-        │                         │
-        └──── candidate Trace ────┘
-                                  │
-                                  ▼
-                       compare + JSON/JUnit report
-                                  │
-                                  ▼
-                         CI pass / regression
-```
-
-The project is not a general scorer platform, Agent framework, LLM judge, or
-dashboard. The included order Agent and MCP server are deterministic fixtures
-that make the integration boundary runnable without model or network access.
-
-## Current validation
-
-The following results were run locally on 2026-09-18:
-
-| Check | Result |
-| --- | --- |
-| Python unit and integration suite | **132 passed, 0 failed** |
-| Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-3.4.3-py3-none-any.whl` built successfully |
-| Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
-| Official Everything Server over Streamable HTTP | Passed; same discovery counts |
-| Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
-
-Reproduce the core result:
-
-```text
-$ PYTHONPATH=src python3 -m unittest discover -s tests -q
-----------------------------------------------------------------------
-Ran 132 tests in 8.6s
-
-OK
-```
-
-The official-server check is intentionally separate from the default offline
-suite. Run it with the manual workflow in
-[`.github/workflows/mcp-compatibility.yml`](.github/workflows/mcp-compatibility.yml)
-or with the `mcp-smoke` command described below.
-
-## AgentTrace v0.1
-
-Every trace contains:
-
-- `schema_version`, currently `0.1`;
-- a stable `run_id` and an `agent` identity object;
-- contiguous, one-based event `sequence` values;
-- paired `tool_call` / `tool_result` events linked by `call_id`;
-- exactly one terminal `final_answer`;
-- optional run `metadata` and optional structured final-answer `claims`.
-
-`claims` make result interpretation explicit enough for deterministic regression checks. The kit does not guess semantic facts from prose in v0.1.
-
-The canonical machine-readable contract is `schema/agent-trace-v0.1.schema.json`. Runtime validation additionally enforces contiguous sequence values, valid call/result pairing, and exactly one terminal answer.
-
-## Quick start
-
-Python 3.9+ is the only runtime dependency.
-
-```bash
-python -m venv .venv
-.venv/bin/pip install -e .
-
-# Scaffold an integration project
-agent-regression init
-
-# Run the generated deterministic example
-python scripts/record_agent.py --out work/my-agent.trace.json
-
-agent-regression record \
-  --scenario examples/order-123/baseline.scenario.json \
-  --out work/baseline.trace.json
-
-agent-regression record \
-  --scenario examples/order-123/candidate-regression.scenario.json \
-  --out work/candidate.trace.json
-
-agent-regression replay --trace work/baseline.trace.json
-agent-regression validate --trace work/baseline.trace.json
-
-agent-regression compare \
-  --baseline work/baseline.trace.json \
-  --candidate work/candidate.trace.json \
-  --out work/diff.json
-```
-
-The last command exits `1` because the candidate changes the tool name, changes `order_id` from the string `"123"` to the number `123`, contradicts the recorded result in its structured claim, and changes the final answer. A match exits `0`; invalid input or trace data exits `2`.
-
-To run the automated tests without installing the package:
-
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
-```
-
-The default suite is deterministic and offline. It covers trace validation,
-record/replay/compare, redaction, JSON/JUnit reports, MCP stdio and HTTP
-transports, pagination, cancellation, reconnect, resumable SSE, progress,
-concurrent calls, server-initiated requests, task helpers, and failure paths.
-
-## How users integrate their own Agent
-
-The package does not call an LLM or take control of an existing Agent. A user
-provides a thin `AgentAdapter`: route tool calls through `context.call_tool`
-and finish through `context.final_answer`. The package then records the run,
-stores a reviewed baseline, compares a candidate, and returns a CI-friendly
-exit code. The `record` and `mcp-record` CLI commands are deterministic fixture
-demos; they are not automatic discovery of arbitrary user Agents.
-
-Minimal adapter shape:
-
-```python
-from agent_regression import record_mcp_run
-
-
-class MyAgent:
-    identity = {"name": "my-agent", "version": "1.0.0"}
-
-    def run(self, request, context):
-        result = context.call_tool("get_order", {"order_id": "123"})
-        context.final_answer(
-            f"Order status: {result['status']}",
-            {"order_status": result["status"]},
-        )
-
-
-trace = record_mcp_run(
-    MyAgent(),
-    "lookup order 123",
-    ["node", "path/to/your-mcp-server.js", "stdio"],
-    run_id="my-agent-123",
-)
-```
-
-Write `trace.to_dict()` to a JSON file, keep the first reviewed file as the
-baseline, generate a new candidate after each Agent change, and compare them:
-
-```bash
-agent-regression compare \
-  --baseline baselines/my-agent.trace.json \
-  --candidate work/my-agent.trace.json \
-  --format junit \
-  --out outputs/my-agent.junit.xml
-```
-
-For a Streamable HTTP MCP server, use `record_mcp_http_run` with its `/mcp`
-URL. For an Agent that already owns tool execution, use the framework-neutral
-`record_run` API. See the Chinese walkthrough above and
-[`examples/rule_agent_mcp_example.py`](examples/rule_agent_mcp_example.py) for
-a runnable reference.
-
-### Isolate external mutable state (v2.6)
-
-Recording a Trace is not enough when an Agent changes an order, inventory,
-permission, cache, or other mutable state. A test that leaves its side effects
-behind can contaminate the next case. v2.6 defines a small
-`snapshot()` / `restore(snapshot)` boundary and provides isolated recorders
-that restore the state after the run, including when the Agent raises:
-
-```python
-from agent_regression import isolated_record_run
-
-
-class TestDatabaseState:
-    def snapshot(self):
-        return read_test_rows_as_json()
-
-    def restore(self, snapshot):
-        replace_test_rows_from_json(snapshot)
-
-
-trace = isolated_record_run(
-    MyOrderAgent(),
-    "cancel order 123",
-    my_tools,
-    state_backend=TestDatabaseState(),
-    run_id="order-123",
-)
-```
-
-`TestDatabaseState` can wrap a test database transaction, Redis fixture,
-service emulator, or in-memory store. The production system does not need to
-expose its internals; the test adapter only needs to provide a safe,
-restorable boundary. See
-[`examples/external_state_backend_example.py`](examples/external_state_backend_example.py)
-for a runnable offline example. For a multi-turn flow, use
-`isolated_record_session`; it restores once after the whole Session so state
-can intentionally carry between turns.
-
-### Framework bridge and parallel recording (v2.7)
-
-If your framework already exposes `invoke`, `run`, or `execute`, you do not
-need to repeat a full Adapter class for every project. Wrap the framework
-callback with `CallableAgentAdapter`, then give each `ScenarioCase` factories
-for its own Agent and tools:
-
-```python
-from agent_regression import CallableAgentAdapter, ScenarioCase, record_scenario_batch
-
-
-def invoke_framework(request, context):
-    result = context.call_tool("get_order", {"order_id": request["order_id"]})
-    context.final_answer(
-        f"status={result['status']}",
-        {"order_status": result["status"]},
-    )
-
-
-cases = [
-    ScenarioCase(
-        case_id="order-123",
-        request={"order_id": "123"},
-        run_id="order-123",
-        adapter_factory=lambda: CallableAgentAdapter(
-            {"name": "my-framework-agent", "version": "1.0.0"},
-            invoke_framework,
-        ),
-        tools_factory=make_test_tools,
-        isolate=True,
-    )
-]
-result = record_scenario_batch(cases, max_workers=4)
-assert result.passed
-```
-
-The important rule is not to share one mutable Agent across threads: every
-case factory creates its own Agent, tools, and state. Results are sorted by
-`case_id`, so completion timing cannot make CI reports flaky. See the complete
-offline example at
-[`examples/parallel_scenarios_example.py`](examples/parallel_scenarios_example.py).
-For deterministic JSON scenarios in a directory, use:
-
-```bash
-agent-regression batch-record \
-  --scenario-dir examples/order-123 \
-  --out-dir work/scenarios \
-  --workers 4 \
-  --report outputs/batch-record.json
-```
-
-The command writes one `*.trace.json` per scenario and a summary with
-per-case errors. Any failed scenario returns exit code `1`; report order does
-not depend on thread completion order.
-
-### Repeated-run stability evaluation (v2.8)
-
-One replay answers whether one candidate run equals the baseline. A sampled or
-tool-dependent Agent can still be flaky across repeated runs, however. v2.8
-adds a stability gate that repeats one isolated scenario, compares every run
-with the reviewed baseline, and reports pass rate, structured-claims match
-rate, tool-error rate, and the number of observed tool paths.
-
-```bash
-agent-regression stability \
-  --baseline baselines/order-123.trace.json \
-  --scenario examples/order-123/baseline.scenario.json \
-  --repeats 10 \
-  --workers 4 \
-  --min-pass-rate 0.95 \
-  --min-claims-match-rate 1.0 \
-  --max-tool-error-rate 0.05 \
-  --max-path-variants 1 \
-  --final-answer-mode claims-only \
-  --format markdown \
-  --out outputs/stability.md
-```
-
-The same operation is available as `record_stability(baseline, case, ...)`;
-see [`examples/stability_example.py`](examples/stability_example.py). Each
-repeat uses fresh factories and optional state isolation, so a mutation in one
-run cannot silently become the next run's starting state. This is a
-deterministic evidence gate, not a statistical proof of model quality or an
-LLM judge.
-
-### Async parallel tool events inside one run (v2.9)
-
-In v2.8, `record_scenario_batch` ran independent scenarios in parallel. v2.9
-also records one Agent run that awaits several tools at once. The recorder
-keeps call-creation order, pairs results by `call_id`, and stores explicit
-`metadata.execution.parallel_groups`, so a different completion order does not
-make a reviewed baseline flaky.
-
-```bash
-agent-regression async-record \
-  --scenario examples/async-order/parallel.scenario.json \
-  --format markdown \
-  --out outputs/async-order.md
-```
-
-An async framework can use `AsyncCallableAgentAdapter` and
-`record_async_run`:
-
-```python
-import asyncio
-from agent_regression import AsyncCallableAgentAdapter, record_async_run
-
-
-async def invoke_framework(request, context):
-    order, shipping = await asyncio.gather(
-        context.call_tool("get_order", {"order_id": "123"}, parallel_group="lookup"),
-        context.call_tool("get_shipping", {"order_id": "123"}, parallel_group="lookup"),
-    )
-    context.final_answer("done", {"order": order, "shipping": shipping})
-
-
-trace = record_async_run(
-    AsyncCallableAgentAdapter({"name": "my-async-agent"}, invoke_framework),
-    "lookup order 123",
-    my_async_tools,
-    run_id="async-order-123",
-)
-```
-
-If the caller already owns an event loop, `await async_record_run(...)`
-instead. The tool executor remains responsible for async/thread safety and
-idempotency around side effects. See
-[`examples/async_parallel_example.py`](examples/async_parallel_example.py).
-
-### Adapter SDK and templates (v3.0)
-
-If the framework boundary is not obvious yet, generate a runnable starter:
-
-```bash
-agent-regression adapter-init \
-  --directory my-agent-regression \
-  --name my-order-agent \
-  --mode both
-
-cd my-agent-regression
-PYTHONPATH=.. python -m unittest discover -s tests -v
-```
-
-The template contains `adapter.py`, an offline
-`tests/test_adapter_contract.py`, and a bilingual `README.md`. Use `sync` for
-a normal callback, `async` for parallel tool calls, or `both` when a project
-needs to compare the two integration styles.
-
-Existing projects can use the SDK directly:
-
-```python
-from agent_regression import AdapterSpec
-
-SPEC = AdapterSpec(
-    name="my-order-agent",
-    version="1.0.0",
-    metadata={"framework": "your-framework"},
-)
-adapter = SPEC.build_sync(invoke_framework)
-# Async integrations use: SPEC.build_async(invoke_async_framework)
-```
-
-`AdapterSpec` fixes the identity and callback boundary; it does not discover
-framework internals or invent business claims. A LangChain, Spring AI, or
-custom integration only needs to map its tool calls to `context.call_tool` and
-its final structured result to `context.final_answer`.
-
-For an actionable first smoke test, use the diagnostic helper instead of only
-asserting that recording did not raise:
-
-```python
-from agent_regression import FixtureTools, check_adapter_contract
-
-report = check_adapter_contract(
-    adapter,
-    {"order_id": "123"},
-    FixtureTools({"get_order": {"status": "paid"}}),
-    expected_tool_path=["get_order"],
-    expected_claims={"order_status": "paid"},
-)
-assert report["ok"], report
-```
-
-The report identifies whether identity, Trace validity, tool path, or final
-claims failed. Use `check_async_adapter_contract` for an async integration.
-
-### Historical trends and long-term reports (v3.1)
-
-After many releases, one comparison report cannot show whether reliability is
-improving or drifting. v3.1 aggregates JSON reports from a history directory;
-it recognizes stability, compare, batch, and coverage reports:
-
-```bash
-agent-regression history \
-  --report-dir reports/agent-history \
-  --format markdown \
-  --out outputs/history.md
-```
-
-Use stable filename prefixes such as `001-v2.8.json` and `002-v2.9.json` to
-define point order. The report keeps each point's status and relevant metrics,
-then calculates first/latest values, `delta`, minimum, and maximum. The CLI
-exit code follows the latest point: `0` when the latest report passes and `1`
-when it fails; older failures remain visible instead of being discarded.
-
-The repository includes [`examples/history/`](examples/history/) as a small
-offline fixture. This is a file-based trend aggregator, not a database, online
-dashboard, or statistical model-quality judge.
-
-## Public API
-
-The same flow is available through `record_run`, `record_mcp_run`, `replay_trace`, and `compare_traces`. A real integration implements the small `AgentAdapter` protocol: expose an `identity`, execute one request, route tool calls through `RunContext.call_tool`, and finish through `RunContext.final_answer`.
-
-This boundary keeps framework-specific hooks outside the trace, comparator, and report. See `docs/api.md` for the supported imports and `docs/architecture.md` for component and failure-flow diagrams.
-
-### Rule-driven Agent example
-
-`RuleBasedOrderAgentAdapter` is the smallest reference Agent that makes a real
-decision from runtime data. It extracts an order ID from the request, chooses
-`get_order`, calls the local MCP fixture, reads the returned status, and only
-then creates its final text and structured claims. Its answer is not stored in
-a scripted plan.
-
-The example also includes two controlled defects: a parameter regression that
-sends a numeric ID with the wrong type, and a result-misread variant that
-incorrectly interprets `not_shipped` as `shipped`. Run the full record, replay,
-and comparison flow offline:
-
-```bash
-python examples/rule_agent_mcp_example.py
-python -m json.tool outputs/rule-agent-baseline.replay.json
-python -m json.tool outputs/rule-agent-parameter-regression.diff.json
-python -m json.tool outputs/rule-agent-result-misread.diff.json
-```
-
-This reference Agent is deterministic by design. It proves the integration
-boundary without claiming to provide planning, model inference, memory, or a
-general natural-language parser.
-
-## Local MCP fixture and capture
-
-The repository now includes a project-owned, deterministic MCP stdio fixture at `src/agent_regression/fixtures/mcp_stdio_server.py`. It is a narrow test double, not a complete MCP conformance server. It is pinned to the MCP `2025-11-25` lifecycle because this fixture intentionally exercises `initialize` followed by `notifications/initialized`; the newer `2026-07-28` revision removed that handshake.
-
-The implemented protocol surface is:
-
-- newline-delimited UTF-8 JSON-RPC 2.0 over a child process's stdin/stdout;
-- `initialize` and `notifications/initialized`;
-- `tools/list` and `tools/call`;
-- one `get_order` tool with a normal result, an invalid-argument tool error, and a deterministic service-error input (`order_id: "500"`);
-- JSON-RPC errors for unsupported methods and unknown tools.
-
-Run the complete local capture example:
-
-```bash
-python examples/mcp_record_example.py
-python -m json.tool outputs/mcp-order-123.trace.json >/dev/null
-```
-
-Or run the same fixture through the installed CLI and compare a candidate:
-
-```bash
-agent-regression mcp-record \
-  --scenario examples/order-123/baseline.scenario.json \
-  --out work/mcp-baseline.trace.json
-agent-regression mcp-record \
-  --scenario examples/order-123/candidate-regression.scenario.json \
-  --out work/mcp-candidate.trace.json
-agent-regression compare \
-  --baseline work/mcp-baseline.trace.json \
-  --candidate work/mcp-candidate.trace.json \
-  --out outputs/mcp-order-123.diff.json
-```
-
-`record_mcp_run` starts the server, performs the handshake and tool discovery, records tool calls/results through the existing AgentTrace recorder, and stores a request/response transcript under `metadata.mcp`. `McpToolExecutor` prefers MCP `structuredContent`, falls back to `content`, and preserves `isError` in the trace.
-
-### Streamable HTTP capture
-
-The same recorder can connect to an MCP Streamable HTTP endpoint. It accepts
-the immediate JSON response form and the server-sent-event response form,
-preserves the `Mcp-Session-Id`, and stores the HTTP transcript in the same
-`metadata.mcp` shape:
-
-```bash
-agent-regression mcp-http-record \
-  --url http://127.0.0.1:8000/mcp \
-  --header 'Authorization: Bearer $MCP_TOKEN' \
-  --scenario examples/order-123/baseline.scenario.json \
-  --out work/http-baseline.trace.json
-```
-
-For a fully local smoke test, start the bundled HTTP fixture in another
-terminal:
-
-```bash
-python -m agent_regression.fixtures.mcp_http_server --port 8765
-agent-regression mcp-http-record \
-  --url http://127.0.0.1:8765/mcp \
-  --scenario examples/order-123/baseline.scenario.json \
-  --out work/http-baseline.trace.json
-```
-
-The HTTP client is intentionally synchronous in v2.9. In addition to
-request/response capture, `open_event_stream()` provides a bounded iterator for
-the session's GET SSE stream; server notifications and requests are recorded in
-the same transcript. A server-initiated request can be answered explicitly
-with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
-explicit cancellation, reconnect, resumable SSE streams, automatic request
-dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The synchronous `record_run` path remains sequential; use
-`record_async_run` when one Agent run needs parallel tool events, and use
-`AgentSession` when you need several terminal-answer turns.
-For task-capable tools, pass task metadata such as
-`task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned
-task with `get_task` and fetch its final value with `get_task_result`. When an
-HTTP POST response is an SSE stream, the client can dispatch in-band sampling
-or elicitation requests through the configured callback before returning the
-final tool response.
-
-### Optional compatibility smoke test
-
-`mcp-smoke` performs a non-mutating initialize and capability-discovery check.
-It is suitable for a manual compatibility job or a scheduled workflow, but it
-is intentionally not part of the default offline test suite:
-
-```bash
-agent-regression mcp-smoke \
-  --server-command 'npx -y @modelcontextprotocol/server-everything'
-```
-
-The official Everything Server is a reference/test server that exercises tools,
-resources, prompts, and additional MCP features. Its Streamable HTTP mode can
-be checked by starting that server separately and passing its `/mcp` endpoint
-with `--url`. The smoke command only discovers advertised primitives; it does
-not invoke tools or mutate resources. The stdio client supports both newline
-JSON-RPC and Content-Length framing for servers that require the latter.
-
-For a local compatibility check after installing the package:
-
-```bash
-agent-regression mcp-smoke \
-  --server-command 'npx -y @modelcontextprotocol/server-everything stdio' \
-  --stdio-framing newline \
-  --timeout 60 \
-  --out outputs/official-everything-stdio.json
-```
-
-The command writes a machine-readable report with the negotiated protocol,
-server identity, advertised capabilities, and discovery counts. It does not
-claim full MCP conformance; the deeper sampling, elicitation, and task flow
-is covered by the integration exercise used for the validation table above.
-
-This fixture follows the official [MCP 2025-11-25 lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), [schema reference](https://modelcontextprotocol.io/specification/2025-11-25/schema), and [stdio framing rules](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports). External compatibility validation is optional and is intentionally outside the default test suite.
-
-## Comparison, baselines, and CI
-
-Default comparison is strict: any detected difference fails. Reports categorize `tool_name`, `tool_arguments`, `tool_result`, `tool_error_state`, `result_interpretation`, `final_answer`, and `event_count`. Exact categories or paths can be allowed without hiding them:
-
-```bash
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/candidate.trace.json \
-  --allow-path final_answer.text
-```
-
-For Agents whose prose changes between runs, prefer the explicit claims-only
-policy when every run emits structured claims:
-
-```bash
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/candidate.trace.json \
-  --final-answer-mode claims-only
-```
-
-`claims-only` ignores only the final prose field. It still blocks changed or
-missing claims, tool names, arguments, results, errors, and event structure.
-Use the default `exact` mode when wording itself is part of the contract.
-
-`agent-regression init` also creates `.agent-regression/config.json`. Reuse it
-to keep project paths and comparison defaults in one place:
-
-```bash
-agent-regression compare --config .agent-regression/config.json
-```
-
-Config paths are resolved relative to the project root. Explicit command-line
-values override config-file defaults.
-
-For a test suite with multiple cases, keep matching baseline and candidate
-files under two directories:
-
-```bash
-agent-regression batch-compare \
-  --baseline-dir baselines \
-  --candidate-dir work/candidate \
-  --format markdown \
-  --out outputs/batch-summary.md
-```
-
-The command recursively matches `*.trace.json` files, reports passed, failed,
-and missing cases, and returns `1` if any baseline or candidate is missing.
-
-For repeatable multi-case CI, use a config such as
-`.agent-regression/batch.json` with `baseline_dir` and `candidate_dir`, then run:
-
-```bash
-agent-regression batch-compare --config .agent-regression/batch.json
-```
-
-To check whether a scenario suite covers the business paths you care about:
-
-```bash
-agent-regression coverage \
-  --trace-dir work/scenarios \
-  --expected-path "get_order" \
-  --expected-path "get_order -> cancel_order" \
-  --expected-path "get_order -> refund" \
-  --format markdown \
-  --out outputs/coverage.md
-```
-
-The command returns `1` when any expected path is missing. The reusable
-`.github/actions/agent-coverage` action applies the same gate in GitHub Actions.
-
-To gate business results as well as tool paths, add a structured claim path and
-expected values:
-
-```bash
-agent-regression coverage \
-  --trace-dir work/scenarios \
-  --branch-path final_answer.claims.order_status \
-  --expected-branch paid \
-  --expected-branch cancelled \
-  --format markdown
-```
-
-For Agent-specific behavior rules, add a `contract` object to the same config.
-It supports required/forbidden tools, field assertions, nested `ignore_paths`,
-timestamp/list normalizers, `max_steps`, multiple allowed tool paths, and
-stateful side-effect checks. See the [中文接入指南](docs/usage-guide.zh-CN.md#baseline-检查项和噪音过滤)
-or [English guide](docs/usage-guide.en.md#baseline-checks-and-noise-filtering)
-for a complete example.
-
-Baseline changes are explicit:
-
-```bash
-agent-regression baseline accept \
-  --trace work/reviewed.trace.json \
-  --out baselines/order-123.trace.json
-agent-regression baseline show --baseline baselines/order-123.trace.json
-```
-
-Generate a JUnit report while preserving the comparison exit code:
-
-```bash
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/candidate.trace.json \
-  --format junit \
-  --out outputs/junit.xml
-```
-
-`.github/workflows/regression.yml` is an offline CI example. The reusable
-local action at `.github/actions/agent-regression` compares a candidate trace,
-writes a JUnit report, and preserves the blocking exit code. Exit code `0`
-means pass, `1` means a blocking regression, and `2` means invalid input or an
-operational error.
-
-For another GitHub repository, the integration has one important boundary:
-your project runs the Agent and writes `work/candidate.trace.json`; this kit
-compares it with a reviewed baseline committed at
-`baselines/my-agent.trace.json`. Do not regenerate the baseline automatically
-on every CI run. A minimal external workflow is:
-
-```yaml
-- uses: actions/checkout@v4
-- uses: actions/setup-python@v5
-  with:
-    python-version: "3.11"
-- name: Install Agent Regression Kit
-  run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git"
-- name: Record candidate trace
-  run: python scripts/record_agent.py
-- name: Compare with baseline
-  uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@main
-  with:
-    baseline: baselines/my-agent.trace.json
-    candidate: work/candidate.trace.json
-    report: outputs/my-agent.junit.xml
-    final-answer-mode: claims-only
-    allow-path: final_answer.text
-- uses: actions/upload-artifact@v4
-  if: always()
-  with:
-    name: agent-regression-report
-    path: outputs/my-agent.junit.xml
-```
-
-The candidate-producing script is owned by the integrating project because
-each Agent framework has a different execution API. The action then returns
-`0` for a passing comparison, `1` for a blocking regression, and `2` for
-invalid input or an operational error.
-
-## Security and reproducibility
-
-Common secret-bearing keys are recursively replaced with `[REDACTED]` before evidence is stored. Use repeatable `--secret-value` flags for secrets embedded in free-form text. Raw arguments still reach the selected tool executor, so only run trusted external MCP commands.
-
-The MCP executor records timeout, attempt, retry count, and request ID on each tool result. It never retries automatically because the side effects of an arbitrary tool are unknown. The bundled fixture is isolated in a child process, performs no network access, and has deterministic results.
-
-See `docs/limitations.md` for the complete trust boundary and intentionally unsupported protocol features. LLM judges, dashboards, latency/cost gates, and general release aggregation remain out of scope.
-
-## Development
-
-```bash
-python -m unittest discover -s tests -v
-python -m pip wheel --no-build-isolation .
-```
-
-The default suite is offline. Official MCP Everything Server checks are
-optional compatibility validation and are not default dependencies. The next
-natural extension points are authentication, more framework adapters, richer
-non-deterministic scoring, and long-term trend reporting.
+[Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [Limitations](docs/limitations.md) · [Compatibility](docs/compatibility-matrix.md) · [Contributing](CONTRIBUTING.md)

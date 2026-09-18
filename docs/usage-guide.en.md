@@ -1,5 +1,7 @@
 # Agent Regression Kit: Getting Started
 
+> Start with the [current user manual](user-manual.en.md). This document retains advanced API examples. See the [technical design](technical-design.en.md) for implementation boundaries.
+
 This guide answers one question: **I already have an AI Agent; how do I connect it to regression testing in a few minutes?**
 
 ## 1. The problem it solves
@@ -457,7 +459,7 @@ agent-regression adapter-init \
   --name my-order-agent \
   --mode both
 cd my-agent-regression
-PYTHONPATH=.. python -m unittest discover -s tests -v
+PYTHONPATH=. python -m unittest discover -s tests -v
 ```
 
 The generated directory contains `adapter.py`,
