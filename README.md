@@ -52,6 +52,7 @@ flowchart LR
 - 可执行状态隔离：通过统一的 `snapshot()` / `restore(snapshot)` 边界包住内存 Fixture、数据库、缓存或服务模拟器；用例结束自动恢复，避免测试污染。
 - 框架桥接与并行场景：`CallableAgentAdapter` 可以包住任意框架的 `invoke` 回调；`record_scenario_batch` 和 `batch-record` 可以并行录制独立场景，并按 case ID 稳定输出结果。
 - 重复运行稳定性评测：`record_stability` 和 `stability` 可以隔离重复执行同一个场景，统计通过率、claims 一致率、工具错误率和工具路径变体，并把阈值接入 CI。
+- 异步并行事件 Trace：`AsyncCallableAgentAdapter`、`async_record_run` 和 `async-record` 支持一次 Agent 运行内并发调用多个工具，保留 `call_id`、并行组和稳定事件顺序。
 - 默认脱敏：避免 API Key 等敏感字段进入 Trace。
 
 ### 验证结果
@@ -60,9 +61,9 @@ flowchart LR
 
 | 检查项 | 结果 |
 | --- | --- |
-| Python 单元与集成测试 | **95 项通过，0 项失败** |
+| Python 单元与集成测试 | **99 项通过，0 项失败** |
 | 源码编译 | `compileall` 通过 |
-| Wheel 构建 | `agent_regression_kit-2.8.0-py3-none-any.whl` 构建成功 |
+| Wheel 构建 | `agent_regression_kit-2.9.0-py3-none-any.whl` 构建成功 |
 | 官方 Everything Server / stdio | 通过；13 tools、7 resources、4 prompts |
 | 官方 Everything Server / Streamable HTTP | 通过；发现结果一致 |
 | MCP 双向交互 | 通过；sampling、elicitation、任务创建/轮询/结果获取 |
@@ -315,6 +316,42 @@ assert report.passed
 
 这不是统计学意义上的模型质量证明，也不是 LLM Judge；它只对已经记录下来的结构化 Trace 和显式阈值做重复性检查。
 
+### 一次运行内的异步并行工具调用（v2.9）
+
+v2.8 的 `record_scenario_batch` 是多个独立场景之间并行；v2.9 进一步支持一个 Agent 在同一轮里同时调用多个工具。例如 Agent 可以并行查询订单和物流，再合并结果回答。Trace 会先保存调用创建顺序，再保存对应结果，并在 `metadata.execution.parallel_groups` 中明确记录并行组，因此工具完成先后变化不会让 baseline 随机漂移。
+
+```bash
+agent-regression async-record \
+  --scenario examples/async-order/parallel.scenario.json \
+  --format markdown \
+  --out outputs/async-order.md
+```
+
+真实异步框架使用 `AsyncCallableAgentAdapter` 和 `record_async_run`：
+
+```python
+import asyncio
+from agent_regression import AsyncCallableAgentAdapter, record_async_run
+
+
+async def invoke_framework(request, context):
+    order, shipping = await asyncio.gather(
+        context.call_tool("get_order", {"order_id": "123"}, parallel_group="lookup"),
+        context.call_tool("get_shipping", {"order_id": "123"}, parallel_group="lookup"),
+    )
+    context.final_answer("done", {"order": order, "shipping": shipping})
+
+
+trace = record_async_run(
+    AsyncCallableAgentAdapter({"name": "my-async-agent"}, invoke_framework),
+    "查询订单 123",
+    my_async_tools,
+    run_id="async-order-123",
+)
+```
+
+如果调用方本身已经在事件循环中，使用 `await async_record_run(...)`；同步脚本使用 `record_async_run(...)` 即可。并行工具执行器应当自己保证线程/异步安全，工具副作用仍需通过状态隔离或幂等设计管理。完整离线示例见 [`examples/async_parallel_example.py`](examples/async_parallel_example.py)。
+
 ### CI 集成
 
 CI 中的职责很简单：你的项目负责运行 Agent 并生成 candidate Trace；Agent Regression Kit 负责和仓库里的 baseline 比较。baseline 应该在本地或专门的审核流程中更新，不能在每次 CI 运行时自动覆盖。
@@ -391,7 +428,7 @@ Agent Regression Kit is a small, framework-neutral regression-testing layer for 
 
 For a complete step-by-step walkthrough, see the [English Getting Started guide](docs/usage-guide.en.md).
 
-Current release line: **v2.8**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
+Current release line: **v2.9**. It supports deterministic local runs plus MCP stdio and Streamable HTTP capture, offline replay, single-case and batch structural comparison, explicit Agent behavior contracts, field assertions, nested noise filtering, deterministic normalizers, required/forbidden tool calls, step limits, state-isolated scenario fixtures, external snapshot/restore backends, automatic cleanup after failed runs, side-effect assertions, field-level world-state diffs, multiple allowed tool paths, scenario path coverage, outcome-aware branches, claims-based business branch coverage, multi-turn sessions, session state-continuity gates, framework callback bridging, parallel scenario recording, repeated-run stability evaluation, async parallel tool events, missing-branch CI gates, baseline management, JSON/Markdown/JUnit reports, CI exit codes, GitHub job summaries, one-command project scaffolding, custom HTTP headers, claims-only final-answer comparison, config-driven comparison, preflight config validation, and matching policy controls in reusable GitHub Actions.
 
 ```text
 Agent / MCP Server
@@ -418,9 +455,9 @@ The following results were run locally on 2026-09-18:
 
 | Check | Result |
 | --- | --- |
-| Python unit and integration suite | **95 passed, 0 failed** |
+| Python unit and integration suite | **99 passed, 0 failed** |
 | Source compilation | Passed with `compileall` |
-| Wheel build | `agent_regression_kit-2.8.0-py3-none-any.whl` built successfully |
+| Wheel build | `agent_regression_kit-2.9.0-py3-none-any.whl` built successfully |
 | Official Everything Server over stdio | Passed; protocol `2025-11-25`, 13 tools, 7 resources, 4 prompts |
 | Official Everything Server over Streamable HTTP | Passed; same discovery counts |
 | Bidirectional MCP exercise | Passed; sampling, elicitation, task creation, polling, and final task result |
@@ -430,7 +467,7 @@ Reproduce the core result:
 ```text
 $ PYTHONPATH=src python3 -m unittest discover -s tests -q
 ----------------------------------------------------------------------
-Ran 95 tests in 8.2s
+Ran 99 tests in 8.4s
 
 OK
 ```
@@ -673,6 +710,50 @@ run cannot silently become the next run's starting state. This is a
 deterministic evidence gate, not a statistical proof of model quality or an
 LLM judge.
 
+### Async parallel tool events inside one run (v2.9)
+
+In v2.8, `record_scenario_batch` ran independent scenarios in parallel. v2.9
+also records one Agent run that awaits several tools at once. The recorder
+keeps call-creation order, pairs results by `call_id`, and stores explicit
+`metadata.execution.parallel_groups`, so a different completion order does not
+make a reviewed baseline flaky.
+
+```bash
+agent-regression async-record \
+  --scenario examples/async-order/parallel.scenario.json \
+  --format markdown \
+  --out outputs/async-order.md
+```
+
+An async framework can use `AsyncCallableAgentAdapter` and
+`record_async_run`:
+
+```python
+import asyncio
+from agent_regression import AsyncCallableAgentAdapter, record_async_run
+
+
+async def invoke_framework(request, context):
+    order, shipping = await asyncio.gather(
+        context.call_tool("get_order", {"order_id": "123"}, parallel_group="lookup"),
+        context.call_tool("get_shipping", {"order_id": "123"}, parallel_group="lookup"),
+    )
+    context.final_answer("done", {"order": order, "shipping": shipping})
+
+
+trace = record_async_run(
+    AsyncCallableAgentAdapter({"name": "my-async-agent"}, invoke_framework),
+    "lookup order 123",
+    my_async_tools,
+    run_id="async-order-123",
+)
+```
+
+If the caller already owns an event loop, `await async_record_run(...)`
+instead. The tool executor remains responsible for async/thread safety and
+idempotency around side effects. See
+[`examples/async_parallel_example.py`](examples/async_parallel_example.py).
+
 ## Public API
 
 The same flow is available through `record_run`, `record_mcp_run`, `replay_trace`, and `compare_traces`. A real integration implements the small `AgentAdapter` protocol: expose an `identity`, execute one request, route tool calls through `RunContext.call_tool`, and finish through `RunContext.final_answer`.
@@ -765,14 +846,15 @@ agent-regression mcp-http-record \
   --out work/http-baseline.trace.json
 ```
 
-The HTTP client is intentionally synchronous in v2.8. In addition to
+The HTTP client is intentionally synchronous in v2.9. In addition to
 request/response capture, `open_event_stream()` provides a bounded iterator for
 the session's GET SSE stream; server notifications and requests are recorded in
 the same transcript. A server-initiated request can be answered explicitly
 with `client.respond(...)` or `stream.respond(...)`. Pagination helpers,
 explicit cancellation, reconnect, resumable SSE streams, automatic request
 dispatch callbacks, progress filtering, and bounded concurrent calls are
-supported. The generic AgentTrace recorder remains sequential in v2.8; use
+supported. The synchronous `record_run` path remains sequential; use
+`record_async_run` when one Agent run needs parallel tool events, and use
 `AgentSession` when you need several terminal-answer turns.
 For task-capable tools, pass task metadata such as
 `task={"ttl": 60000, "pollInterval": 100}` to `call_tool`; poll the returned

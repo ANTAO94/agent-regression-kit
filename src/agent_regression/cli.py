@@ -7,9 +7,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-from .adapters import ScriptedAgentAdapter, ScriptedSessionAdapter
+from .adapters import AsyncScriptedAgentAdapter, ScriptedAgentAdapter, ScriptedSessionAdapter
 from .batch import compare_trace_batch
 from .batch_record import ScenarioCase, record_scenario_batch
+from .async_record import record_async_run
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
 from .config import load_batch_compare_config, load_compare_config
@@ -28,6 +29,7 @@ from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 from .reports import (
     render_batch_junit,
     render_batch_markdown,
+    render_async_markdown,
     render_coverage_junit,
     render_coverage_markdown,
     render_junit,
@@ -45,7 +47,7 @@ from .session import AgentSession, compare_sessions
 from .stability import StabilityPolicy, record_stability
 
 
-VERSION = "2.8.0"
+VERSION = "2.9.0"
 
 
 def _read_json(path: str) -> Dict[str, Any]:
@@ -330,6 +332,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
     )
 
+    async_record = subparsers.add_parser(
+        "async-record", help="record an async scenario with explicit parallel tool groups"
+    )
+    async_record.add_argument("--scenario", required=True)
+    async_record.add_argument("--out", required=True)
+    async_record.add_argument("--format", choices=["json", "markdown"], default="json")
+    async_record.add_argument(
+        "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
+    )
+
     stability = subparsers.add_parser(
         "stability", help="repeat one scenario and evaluate Agent stability"
     )
@@ -468,6 +480,32 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 _write_output(report, args.report)
             return 0 if batch.passed else 1
+
+        if args.command == "async-record":
+            scenario = _read_json(args.scenario)
+            parallel_plan = scenario.get("parallel_plan")
+            final_answer = scenario.get("final_answer")
+            if not isinstance(parallel_plan, list) or not parallel_plan:
+                raise ValueError("async scenario parallel_plan must be a non-empty array")
+            if not isinstance(final_answer, dict):
+                raise ValueError("async scenario final_answer must be an object")
+            trace = record_async_run(
+                AsyncScriptedAgentAdapter(
+                    scenario["agent"],
+                    parallel_plan,
+                    final_answer,
+                ),
+                scenario.get("input"),
+                FixtureTools(scenario.get("tools", {})),
+                run_id=scenario["run_id"],
+                metadata=scenario.get("metadata"),
+                redaction_policy=redaction_policy,
+            )
+            if args.format == "markdown":
+                _write_text(render_async_markdown(trace.to_dict()), args.out)
+            else:
+                _write_output(trace.to_dict(), args.out)
+            return 0
 
         if args.command == "stability":
             baseline = AgentTrace.from_dict(_read_json(args.baseline))

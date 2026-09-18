@@ -354,6 +354,50 @@ Every repeat gets fresh Agent and tool factories, with optional state
 isolation. This is a deterministic check over recorded evidence, not a
 statistical proof of model quality and not an LLM judge.
 
+### Async parallel calls inside one run (v2.9)
+
+v2.8 ran independent scenarios in parallel. v2.9 also supports one Agent
+awaiting several tools concurrently. Call-creation order and result `call_id`
+values are preserved, and the trace records the group under
+`metadata.execution.parallel_groups`:
+
+```bash
+agent-regression async-record \
+  --scenario examples/async-order/parallel.scenario.json \
+  --format markdown \
+  --out outputs/async-order.md
+```
+
+For an async framework:
+
+```python
+import asyncio
+from agent_regression import AsyncCallableAgentAdapter, record_async_run
+
+
+async def invoke(request, context):
+    order, shipping = await asyncio.gather(
+        context.call_tool("get_order", {"order_id": "123"}, parallel_group="lookup"),
+        context.call_tool("get_shipping", {"order_id": "123"}, parallel_group="lookup"),
+    )
+    context.final_answer("done", {"order": order, "shipping": shipping})
+
+
+trace = record_async_run(
+    AsyncCallableAgentAdapter({"name": "async-agent"}, invoke),
+    "lookup order 123",
+    async_tools,
+    run_id="async-order-123",
+)
+```
+
+If the caller already owns an event loop, use `await async_record_run(...)`;
+the synchronous wrapper is convenient for scripts. Without `call_async`, the
+kit runs an existing synchronous `call` in a worker thread. Native async tools
+are preferred for network clients, and the integration remains responsible
+for shared-state safety and side-effect idempotency. A changed parallel-group
+shape is reported as `execution_concurrency`.
+
 ### Scenario-suite path coverage
 
 Once you have normal, error, permission, or side-effect scenario traces, aggregate them to see which ordered tool paths the Agent has actually exercised:
@@ -388,7 +432,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.8.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.9.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

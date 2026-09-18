@@ -1,14 +1,19 @@
 """Public API for Agent Regression Kit."""
 
-__version__ = "2.8.0"
+__version__ = "2.9.0"
 
 from .adapters import (
     AgentAdapter,
+    AsyncAgentAdapter,
+    AsyncCallableAgentAdapter,
+    AsyncRunContext,
+    AsyncScriptedAgentAdapter,
     CallableAgentAdapter,
     RunContext,
     ScriptedAgentAdapter,
     ScriptedSessionAdapter,
 )
+from .async_record import AsyncToolExecutor, async_record_run, record_async_run
 from .batch import compare_trace_batch
 from .batch_record import ScenarioBatchResult, ScenarioCase, ScenarioResult, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
@@ -50,6 +55,7 @@ from .reports import (
     render_batch_markdown,
     render_coverage_junit,
     render_coverage_markdown,
+    render_async_markdown,
     render_junit,
     render_markdown,
     render_scenario_batch_junit,
@@ -77,6 +83,13 @@ from .rule_agent import (
 
 __all__ = [
     "AgentAdapter",
+    "AsyncAgentAdapter",
+    "AsyncCallableAgentAdapter",
+    "AsyncRunContext",
+    "AsyncScriptedAgentAdapter",
+    "AsyncToolExecutor",
+    "async_record_run",
+    "record_async_run",
     "CallableAgentAdapter",
     "AgentTrace",
     "AgentSession",
@@ -136,6 +149,7 @@ __all__ = [
     "render_markdown",
     "render_batch_junit",
     "render_batch_markdown",
+    "render_async_markdown",
     "render_scenario_batch_junit",
     "render_scenario_batch_markdown",
     "render_stability_junit",

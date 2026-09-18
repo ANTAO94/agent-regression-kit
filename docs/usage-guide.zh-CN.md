@@ -342,6 +342,42 @@ assert report.passed
 
 它是对结构化 Trace 的重复性检查，不是模型质量的统计学证明，也不是 LLM Judge。
 
+### 一次运行内的异步并行调用（v2.9）
+
+v2.8 的批量录制是“多个独立场景并行”；v2.9 支持“一个 Agent 在同一轮并行调用多个工具”。调用创建顺序和结果 `call_id` 会被保留，并在 Trace 的 `metadata.execution.parallel_groups` 中记录并行组：
+
+```bash
+agent-regression async-record \
+  --scenario examples/async-order/parallel.scenario.json \
+  --format markdown \
+  --out outputs/async-order.md
+```
+
+真实异步框架可以这样接入：
+
+```python
+import asyncio
+from agent_regression import AsyncCallableAgentAdapter, record_async_run
+
+
+async def invoke(request, context):
+    order, shipping = await asyncio.gather(
+        context.call_tool("get_order", {"order_id": "123"}, parallel_group="lookup"),
+        context.call_tool("get_shipping", {"order_id": "123"}, parallel_group="lookup"),
+    )
+    context.final_answer("done", {"order": order, "shipping": shipping})
+
+
+trace = record_async_run(
+    AsyncCallableAgentAdapter({"name": "async-agent"}, invoke),
+    "查询订单 123",
+    async_tools,
+    run_id="async-order-123",
+)
+```
+
+如果你的代码已经处在事件循环中，使用 `await async_record_run(...)`；同步脚本使用 `record_async_run(...)`。如果工具没有 `call_async`，工具包会把同步 `call` 放进线程执行；网络型 Agent 更推荐实现原生异步工具，并自行保证共享状态和副作用安全。并行组结构发生变化时，比较报告会给出 `execution_concurrency` 差异。
+
 ### 场景集合覆盖率
 
 当你已经有多份正常、异常、权限或副作用场景 Trace 时，可以统计 Agent 实际走过的工具路径：
@@ -376,7 +412,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.8.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v2.9.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

@@ -255,6 +255,33 @@ def render_stability_junit(report: Dict[str, Any]) -> str:
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
 
 
+def render_async_markdown(trace: Dict[str, Any]) -> str:
+    """Render the execution groups of an async Agent Trace."""
+    execution = trace.get("metadata", {}).get("execution", {})
+    groups = execution.get("parallel_groups", [])
+    lines = [
+        "# Agent Async Trace",
+        "",
+        "**Status:** `VALID`",
+        "",
+        f"- Run: `{trace.get('run_id')}`",
+        f"- Execution mode: `{execution.get('mode', 'unknown')}`",
+        f"- Events: `{len(trace.get('events', []))}`",
+        f"- Parallel groups: `{len(groups)}`",
+        "",
+        "| Group | Calls | Call IDs |",
+        "| --- | ---: | --- |",
+    ]
+    for group in groups:
+        lines.append(
+            f"| `{group.get('group_id')}` | {group.get('call_count', 0)} | "
+            f"`{', '.join(group.get('call_ids', []))}` |"
+        )
+    if not groups:
+        lines.append("| (none) | 0 | (no parallel groups) |")
+    return "\n".join(lines) + "\n"
+
+
 def render_coverage_markdown(report: Dict[str, Any]) -> str:
     """Render a scenario path-coverage summary for a CI job summary."""
     status = "PASS" if report.get("passed") else "FAIL"

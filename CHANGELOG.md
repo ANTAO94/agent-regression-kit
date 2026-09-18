@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 2.9.0 - 2026-09-18
+
+- Add `AsyncAgentAdapter`, `AsyncCallableAgentAdapter`, and explicit async
+  recording APIs for Agents that call tools concurrently.
+- Record stable async event order with `call_id`, parallel-group metadata, and
+  comparable execution-concurrency evidence while preserving AgentTrace v0.1.
+- Add `async-record`, async Markdown reporting, an offline async example, and
+  tests for delayed completion, awaitable execution, and group regressions.
+- Update package, CLI, MCP client identity, scaffold Action tag, and bilingual
+  documentation to v2.9.0.
+
 ## 2.8.0 - 2026-09-18
 
 - Add repeated-run stability evaluation with pass-rate, claims-match-rate,

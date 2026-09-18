@@ -164,6 +164,16 @@ def compare_traces(
             _add_diff(diffs, "final_answer", text_path, baseline_text, candidate_text)
     if contract:
         diffs.extend(contract.check(baseline, candidate))
+    baseline_execution = baseline.metadata.get("execution")
+    candidate_execution = candidate.metadata.get("execution")
+    if baseline_execution is not None or candidate_execution is not None:
+        _add_diff(
+            diffs,
+            "execution_concurrency",
+            "metadata.execution",
+            baseline_execution or {},
+            candidate_execution or {},
+        )
     baseline_world = baseline.metadata.get("world_state")
     candidate_world = candidate.metadata.get("world_state")
     if baseline_world is not None or candidate_world is not None:

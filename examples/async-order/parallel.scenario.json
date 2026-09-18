@@ -1,0 +1,45 @@
+{
+  "run_id": "async-order-123",
+  "agent": {
+    "name": "async-order-agent",
+    "version": "1.0.0"
+  },
+  "input": "查询订单 123",
+  "tools": {
+    "get_order": {
+      "order_id": "123",
+      "status": "not_shipped"
+    },
+    "get_shipping": {
+      "order_id": "123",
+      "eta": "tomorrow"
+    }
+  },
+  "parallel_plan": [
+    [
+      {
+        "tool": "get_order",
+        "arguments": {
+          "order_id": "123"
+        }
+      },
+      {
+        "tool": "get_shipping",
+        "arguments": {
+          "order_id": "123"
+        }
+      }
+    ]
+  ],
+  "final_answer": {
+    "text": "订单 123 尚未发货，预计 tomorrow。",
+    "claims": {
+      "order_id": "123",
+      "order_status": "not_shipped",
+      "shipping_eta": "tomorrow"
+    }
+  },
+  "metadata": {
+    "case": "async-order-lookup"
+  }
+}

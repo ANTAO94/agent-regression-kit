@@ -139,6 +139,44 @@ Use `--final-answer-mode claims-only` only when final prose is intentionally
 allowed to vary. The stability evaluator remains structural and deterministic;
 it does not call a model to judge semantic similarity.
 
+## Async and parallel events
+
+Use the async boundary when one Agent run awaits multiple tools concurrently:
+
+```python
+import asyncio
+from agent_regression import AsyncCallableAgentAdapter, record_async_run
+
+
+async def invoke(request, context):
+    order, shipping = await asyncio.gather(
+        context.call_tool("get_order", {"order_id": "123"}, parallel_group="lookup"),
+        context.call_tool("get_shipping", {"order_id": "123"}, parallel_group="lookup"),
+    )
+    context.final_answer("done", {"order": order, "shipping": shipping})
+
+
+trace = record_async_run(
+    AsyncCallableAgentAdapter({"name": "async-agent"}, invoke),
+    "lookup order 123",
+    async_tools,
+    run_id="async-order-123",
+)
+```
+
+`record_async_run` is a synchronous convenience wrapper. Code that already
+owns an event loop should `await async_record_run(...)` instead. A parallel
+group must use one stable `parallel_group` identifier for all calls started in
+that group. The recorder assigns deterministic call IDs, emits call events in
+creation order, emits grouped results in that same order, and stores the group
+shape in `metadata.execution`. `compare_traces` reports a changed group shape
+as `execution_concurrency`.
+
+`AsyncToolExecutor.call_async` is optional. If it is absent, the recorder
+executes the existing synchronous `ToolExecutor.call` through `asyncio.to_thread`.
+Prefer a native async executor for network clients and make shared mutable
+state safe at the tool boundary.
+
 ## MCP
 
 - `StdioMcpClient` implements the documented MCP 2025-11-25 subset and accepts newline or Content-Length framing through its `framing` parameter.
