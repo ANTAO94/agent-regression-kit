@@ -30,6 +30,27 @@ def _load_config(path: str | Path, required_paths: tuple[str, ...]) -> Dict[str,
     if not isinstance(value, dict):
         raise ValueError("config must contain a JSON object")
 
+    allowed_fields = {
+        "baseline",
+        "candidate",
+        "baseline_dir",
+        "candidate_dir",
+        "report",
+        "format",
+        "final_answer_mode",
+        "result_alignment",
+        "allow_categories",
+        "allow_paths",
+        "secret_values",
+        "required_reports",
+        "contract",
+    }
+    unknown_fields = sorted(set(value) - allowed_fields)
+    if unknown_fields:
+        raise ValueError(
+            "unsupported config fields: " + ", ".join(map(str, unknown_fields))
+        )
+
     result = dict(value)
     for key in required_paths:
         configured = result.get(key)

@@ -103,6 +103,7 @@ class ScenarioBatchResult:
         failed_count = sum(1 for result in self.results if not result.passed)
         return {
             "schema_version": "0.1",
+            "report_type": "agent_scenario_batch",
             "passed": self.passed,
             "parallel": True,
             "max_workers": self.max_workers,

@@ -110,6 +110,10 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ContractPolicy.from_dict({"required_claims": "final_answer.claims"})
 
+    def test_contract_rejects_unknown_fields_instead_of_ignoring_typos(self):
+        with self.assertRaisesRegex(ValueError, "unsupported contract fields"):
+            ContractPolicy.from_dict({"must_not_cal": ["delete_order"]})
+
 
 if __name__ == "__main__":
     unittest.main()

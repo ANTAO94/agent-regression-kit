@@ -89,6 +89,24 @@ class WorkspaceTests(unittest.TestCase):
             self.assertEqual(before, baseline.read_text(encoding="utf-8"))
             self.assertIn('"report_type": "agent_workspace_manifest"', output.getvalue())
 
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    2,
+                    main(
+                        [
+                            "baseline",
+                            "review",
+                            "--baseline",
+                            str(baseline),
+                            "--candidate",
+                            str(candidate),
+                            "--out",
+                            str(baseline),
+                        ]
+                    ),
+                )
+            self.assertEqual(before, baseline.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

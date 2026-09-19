@@ -139,6 +139,26 @@ class ReportIndexTests(unittest.TestCase):
             )
             self.assertFalse(report["passed"])
             self.assertEqual(["coverage.json"], report["missing_reports"])
+
+    def test_string_passed_status_cannot_be_coerced_into_a_passing_entry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "compare.json",
+                {
+                    "report_type": "agent_compare",
+                    "baseline_run_id": "b",
+                    "candidate_run_id": "c",
+                    "passed": "false",
+                    "difference_count": 1,
+                    "blocking_difference_count": 1,
+                },
+            )
+            report = build_report_index(root)
+            self.assertFalse(report["passed"])
+            self.assertEqual(0, report["report_count"])
+            self.assertIn("passed must be a boolean", report["skipped"][0]["reason"])
             with redirect_stdout(io.StringIO()):
                 self.assertEqual(
                     1,

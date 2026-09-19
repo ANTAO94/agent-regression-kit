@@ -6,6 +6,9 @@
 - Add bilingual technical design and user manuals with explicit replay, SDK, contract and security boundaries.
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
 - Correct conflicting MCP limitations and stale adapter-template test instructions.
+- Harden v4 boundaries: review, compare and migration outputs cannot overwrite their source documents.
+- Reject unknown contract/config fields and unsupported report types instead of silently accepting typos.
+- Treat run-scoped tool call IDs as correlation metadata, validate duplicate IDs, and require boolean report status values.
 
 ## 4.0.0 - 2026-09-19
 

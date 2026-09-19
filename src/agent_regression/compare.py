@@ -61,6 +61,8 @@ def _compare_event_list(
     event_type: str,
     contract: ContractPolicy | None = None,
     result_alignment: str = "order",
+    baseline_call_ordinals: Dict[str, int] | None = None,
+    candidate_call_ordinals: Dict[str, int] | None = None,
 ) -> None:
     baseline_list = list(baseline)
     candidate_list = list(candidate)
@@ -76,8 +78,25 @@ def _compare_event_list(
         candidate_by_call_id = {
             event.get("call_id"): event for event in candidate_list
         }
+        candidate_by_call_ordinal = {
+            candidate_call_ordinals[call_id]: event
+            for event in candidate_list
+            if candidate_call_ordinals is not None
+            and isinstance(call_id := event.get("call_id"), str)
+            and call_id in candidate_call_ordinals
+        }
         for index, left in enumerate(baseline_list):
             right = candidate_by_call_id.get(left.get("call_id"))
+            # call_id is a correlation key, not Agent behavior. Frameworks
+            # often generate a fresh ID for every run. If IDs do not carry
+            # over, associate results by the ordinal of their originating
+            # tool call. This still preserves out-of-order completion when
+            # the framework changes both IDs and result event order.
+            if right is None and baseline_call_ordinals is not None:
+                left_call_id = left.get("call_id")
+                left_ordinal = baseline_call_ordinals.get(left_call_id)
+                if left_ordinal is not None:
+                    right = candidate_by_call_ordinal.get(left_ordinal)
             if right is None:
                 _add_diff(
                     diffs,
@@ -153,6 +172,14 @@ def compare_traces(
     contract = active_policy.contract
     baseline_calls = _events(baseline, "tool_call")
     candidate_calls = _events(candidate, "tool_call")
+    baseline_call_ordinals = {
+        event["call_id"]: ordinal
+        for ordinal, event in enumerate(baseline_calls)
+    }
+    candidate_call_ordinals = {
+        event["call_id"]: ordinal
+        for ordinal, event in enumerate(candidate_calls)
+    }
     same_call_shape = [event.get("tool") for event in baseline_calls] == [
         event.get("tool") for event in candidate_calls
     ]
@@ -167,6 +194,8 @@ def compare_traces(
             "tool_result",
             contract,
             active_policy.result_alignment,
+            baseline_call_ordinals,
+            candidate_call_ordinals,
         )
     elif same_call_shape:
         _compare_event_list(
@@ -176,6 +205,8 @@ def compare_traces(
             "tool_result",
             contract,
             active_policy.result_alignment,
+            baseline_call_ordinals,
+            candidate_call_ordinals,
         )
 
     baseline_answer = _events(baseline, "final_answer")[0]
@@ -219,6 +250,7 @@ def compare_traces(
     blocking_diffs = [difference for difference in diffs if not difference["allowed"]]
     return {
         "schema_version": "0.1",
+        "report_type": "agent_compare",
         "baseline_run_id": baseline.run_id,
         "candidate_run_id": candidate.run_id,
         "passed": not blocking_diffs,

@@ -20,6 +20,25 @@ from .session import AgentSession
 
 COMPATIBILITY_REPORT_SCHEMA_VERSION = "0.1"
 
+# Report types emitted by the package. Keeping this allow-list explicit is
+# important: a non-empty arbitrary ``report_type`` must not make an unknown
+# document look compatible merely because its schema version is familiar.
+SUPPORTED_REPORT_TYPES = frozenset(
+    {
+        "agent_compare",
+        "agent_batch",
+        "agent_scenario_batch",
+        "agent_coverage",
+        "agent_stability",
+        "agent_session_compare",
+        "agent_history",
+        "agent_report_index",
+        "agent_workspace_manifest",
+        "agent_compatibility",
+        "agent_migration",
+    }
+)
+
 
 def _schema_check(name: str, actual: Any, supported: tuple[str, ...]) -> Dict[str, Any]:
     passed = actual in supported
@@ -160,8 +179,19 @@ def check_document_compatibility(
             return _result(selected, [schema_check])
 
         if selected == "report":
-            if not isinstance(value.get("report_type"), str) or not value["report_type"]:
+            report_type = value.get("report_type")
+            # v4.0.0 compare reports predated the explicit report_type field.
+            # Recognize that one legacy shape while rejecting arbitrary types.
+            if report_type is None and {
+                "baseline_run_id",
+                "candidate_run_id",
+                "blocking_difference_count",
+            }.issubset(value):
+                report_type = "agent_compare"
+            if not isinstance(report_type, str) or not report_type:
                 return _invalid(selected, "report_type must be a non-empty string")
+            if report_type not in SUPPORTED_REPORT_TYPES:
+                return _invalid(selected, f"unsupported report_type {report_type!r}")
             schema_check = _schema_check(
                 "report_schema", value.get("schema_version"), SUPPORTED_REPORT_SCHEMA_VERSIONS
             )

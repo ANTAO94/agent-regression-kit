@@ -68,6 +68,12 @@ class MigrationTests(unittest.TestCase):
                 {"contract_schema_version": "9.9", "contract": {}}, "contract"
             )["ok"]
         )
+        self.assertFalse(
+            check_document_compatibility(
+                {"schema_version": "0.1", "report_type": "made_up", "passed": False},
+                "report",
+            )["ok"]
+        )
 
     def test_legacy_public_api_is_explicitly_deprecated(self):
         result = check_public_api_version("3")
@@ -115,6 +121,27 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(
                 "0.1", json.loads(migrated.read_text(encoding="utf-8"))["schema_version"]
             )
+
+    def test_migrate_refuses_to_overwrite_the_source_trace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.trace.json"
+            source.write_text(json.dumps(self._trace()), encoding="utf-8")
+            before = source.read_text(encoding="utf-8")
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    2,
+                    main(
+                        [
+                            "migrate",
+                            "trace",
+                            "--trace",
+                            str(source),
+                            "--out",
+                            str(source),
+                        ]
+                    ),
+                )
+            self.assertEqual(before, source.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

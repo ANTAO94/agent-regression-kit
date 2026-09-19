@@ -173,6 +173,7 @@ def compare_trace_coverage(
     active_redaction = redaction_policy or DEFAULT_REDACTION_POLICY
     report = {
         "schema_version": "0.1",
+        "report_type": "agent_coverage",
         "passed": not missing and not missing_branches,
         "trace_dir": str(root),
         "path_mode": "tool_outcome" if include_outcomes else "tool",

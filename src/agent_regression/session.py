@@ -155,6 +155,7 @@ def compare_sessions(
     differences = active_redaction.redact(differences)
     return {
         "schema_version": SUPPORTED_SESSION_SCHEMA_VERSION,
+        "report_type": "agent_session_compare",
         "baseline_session_id": baseline.session_id,
         "candidate_session_id": candidate.session_id,
         "turn_count": len(turns),

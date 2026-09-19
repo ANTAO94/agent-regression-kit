@@ -71,6 +71,7 @@ def compare_trace_batch(
     return active_redaction.redact(
         {
             "schema_version": "0.1",
+            "report_type": "agent_batch",
             "passed": failed_count == 0,
             "case_count": len(all_cases),
             "passed_case_count": len(all_cases) - failed_count,

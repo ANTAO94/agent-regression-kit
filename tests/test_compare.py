@@ -150,6 +150,40 @@ class CompareTests(unittest.TestCase):
         self.assertFalse(ordered["passed"])
         self.assertIn("tool_result", {item["category"] for item in ordered["differences"]})
 
+    def test_fresh_run_call_ids_do_not_create_a_regression(self):
+        baseline = AgentTrace.from_dict(
+            {
+                "schema_version": "0.1",
+                "run_id": "baseline-fresh-ids",
+                "agent": {"name": "toy"},
+                "events": [
+                    {"sequence": 1, "type": "tool_call", "call_id": "a", "tool": "first", "arguments": {}},
+                    {"sequence": 2, "type": "tool_call", "call_id": "b", "tool": "second", "arguments": {}},
+                    {"sequence": 3, "type": "tool_result", "call_id": "a", "result": {"value": 1}, "is_error": False},
+                    {"sequence": 4, "type": "tool_result", "call_id": "b", "result": {"value": 2}, "is_error": False},
+                    {"sequence": 5, "type": "final_answer", "text": "ok", "claims": {"ok": True}},
+                ],
+            }
+        )
+        candidate = AgentTrace.from_dict(
+            {
+                "schema_version": "0.1",
+                "run_id": "candidate-fresh-ids",
+                "agent": {"name": "toy"},
+                "events": [
+                    {"sequence": 1, "type": "tool_call", "call_id": "new-a", "tool": "first", "arguments": {}},
+                    {"sequence": 2, "type": "tool_call", "call_id": "new-b", "tool": "second", "arguments": {}},
+                    # Completion order is intentionally different from call creation order.
+                    {"sequence": 3, "type": "tool_result", "call_id": "new-b", "result": {"value": 2}, "is_error": False},
+                    {"sequence": 4, "type": "tool_result", "call_id": "new-a", "result": {"value": 1}, "is_error": False},
+                    {"sequence": 5, "type": "final_answer", "text": "ok", "claims": {"ok": True}},
+                ],
+            }
+        )
+        report = compare_traces(baseline, candidate)
+        self.assertTrue(report["passed"], report["differences"])
+        self.assertEqual([], report["differences"])
+
     def test_invalid_result_alignment_is_rejected(self):
         with self.assertRaises(ValueError):
             ComparisonPolicy(result_alignment="position")

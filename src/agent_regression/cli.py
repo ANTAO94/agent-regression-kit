@@ -100,6 +100,25 @@ def _write_json_file(value: Dict[str, Any], path: Path) -> None:
     )
 
 
+def _reject_output_aliases(
+    outputs: list[str | None], protected_inputs: list[str], operation: str
+) -> None:
+    """Prevent review/migration commands from overwriting their inputs."""
+    resolved_inputs = {
+        Path(path).expanduser().resolve() for path in protected_inputs if path
+    }
+    resolved_outputs = [
+        Path(path).expanduser().resolve() for path in outputs if path
+    ]
+    if len(resolved_outputs) != len(set(resolved_outputs)):
+        raise ValueError(f"{operation} outputs must be different paths")
+    for output in resolved_outputs:
+        if output in resolved_inputs:
+            raise ValueError(
+                f"{operation} output must differ from its input: {output}"
+            )
+
+
 def _load_scripted_batch_case(path: Path, root: Path) -> ScenarioCase:
     scenario = _read_json(str(path))
     relative = path.relative_to(root)
@@ -602,6 +621,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "migrate":
             if args.migrate_action != "trace":
                 raise ValueError(f"unsupported migrate action: {args.migrate_action}")
+            _reject_output_aliases(
+                [args.out, args.report],
+                [args.trace],
+                "migrate trace",
+            )
             source = _read_json(args.trace)
             migrated = migrate_trace(source)
             _write_json_file(migrated, Path(args.out))
@@ -960,6 +984,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "baseline":
             if args.baseline_action == "accept":
+                _reject_output_aliases([args.out], [args.trace], "baseline accept")
                 trace = AgentTrace.from_dict(_read_json(args.trace))
                 _write_output(trace.to_dict(), args.out)
                 return 0
@@ -975,6 +1000,11 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError(
                         "baseline review requires --baseline and --candidate, or --config with both"
                     )
+                _reject_output_aliases(
+                    [args.out],
+                    [baseline_path, candidate_path],
+                    "baseline review",
+                )
                 policy = ComparisonPolicy(
                     allowed_categories=set(review_config.get("allow_categories", [])),
                     allowed_paths=set(review_config.get("allow_paths", [])),
@@ -1028,6 +1058,11 @@ def main(argv: list[str] | None = None) -> int:
             else set(compare_config.get("allow_paths", []))
         )
         output_path = args.out or compare_config.get("report")
+        _reject_output_aliases(
+            [output_path],
+            [baseline_path, candidate_path],
+            "compare",
+        )
         contract = ContractPolicy.from_dict(compare_config.get("contract"))
         baseline = AgentTrace.from_dict(_read_json(baseline_path))
         candidate = AgentTrace.from_dict(_read_json(candidate_path))

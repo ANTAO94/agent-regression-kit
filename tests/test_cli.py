@@ -260,6 +260,22 @@ class CliTests(unittest.TestCase):
             with redirect_stdout(io.StringIO()):
                 self.assertEqual(2, main(["config", "validate", "--config", str(config)]))
 
+    def test_config_rejects_unknown_fields_instead_of_ignoring_typos(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "config.json"
+            config.write_text(
+                json.dumps(
+                    {
+                        "baseline": "baseline.json",
+                        "candidate": "candidate.json",
+                        "must_not_cal": ["delete_order"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(2, main(["config", "validate", "--config", str(config)]))
+
     def test_mcp_record_replay_compare_flow(self):
         with tempfile.TemporaryDirectory() as directory:
             baseline = Path(directory) / "baseline.json"

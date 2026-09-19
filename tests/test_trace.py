@@ -63,6 +63,47 @@ class AgentTraceTests(unittest.TestCase):
                 }
             )
 
+    def test_rejects_reused_call_id_after_a_previous_result(self):
+        with self.assertRaisesRegex(TraceValidationError, "unique"):
+            AgentTrace.from_dict(
+                {
+                    "schema_version": "0.1",
+                    "run_id": "run-1",
+                    "agent": {"name": "test"},
+                    "events": [
+                        {
+                            "sequence": 1,
+                            "type": "tool_call",
+                            "call_id": "call-1",
+                            "tool": "lookup",
+                            "arguments": {},
+                        },
+                        {
+                            "sequence": 2,
+                            "type": "tool_result",
+                            "call_id": "call-1",
+                            "result": {},
+                            "is_error": False,
+                        },
+                        {
+                            "sequence": 3,
+                            "type": "tool_call",
+                            "call_id": "call-1",
+                            "tool": "lookup-again",
+                            "arguments": {},
+                        },
+                        {
+                            "sequence": 4,
+                            "type": "tool_result",
+                            "call_id": "call-1",
+                            "result": {},
+                            "is_error": False,
+                        },
+                        {"sequence": 5, "type": "final_answer", "text": "done"},
+                    ],
+                }
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

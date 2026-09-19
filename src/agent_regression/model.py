@@ -45,6 +45,7 @@ class AgentTrace:
             raise TraceValidationError("events must not be empty")
 
         pending_calls: Dict[str, str] = {}
+        seen_call_ids: set[str] = set()
         final_count = 0
         for expected_sequence, event in enumerate(self.events, start=1):
             if event.get("sequence") != expected_sequence:
@@ -56,10 +57,11 @@ class AgentTrace:
                 raise TraceValidationError(f"unsupported event type {event_type!r}")
             if event_type == "tool_call":
                 call_id = event.get("call_id")
-                if not call_id or call_id in pending_calls:
+                if not isinstance(call_id, str) or not call_id or call_id in seen_call_ids:
                     raise TraceValidationError("tool_call.call_id must be unique and non-empty")
                 if not event.get("tool") or not isinstance(event.get("arguments"), dict):
                     raise TraceValidationError("tool_call requires tool and object arguments")
+                seen_call_ids.add(call_id)
                 pending_calls[call_id] = event["tool"]
             elif event_type == "tool_result":
                 call_id = event.get("call_id")

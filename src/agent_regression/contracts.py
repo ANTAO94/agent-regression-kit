@@ -193,6 +193,22 @@ class ContractPolicy:
             return cls()
         if not isinstance(value, Mapping):
             raise ValueError("contract must be an object")
+        allowed_fields = {
+            "assertions",
+            "ignore_paths",
+            "normalizers",
+            "must_call",
+            "must_not_call",
+            "path_rules",
+            "side_effects",
+            "max_steps",
+            "required_claims",
+        }
+        unknown_fields = sorted(set(value) - allowed_fields)
+        if unknown_fields:
+            raise ValueError(
+                "unsupported contract fields: " + ", ".join(map(str, unknown_fields))
+            )
 
         def rules(key: str) -> List[Dict[str, Any]]:
             configured = value.get(key, [])

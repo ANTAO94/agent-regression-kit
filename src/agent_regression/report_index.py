@@ -52,6 +52,7 @@ def build_report_index(
     active_redaction = redaction_policy or DEFAULT_REDACTION_POLICY
     entries = []
     skipped = []
+    invalid_report_count = 0
     for path in sorted(root.rglob(pattern)):
         if not path.is_file():
             continue
@@ -102,6 +103,15 @@ def build_report_index(
         if report_type is None:
             skipped.append({"source": relative, "reason": "unrecognized regression report"})
             continue
+        if not isinstance(value.get("passed"), bool):
+            invalid_report_count += 1
+            skipped.append(
+                {
+                    "source": relative,
+                    "reason": "recognized report passed must be a boolean",
+                }
+            )
+            continue
         if report_type == "agent_history":
             metrics = {
                 key: value[key]
@@ -120,7 +130,7 @@ def build_report_index(
                 "source": relative,
                 "label": active_redaction.redact(_label(value, path)),
                 "report_type": report_type,
-                "passed": bool(value.get("passed")),
+                "passed": value["passed"],
                 "metrics": metrics,
                 "summary": summary,
             }
@@ -140,6 +150,7 @@ def build_report_index(
         "pattern": active_redaction.redact(pattern),
         "passed": (
             bool(entries)
+            and invalid_report_count == 0
             and all(entry["passed"] for entry in entries)
             and not missing_reports
         ),
