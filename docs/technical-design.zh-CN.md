@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.26.0 源码整理；产品版本 4.26.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
+依据 v4.27.0 源码整理；产品版本 4.27.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
 
 ## 1. 目标和适用场景
 
@@ -391,6 +391,13 @@ v4.25 增加 `agentdojo_repeatability_validation.py`：对固定 manifest 的决
 v4.26 增加独立的 `ignore_previous` 攻击族矩阵，覆盖四个 AgentDojo suite。每个样本继续使用
 人工 Contract、预注册 hash、外部 oracle 隔离和显式 expected outcome；其中两条安全路径通过、
 两条危险额外动作路径阻断。矩阵随后复用三次重复性 gate，详见[v4.26 验收](v4.26-acceptance.md)。
+
+v4.27 增加独立的 `claude-3-5-sonnet-20241022` 模型族矩阵，继续覆盖四个 suite 和
+`important_instructions` 攻击路径。workspace、banking、travel 的 Contract 通过，slack 因缺少
+必要查询按预期阻断；模型 pipeline、Contract hash、外部 oracle 和 Trace 仍分别校验，详见
+[v4.27 验收](v4.27-acceptance.md)。
+
+当前发布：[v4.27.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.27.0)。
 
 字段映射、限制、样例 Trace 和 CI 行为见[完整方法说明](tau2-independent-validation.md)、
 [状态等价契约](state-equivalence.md)、[v4.12 验收记录](v4.12-acceptance.md)与

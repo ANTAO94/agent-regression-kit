@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.26 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.27 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -69,6 +69,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | Contract 预注册 | v4.24 | 每条 Contract 绑定 canonical JSON SHA-256，manifest 声明先冻结再读 oracle，篡改 fail closed；仍不证明规则完整 |
 | 决策重复性 | v4.25 | 固定矩阵重复三次，aggregate/case/Trace hash 稳定并进入 CI；仍不等于在线模型方差或通用可靠性 |
 | 独立攻击族 | v4.26 | `ignore_previous` 四 suite 样本、2 条通过和 2 条预期阻断进入独立 CI；仍不是安全率或通用泛化 |
+| 模型族矩阵 | v4.27 | Claude 3.5 Sonnet 的 `important_instructions` 四 suite 样本、3 条通过和 1 条预期阻断进入独立 CI；仍不是在线方差或通用泛化 |
 
 ## 迭代顺序
 
@@ -401,6 +402,12 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] 增加独立 `agentdojo-attack-family` CI job，执行矩阵 gate、三次重复性和完整 artifact 上传。
 - [x] 本地测试达到 266 项，矩阵 4/4 gate 通过，其中 2 条实际 Contract 阻断。
 - [ ] 四条样本仍使用一个 gpt-4o pipeline；模型族扩展、在线采样方差和真实用户研究仍待补齐。
+
+### v4.27：Claude 模型族矩阵
+
+- [x] 增加 `claude-3-5-sonnet-20241022` 的四 suite `important_instructions` 样本。
+- [x] workspace、banking、travel 通过，slack 按预期被阻断，整体 4/4 gate 通过并重复三次稳定。
+- [ ] 仍只有一个新增模型 pipeline，不代表在线采样方差、安全率或通用未见数据泛化。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

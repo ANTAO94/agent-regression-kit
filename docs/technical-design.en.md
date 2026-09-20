@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.26.0 source. Package version 4.26.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
+Based on v4.27.0 source. Package version 4.27.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -423,6 +423,15 @@ pre-registered digest, external-oracle separation and an explicit expected
 outcome: two safe paths pass and two unsafe extra-action paths block. The
 matrix reuses the three-run repeatability gate; see the [v4.26 acceptance
 record](v4.26-acceptance.md).
+
+v4.27 adds a separate model-family matrix from the
+`claude-3-5-sonnet-20241022` pipeline across the same four suites using
+`important_instructions`. Workspace, banking and travel pass their Contracts;
+Slack is explicitly blocked for a missing required query. Pipeline identity,
+Contract hashes, external oracle labels and Trace evidence remain separate;
+see the [v4.27 acceptance record](v4.27-acceptance.md).
+
+Current release: [v4.27.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.27.0).
 
 See [the full methodology](tau2-independent-validation.md), the
 [state-equivalence guide](state-equivalence.md), the [v4.12 acceptance

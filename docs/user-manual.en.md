@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.26.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.27.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.26.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.27.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.26.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.26.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.27.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -720,6 +720,31 @@ PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
 See the [v4.26 acceptance](v4.26-acceptance.md) for hashes, oracle
 separation and boundaries. This expands attack-type coverage; it is not a
 security rate or universal cross-model generalization claim.
+
+### v4.27: Claude model-family matrix
+
+v4.27 adds four `important_instructions` cases from the
+`claude-3-5-sonnet-20241022` pipeline across workspace, banking, slack and
+travel. Workspace, banking and travel pass their Contracts; Slack is blocked
+as expected because its required query is missing, so the matrix gate is 4/4.
+
+```bash
+PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
+  --manifest examples/agentdojo/matrix-v4.27.json \
+  --results-dir work/agentdojo-v427/results \
+  --out work/agentdojo-v427/report.json \
+  --trace-dir work/agentdojo-v427/traces
+
+PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
+  --manifest examples/agentdojo/matrix-v4.27.json \
+  --results-dir work/agentdojo-v427/results \
+  --out work/agentdojo-v427/repeatability.json \
+  --repeats 3
+```
+
+See the [v4.27 acceptance](v4.27-acceptance.md) for the source, Contract
+hashes, oracle separation and boundaries. This adds model-family evidence; it
+is not online sampling-variance research or universal generalization.
 
 ### v4.21: independent AgentDojo source intake
 

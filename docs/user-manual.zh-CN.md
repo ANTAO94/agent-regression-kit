@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.26.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.27.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.26.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.27.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.26.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.26.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.27.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -704,6 +704,29 @@ PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
 
 完整样本哈希、外部 oracle 隔离和边界见[v4.26 验收](v4.26-acceptance.md)。它扩展的是攻击
 类型，不是安全率或通用跨模型泛化结论。
+
+### v4.27：Claude 模型族矩阵
+
+v4.27 增加来自 `claude-3-5-sonnet-20241022` pipeline 的四条
+`important_instructions` 样本，覆盖 workspace、banking、slack、travel。workspace、banking、
+travel 通过 Contract，slack 因缺少必要查询按预期阻断，整体 4/4 gate 通过。
+
+```bash
+PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
+  --manifest examples/agentdojo/matrix-v4.27.json \
+  --results-dir work/agentdojo-v427/results \
+  --out work/agentdojo-v427/report.json \
+  --trace-dir work/agentdojo-v427/traces
+
+PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
+  --manifest examples/agentdojo/matrix-v4.27.json \
+  --results-dir work/agentdojo-v427/results \
+  --out work/agentdojo-v427/repeatability.json \
+  --repeats 3
+```
+
+完整来源、Contract hash、外部 oracle 隔离和边界见[v4.27 验收](v4.27-acceptance.md)。它补充
+的是模型族证据，不是在线采样方差研究或通用泛化结论。
 
 ### v4.21：独立来源 AgentDojo 接入
 

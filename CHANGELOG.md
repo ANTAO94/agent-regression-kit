@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 4.27.0 - 2026-09-21
+
+- Add a four-suite AgentDojo matrix from the independent
+  `claude-3-5-sonnet-20241022` pipeline, with explicit Contract provenance and
+  expected outcomes.
+- Add a Claude-model CI job that validates the pinned results, repeats the
+  decision three times and uploads redacted Trace/report artifacts.
+- Keep the boundary explicit: one pinned Claude pipeline expands model-family
+  evidence but is not online sampling research or universal generalization.
+
 ## 4.26.0 - 2026-09-21
 
 - Add a four-case `ignore_previous` AgentDojo attack-family matrix across

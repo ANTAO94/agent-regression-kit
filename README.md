@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.26.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.27.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.26.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.26.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.27.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.26.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.27.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.26.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -342,7 +342,7 @@ agent-regression performance gate \
 
 ## 8. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.26 发布记录 **266 项测试通过**，并验证构建、干净环境安装、
+当前适合本地开发与团队 CI 试点。v4.27 发布记录 **267 项测试通过**，并验证构建、干净环境安装、
 首用模板、性能 smoke、独立消费仓库升级和多个任务域的公开/前瞻评测。
 
 | 验证类型 | 已有证据 | 能说明什么 |
@@ -362,6 +362,7 @@ agent-regression performance gate \
 | Contract 预注册 | [AgentDojo v4.24 验收](docs/v4.24-acceptance.md)：8/8 Contract 使用 canonical JSON SHA-256 绑定，篡改规则 fail closed | 证明评测规则来源可追溯；不证明 Contract 完整或语义正确 |
 | 决策重复性 | [AgentDojo v4.25 验收](docs/v4.25-acceptance.md)：同一固定矩阵重复 3 次，汇总报告、逐条报告和 Trace hash 全部稳定 | 证明固定输入下的决策产物可重复生成；不等于在线模型随机性或可靠性证明 |
 | 独立攻击族 | [AgentDojo v4.26 验收](docs/v4.26-acceptance.md)：新增 ignore_previous 四条样本，覆盖四个 suite，2 条通过、2 条按预期阻断 | 证明不同攻击类型可进入同一审计 gate；仍不是安全率或通用泛化 |
+| 模型族矩阵 | [AgentDojo v4.27 验收](docs/v4.27-acceptance.md)：Claude 3.5 Sonnet pipeline 的四 suite important_instructions 样本，3 条通过、1 条按预期阻断 | 补充独立模型族证据；仍不是在线方差研究或通用泛化 |
 
 τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
@@ -378,4 +379,4 @@ agent-regression performance gate \
 | 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
 | 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [性能基线](docs/performance.md) · [独立消费项目](docs/consumer-pilot.md) · [τ² 独立验证](docs/tau2-independent-validation.md) · [航空域复现](examples/tau2-airline/README.md) · [电信域复现](examples/tau2-telecom/README.md) · [电信 holdout 验收](docs/v4.20-acceptance.md) · [AgentDojo v4.26 验收](docs/v4.26-acceptance.md) · [AgentDojo v4.25 验收](docs/v4.25-acceptance.md) · [AgentDojo v4.24 验收](docs/v4.24-acceptance.md) · [AgentDojo v4.23 验收](docs/v4.23-acceptance.md) · [AgentDojo v4.22 验收](docs/v4.22-acceptance.md) · [AgentDojo v4.21 验收](docs/v4.21-acceptance.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.20 验收](docs/v4.20-acceptance.md) · [v4.19 验收](docs/v4.19-acceptance.md) · [v4.18 验收](docs/v4.18-acceptance.md) · [v4.17 验收](docs/v4.17-acceptance.md) · [v4.16 验收](docs/v4.16-acceptance.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [性能基线](docs/performance.md) · [独立消费项目](docs/consumer-pilot.md) · [τ² 独立验证](docs/tau2-independent-validation.md) · [航空域复现](examples/tau2-airline/README.md) · [电信域复现](examples/tau2-telecom/README.md) · [电信 holdout 验收](docs/v4.20-acceptance.md) · [AgentDojo v4.27 验收](docs/v4.27-acceptance.md) · [AgentDojo v4.26 验收](docs/v4.26-acceptance.md) · [AgentDojo v4.25 验收](docs/v4.25-acceptance.md) · [AgentDojo v4.24 验收](docs/v4.24-acceptance.md) · [AgentDojo v4.23 验收](docs/v4.23-acceptance.md) · [AgentDojo v4.22 验收](docs/v4.22-acceptance.md) · [AgentDojo v4.21 验收](docs/v4.21-acceptance.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.20 验收](docs/v4.20-acceptance.md) · [v4.19 验收](docs/v4.19-acceptance.md) · [v4.18 验收](docs/v4.18-acceptance.md) · [v4.17 验收](docs/v4.17-acceptance.md) · [v4.16 验收](docs/v4.16-acceptance.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)

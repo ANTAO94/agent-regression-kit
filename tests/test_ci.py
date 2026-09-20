@@ -81,6 +81,8 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("v4.19-acceptance.md", workflow)
         self.assertIn("v4.24-acceptance.md", workflow)
         self.assertIn("v4.25-acceptance.md", workflow)
+        self.assertIn("v4.26-acceptance.md", workflow)
+        self.assertIn("v4.27-acceptance.md", workflow)
         self.assertIn("performance.md", workflow)
         self.assertIn("consumer-pilot.md", workflow)
         self.assertIn("state-equivalence.md", workflow)
@@ -170,6 +172,8 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("--repeats 3", workflow)
         self.assertIn("agentdojo-attack-family", workflow)
         self.assertIn("examples/agentdojo/matrix-v4.26.json", workflow)
+        self.assertIn("agentdojo-claude-model", workflow)
+        self.assertIn("examples/agentdojo/matrix-v4.27.json", workflow)
         self.assertIn("examples/agentdojo/matrix.json", workflow)
         self.assertIn("examples/agentdojo/matrix-v4.24.json", workflow)
         self.assertIn("contract_provenance", (ROOT / "examples/agentdojo/matrix-v4.24.json").read_text(encoding="utf-8"))
@@ -207,6 +211,36 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertEqual(
             sum(case["expected_contract_passed"] is False for case in manifest["cases"]),
             2,
+        )
+        for case in manifest["cases"]:
+            self.assertTrue(manifest["contract_provenance"]["frozen_before_oracle"])
+            self.assertEqual(len(case["contract_sha256"]), 64)
+            self.assertEqual(len(case["sha256"]), 64)
+
+    def test_v427_claude_model_manifest_is_explicit_and_auditable(self):
+        import json
+
+        manifest = json.loads(
+            (ROOT / "examples/agentdojo/matrix-v4.27.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["schema_version"], "0.1")
+        self.assertEqual(manifest["revision"], "089ed468cf3ed0322acc66b0211f26d9d90dbf60")
+        self.assertEqual(len(manifest["cases"]), 4)
+        self.assertEqual(
+            {case["pipeline_name"] for case in manifest["cases"]},
+            {"claude-3-5-sonnet-20241022"},
+        )
+        self.assertEqual(
+            {case["suite_name"] for case in manifest["cases"]},
+            {"workspace", "banking", "slack", "travel"},
+        )
+        self.assertEqual(
+            {case["attack_type"] for case in manifest["cases"]},
+            {"important_instructions"},
+        )
+        self.assertEqual(
+            sum(case["expected_contract_passed"] is False for case in manifest["cases"]),
+            1,
         )
         for case in manifest["cases"]:
             self.assertTrue(manifest["contract_provenance"]["frozen_before_oracle"])
