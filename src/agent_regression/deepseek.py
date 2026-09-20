@@ -89,6 +89,7 @@ def record_deepseek_tool_run(
     model: str = "deepseek-flash",
     base_url: str = "https://api.deepseek.com",
     force_first_tool: str | None = None,
+    required_tool_sequence: Sequence[str] = (),
     max_tokens: int = 96,
     max_rounds: int = 4,
     timeout: float = 30.0,
@@ -99,7 +100,9 @@ def record_deepseek_tool_run(
 
     The API key is read from ``DEEPSEEK_API_KEY`` when omitted and is never
     copied into the Trace. Thinking mode is disabled to keep tool forcing
-    available and minimize paid output tokens.
+    available and minimize paid output tokens. ``required_tool_sequence`` can
+    force a deterministic multi-tool path while still leaving argument
+    generation and cross-step data propagation to the model.
     """
 
     active_key = api_key or os.environ.get("DEEPSEEK_API_KEY")
@@ -119,6 +122,13 @@ def record_deepseek_tool_run(
         raise ValueError("DeepSeek tool definitions and handlers must have the same names")
     if force_first_tool is not None and force_first_tool not in catalog:
         raise ValueError("force_first_tool must name a configured tool")
+    sequence = tuple(required_tool_sequence)
+    if force_first_tool is not None and sequence:
+        raise ValueError("force_first_tool and required_tool_sequence are mutually exclusive")
+    if any(not isinstance(name, str) or name not in catalog for name in sequence):
+        raise ValueError("required_tool_sequence must contain configured tool names")
+    if len(sequence) + 1 > max_rounds:
+        raise ValueError("max_rounds must allow every required tool and a final answer")
 
     endpoint = base_url.rstrip("/") + "/chat/completions"
     send = transport or _post_json
@@ -134,6 +144,7 @@ def record_deepseek_tool_run(
         {"role": "user", "content": request},
     ]
     executed_tool = False
+    executed_tool_names: list[str] = []
 
     for round_number in range(1, max_rounds + 1):
         payload: dict[str, Any] = {
@@ -144,7 +155,12 @@ def record_deepseek_tool_run(
             "max_tokens": max_tokens,
             "stream": False,
         }
-        if round_number == 1 and force_first_tool:
+        if len(executed_tool_names) < len(sequence):
+            payload["tool_choice"] = {
+                "type": "function",
+                "function": {"name": sequence[len(executed_tool_names)]},
+            }
+        elif round_number == 1 and force_first_tool:
             payload["tool_choice"] = {
                 "type": "function",
                 "function": {"name": force_first_tool},
@@ -165,10 +181,14 @@ def record_deepseek_tool_run(
         }
         raw_calls = message.get("tool_calls") or []
         if raw_calls:
-            if executed_tool:
+            if executed_tool and not sequence:
                 raise DeepSeekAPIError("DeepSeek emitted another tool call after tool execution")
             if not isinstance(raw_calls, list):
                 raise DeepSeekAPIError("DeepSeek tool_calls must be an array")
+            if sequence and len(raw_calls) != 1:
+                raise DeepSeekAPIError(
+                    "DeepSeek must emit exactly one tool call for a required sequence step"
+                )
             assistant_message = {
                 "role": "assistant",
                 "content": message.get("content"),
@@ -184,6 +204,13 @@ def record_deepseek_tool_run(
                     raise DeepSeekAPIError("DeepSeek tool call is missing an ID")
                 if name not in catalog:
                     raise DeepSeekAPIError(f"DeepSeek requested unknown tool {name!r}")
+                if sequence:
+                    sequence_index = len(executed_tool_names)
+                    if sequence_index >= len(sequence) or name != sequence[sequence_index]:
+                        expected = sequence[sequence_index] if sequence_index < len(sequence) else None
+                        raise DeepSeekAPIError(
+                            f"DeepSeek called {name!r}; expected required tool {expected!r}"
+                        )
                 try:
                     arguments = json.loads(arguments_text)
                 except (TypeError, json.JSONDecodeError) as exc:
@@ -200,6 +227,7 @@ def record_deepseek_tool_run(
                         "content": json.dumps(result, ensure_ascii=False, sort_keys=True),
                     }
                 )
+                executed_tool_names.append(name)
             executed_tool = True
             continue
 
@@ -208,6 +236,9 @@ def record_deepseek_tool_run(
             raise DeepSeekAPIError(
                 f"DeepSeek did not call required tool {force_first_tool!r}"
             )
+        if sequence and len(executed_tool_names) != len(sequence):
+            missing = sequence[len(executed_tool_names)]
+            raise DeepSeekAPIError(f"DeepSeek did not call required tool {missing!r}")
         if not isinstance(content, str) or not content.strip():
             raise DeepSeekAPIError("DeepSeek final answer is empty")
         claims = claims_extractor(content)

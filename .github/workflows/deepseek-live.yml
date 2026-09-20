@@ -29,12 +29,16 @@ jobs:
         run: test -n "$DEEPSEEK_API_KEY"
       - name: Install the dependency-free core
         run: python -m pip install .
-      - name: Run one low-cost live tool Agent
-        run: python examples/deepseek_live_agent_example.py
+      - name: Run low-cost live tool Agents
+        run: |
+          python examples/deepseek_live_agent_example.py
+          python examples/deepseek_multi_tool_agent_example.py
       - name: Validate and compare live evidence
         run: |
           agent-regression validate --trace work/deepseek-live.trace.json
           agent-regression compare --config examples/deepseek-live/compare.config.json
+          agent-regression validate --trace work/deepseek-multi-tool.trace.json
+          agent-regression compare --config examples/deepseek-multi-tool/compare.config.json
       - name: Assert the secret is absent from artifacts
         run: |
           python - <<'PY'
@@ -42,12 +46,12 @@ jobs:
           from pathlib import Path
 
           secret = os.environ["DEEPSEEK_API_KEY"]
-          for path in Path("work").glob("deepseek-live*.json"):
+          for path in Path("work").glob("deepseek-*.json"):
               if secret in path.read_text(encoding="utf-8"):
                   raise SystemExit(f"secret found in {path}")
           PY
       - uses: actions/upload-artifact@v4
         with:
           name: deepseek-live-regression-evidence
-          path: work/deepseek-live*.json
+          path: work/deepseek-*.json
           retention-days: 7

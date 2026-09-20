@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.1",
+  "run_id": "order-refund-baseline",
+  "agent": {
+    "name": "reviewed-order-refund-agent",
+    "version": "1.0.0"
+  },
+  "events": [
+    {
+      "type": "tool_call",
+      "call_id": "call-1",
+      "tool": "get_order",
+      "arguments": {"order_id": "123"},
+      "sequence": 1
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-1",
+      "result": {"order_id": "123", "status": "not_shipped", "paid_amount": 88},
+      "is_error": false,
+      "sequence": 2
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-2",
+      "tool": "check_refund_eligibility",
+      "arguments": {
+        "order_id": "123",
+        "order_status": "not_shipped",
+        "paid_amount": 88
+      },
+      "sequence": 3
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-2",
+      "result": {"order_id": "123", "eligible": true, "refund_amount": 88},
+      "is_error": false,
+      "sequence": 4
+    },
+    {
+      "type": "final_answer",
+      "text": "订单 123 尚未发货，可以退款 88 元。",
+      "claims": {
+        "order_id": "123",
+        "order_status": "not_shipped",
+        "refund_eligible": true,
+        "refund_amount": 88
+      },
+      "sequence": 5
+    }
+  ],
+  "metadata": {
+    "input": "查询订单 123；如果尚未发货，检查退款资格并返回可退款金额。",
+    "case": "order-refund-dependency-chain"
+  }
+}

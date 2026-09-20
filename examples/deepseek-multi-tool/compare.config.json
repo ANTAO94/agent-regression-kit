@@ -1,0 +1,58 @@
+{
+  "baseline": "../../baselines/order-refund.trace.json",
+  "candidate": "../../work/deepseek-multi-tool.trace.json",
+  "report": "../../work/deepseek-multi-tool.report.json",
+  "format": "json",
+  "final_answer_mode": "claims-only",
+  "contract": {
+    "required_claims": [
+      "final_answer.claims.order_id",
+      "final_answer.claims.order_status",
+      "final_answer.claims.refund_eligible",
+      "final_answer.claims.refund_amount"
+    ],
+    "assertions": [
+      {"path": "final_answer.claims.order_id", "equals": "123"},
+      {"path": "final_answer.claims.order_status", "equals": "not_shipped"},
+      {"path": "final_answer.claims.refund_eligible", "equals": true},
+      {"path": "final_answer.claims.refund_amount", "equals": 88},
+      {"path": "tool_results[*].is_error", "equals": false}
+    ],
+    "must_call": [
+      {"tool": "get_order", "arguments": {"order_id": "123"}},
+      {
+        "tool": "check_refund_eligibility",
+        "arguments": {
+          "order_id": "123",
+          "order_status": "not_shipped",
+          "paid_amount": 88
+        }
+      }
+    ],
+    "must_not_call": ["cancel_order", "refund"],
+    "path_rules": {
+      "ordered": true,
+      "any_of": [
+        [
+          {
+            "tool": "get_order",
+            "arguments": {"order_id": "123"},
+            "result": {"order_id": "123", "status": "not_shipped", "paid_amount": 88},
+            "is_error": false
+          },
+          {
+            "tool": "check_refund_eligibility",
+            "arguments": {
+              "order_id": "123",
+              "order_status": "not_shipped",
+              "paid_amount": 88
+            },
+            "result": {"order_id": "123", "eligible": true, "refund_amount": 88},
+            "is_error": false
+          }
+        ]
+      ]
+    },
+    "max_steps": 2
+  }
+}
