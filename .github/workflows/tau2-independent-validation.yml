@@ -824,10 +824,11 @@ jobs:
         run: |
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json
+          manifest = json.load(open("examples/agentdojo/matrix-v4.27.json"))
           matrix = json.load(open("work/agentdojo-claude-model/report.json"))
           repeatability = json.load(open("work/agentdojo-claude-model/repeatability.json"))
           blocked = sum(not case["contract_passed"] for case in matrix["cases"])
-          pipelines = sorted({case["pipeline_name"] for case in matrix["cases"]})
+          pipelines = sorted({case["pipeline_name"] for case in manifest["cases"]})
           print("## AgentDojo Claude model matrix")
           print()
           print(f"- Pipelines: {', '.join(pipelines)}")

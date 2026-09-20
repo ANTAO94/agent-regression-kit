@@ -174,6 +174,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("examples/agentdojo/matrix-v4.26.json", workflow)
         self.assertIn("agentdojo-claude-model", workflow)
         self.assertIn("examples/agentdojo/matrix-v4.27.json", workflow)
+        self.assertIn('manifest = json.load(open("examples/agentdojo/matrix-v4.27.json"))', workflow)
         self.assertIn("examples/agentdojo/matrix.json", workflow)
         self.assertIn("examples/agentdojo/matrix-v4.24.json", workflow)
         self.assertIn("contract_provenance", (ROOT / "examples/agentdojo/matrix-v4.24.json").read_text(encoding="utf-8"))
