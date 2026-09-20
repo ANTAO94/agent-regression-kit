@@ -4,6 +4,14 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.6.0 → v4.6.1
+
+This patch release corrects the release-integrity verification commands. No
+Trace, Contract, public API or configuration behavior changed. Existing
+installations can upgrade without migration; consumers should use the updated
+[`docs/supply-chain.md`](docs/supply-chain.md) commands when verifying both
+the SLSA provenance and SPDX 2.3 SBOM attestations.
+
 ## v4.5.0 → v4.6.0
 
 This feature release adds the optional `contract.path_rules.mode` field. Existing

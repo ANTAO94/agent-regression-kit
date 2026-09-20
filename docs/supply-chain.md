@@ -21,7 +21,7 @@ sha256sum --check SHA256SUMS
 On macOS, verify one file with the digest shown in `SHA256SUMS`:
 
 ```bash
-shasum -a 256 agent_regression_kit-4.6.0-py3-none-any.whl
+shasum -a 256 agent_regression_kit-4.6.1-py3-none-any.whl
 ```
 
 Then use a current GitHub CLI to verify that the artifact was produced by this
@@ -29,15 +29,31 @@ repository's signed workflow:
 
 ```bash
 gh attestation verify \
-  agent_regression_kit-4.5.0-py3-none-any.whl \
+  agent_regression_kit-4.6.1-py3-none-any.whl \
   --repo ANTAO94/agent-regression-kit \
   --signer-workflow ANTAO94/agent-regression-kit/.github/workflows/release.yml
 ```
 
-也可以验证整个 GitHub Release：
+The same subject set also has a separate SPDX 2.3 SBOM attestation. Verify it
+by selecting the SPDX predicate explicitly:
 
 ```bash
-gh release verify v4.6.0 --repo ANTAO94/agent-regression-kit
+gh attestation verify \
+  agent_regression_kit-4.6.1-py3-none-any.whl \
+  --repo ANTAO94/agent-regression-kit \
+  --signer-workflow ANTAO94/agent-regression-kit/.github/workflows/release.yml \
+  --predicate-type https://spdx.dev/Document/v2.3
+```
+
+同一组发布文件还包含单独的 SPDX 2.3 SBOM attestation。使用 predicate 类型明确选择
+SBOM 证明：
+
+```bash
+gh attestation verify \
+  agent_regression_kit-4.6.1-py3-none-any.whl \
+  --repo ANTAO94/agent-regression-kit \
+  --signer-workflow ANTAO94/agent-regression-kit/.github/workflows/release.yml \
+  --predicate-type https://spdx.dev/Document/v2.3
 ```
 
 Checksum verification detects accidental or malicious byte changes after the

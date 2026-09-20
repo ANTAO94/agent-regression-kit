@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 4.6.1 - 2026-09-20
+
+- Correct release-integrity instructions to verify wheel provenance and SPDX attestations with `gh attestation verify`.
+- Remove the misleading tag-level `gh release verify` example, which does not verify the release assets produced by the workflow.
+
 ## 4.6.0 - 2026-09-20
 
 - Add explicit `path_rules.mode` values for exact paths, ordered subsequences and unordered subsets.
