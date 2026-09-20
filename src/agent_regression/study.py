@@ -54,6 +54,11 @@ _POLICY_FIELDS = {
     "max_path_variants",
     "min_runs",
 }
+_INTEGRITY_FIELDS = {
+    "require_trace_hashes",
+    "baseline_sha256",
+    "comparison_policy_sha256",
+}
 
 
 def canonical_sha256(value: Any) -> str:
@@ -66,6 +71,11 @@ def canonical_sha256(value: Any) -> str:
         allow_nan=False,
     ).encode("utf-8")
     return hashlib.sha256(rendered).hexdigest()
+
+
+def sha256_file(path: str | Path) -> str:
+    """Hash one evidence file without loading its contents into a report."""
+    return hashlib.sha256(Path(path).expanduser().read_bytes()).hexdigest()
 
 
 def _digest(value: Any, label: str) -> str:
@@ -174,6 +184,7 @@ class SamplingStudyReport:
     manifest_sha256: str
     provenance: SamplingProvenance
     stability: StabilityReport
+    evidence_integrity: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def passed(self) -> bool:
@@ -188,6 +199,7 @@ class SamplingStudyReport:
                 "study_id": self.study_id,
                 "manifest_sha256": self.manifest_sha256,
                 "provenance": self.provenance.to_dict(),
+                "evidence_integrity": dict(self.evidence_integrity),
             }
         )
         return value
@@ -262,6 +274,41 @@ def _stability_policy(value: Any) -> StabilityPolicy:
     return StabilityPolicy(**dict(value))
 
 
+def _integrity_policy(value: Any) -> Dict[str, Any]:
+    if value is None:
+        return {
+            "require_trace_hashes": False,
+            "baseline_sha256": None,
+            "comparison_policy_sha256": None,
+        }
+    if not isinstance(value, Mapping):
+        raise ValueError("integrity must be an object")
+    unknown = sorted(set(value) - _INTEGRITY_FIELDS)
+    if unknown:
+        raise ValueError("unsupported integrity fields: " + ", ".join(unknown))
+    require = value.get("require_trace_hashes", False)
+    if not isinstance(require, bool):
+        raise ValueError("integrity.require_trace_hashes must be boolean")
+    baseline_sha256 = value.get("baseline_sha256")
+    if baseline_sha256 is not None:
+        baseline_sha256 = _digest(baseline_sha256, "integrity.baseline_sha256")
+    comparison_sha256 = value.get("comparison_policy_sha256")
+    if comparison_sha256 is not None:
+        comparison_sha256 = _digest(
+            comparison_sha256,
+            "integrity.comparison_policy_sha256",
+        )
+    if require and baseline_sha256 is None:
+        raise ValueError(
+            "integrity.baseline_sha256 is required when trace hashes are required"
+        )
+    return {
+        "require_trace_hashes": require,
+        "baseline_sha256": baseline_sha256,
+        "comparison_policy_sha256": comparison_sha256,
+    }
+
+
 def evaluate_sampling_study(
     manifest_path: str | Path,
     *,
@@ -290,6 +337,7 @@ def evaluate_sampling_study(
         "provenance",
         "comparison_policy",
         "policy",
+        "integrity",
     }
     unknown = sorted(set(raw) - allowed)
     if unknown:
@@ -301,39 +349,73 @@ def evaluate_sampling_study(
     if provenance.study_id is not None and provenance.study_id != study_id:
         raise ValueError("provenance.study_id must match study_id")
     root = manifest_file.parent
-    baseline = _load_trace(
-        _relative_file(root, raw.get("baseline"), "baseline"),
-        "baseline",
-    )
+    integrity_policy = _integrity_policy(raw.get("integrity"))
+    baseline_path = _relative_file(root, raw.get("baseline"), "baseline")
+    observed_baseline_sha256 = sha256_file(baseline_path)
+    expected_baseline_sha256 = integrity_policy["baseline_sha256"]
+    if expected_baseline_sha256 and observed_baseline_sha256 != expected_baseline_sha256:
+        raise ValueError(
+            "baseline SHA-256 mismatch: "
+            f"expected {expected_baseline_sha256}, observed {observed_baseline_sha256}"
+        )
+    baseline = _load_trace(baseline_path, "baseline")
     raw_runs = raw.get("runs")
     if not isinstance(raw_runs, list) or not raw_runs:
         raise ValueError("runs must be a non-empty array")
     runs: List[AgentTrace] = []
+    run_evidence: List[Dict[str, str]] = []
     seen: set[str] = set()
     for index, item in enumerate(raw_runs):
         if not isinstance(item, Mapping):
             raise ValueError(f"runs[{index}] must be an object")
-        if set(item) != {"id", "trace"}:
-            unknown_run_fields = sorted(set(item) - {"id", "trace"})
+        allowed_run_fields = {"id", "trace", "sha256"}
+        if not set(item).issubset(allowed_run_fields):
+            unknown_run_fields = sorted(set(item) - allowed_run_fields)
             if unknown_run_fields:
                 raise ValueError(
                     f"unsupported runs[{index}] fields: " + ", ".join(unknown_run_fields)
                 )
+        if "id" not in item or "trace" not in item:
             raise ValueError(f"runs[{index}] must contain id and trace")
         run_id = _text(item.get("id"), f"runs[{index}].id")
         if run_id in seen:
             raise ValueError(f"duplicate run id: {run_id}")
         seen.add(run_id)
-        trace = _load_trace(
-            _relative_file(root, item.get("trace"), f"runs[{index}].trace"),
-            f"runs[{index}].trace",
-        )
+        trace_path = _relative_file(root, item.get("trace"), f"runs[{index}].trace")
+        observed_trace_sha256 = sha256_file(trace_path)
+        expected_trace_sha256 = item.get("sha256")
+        if expected_trace_sha256 is not None:
+            expected_trace_sha256 = _digest(
+                expected_trace_sha256,
+                f"runs[{index}].sha256",
+            )
+        if integrity_policy["require_trace_hashes"] and expected_trace_sha256 is None:
+            raise ValueError(
+                f"runs[{index}].sha256 is required when trace hashes are required"
+            )
+        if expected_trace_sha256 and observed_trace_sha256 != expected_trace_sha256:
+            raise ValueError(
+                f"runs[{index}] SHA-256 mismatch: expected {expected_trace_sha256}, "
+                f"observed {observed_trace_sha256}"
+            )
+        trace = _load_trace(trace_path, f"runs[{index}].trace")
         if trace.run_id != run_id:
             raise ValueError(
                 f"runs[{index}] id must match trace.run_id: {run_id!r} != {trace.run_id!r}"
             )
         runs.append(trace)
+        run_evidence.append({"id": run_id, "sha256": observed_trace_sha256})
     comparison = _comparison_policy(raw.get("comparison_policy"))
+    observed_comparison_sha256 = canonical_sha256(comparison.to_dict())
+    expected_comparison_sha256 = integrity_policy["comparison_policy_sha256"]
+    if (
+        expected_comparison_sha256
+        and observed_comparison_sha256 != expected_comparison_sha256
+    ):
+        raise ValueError(
+            "comparison policy SHA-256 mismatch: "
+            f"expected {expected_comparison_sha256}, observed {observed_comparison_sha256}"
+        )
     policy = _stability_policy(raw.get("policy"))
     stability = evaluate_stability(
         baseline,
@@ -348,6 +430,13 @@ def evaluate_sampling_study(
         manifest_sha256=manifest_sha256,
         provenance=provenance,
         stability=stability,
+        evidence_integrity={
+            "trace_hashes_required": integrity_policy["require_trace_hashes"],
+            "trace_hashes_verified": bool(integrity_policy["require_trace_hashes"]),
+            "baseline_sha256": observed_baseline_sha256,
+            "comparison_policy_sha256": observed_comparison_sha256,
+            "runs": run_evidence,
+        },
     )
 
 
@@ -357,4 +446,5 @@ __all__ = [
     "SamplingStudyReport",
     "canonical_sha256",
     "evaluate_sampling_study",
+    "sha256_file",
 ]

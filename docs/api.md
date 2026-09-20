@@ -308,6 +308,33 @@ an evidence-import boundary: it does not call an online provider, infer the
 correctness of hidden inputs from their hashes, or turn finite observations
 into a universal reliability claim.
 
+### Evidence integrity in v4.30
+
+Set `integrity.require_trace_hashes` to `true` to require a SHA-256 for the
+baseline and every run Trace. Add `integrity.baseline_sha256`, optional
+per-run `sha256` fields and, when the comparison policy is fixed, a
+`comparison_policy_sha256` calculated from the normalized runtime policy:
+
+```python
+from agent_regression import (
+    ComparisonPolicy,
+    canonical_sha256,
+    evaluate_sampling_study,
+    sha256_file,
+)
+
+baseline_sha256 = sha256_file("work/order-123-study/baseline.trace.json")
+comparison_policy_sha256 = canonical_sha256(ComparisonPolicy().to_dict())
+report = evaluate_sampling_study("work/order-123-study/study.json")
+assert report.to_dict()["evidence_integrity"]["trace_hashes_verified"]
+```
+
+`sha256_file` is an exported helper. A file mismatch or a required missing
+hash raises `ValueError`; the CLI maps malformed or tampered study evidence to
+exit status `2`. Older manifests without `integrity` remain valid for
+backward compatibility. The complete bilingual manifest and CI example are in
+[`v4.30-acceptance.md`](v4.30-acceptance.md).
+
 ## Async and parallel events
 
 Use the async boundary when one Agent run awaits multiple tools concurrently:

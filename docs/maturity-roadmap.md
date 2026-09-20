@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.29 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.30 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -425,6 +425,13 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] 校验 provider/model provenance、输入/工具 schema SHA-256、敏感字段、路径 containment 和 run ID/Trace 绑定。
 - [x] 复用 Stability 的 Contract、Wilson 区间、逐次运行证据和退出码；新增确定性示例与核心 CI required report。
 - [ ] study 仍描述观察样本，不替代在线供应商实验、抽样设计、Contract 审核或真实用户研究。
+
+### v4.30：study 证据文件完整性
+
+- [x] manifest 可要求 baseline、每个 run Trace 和规范化 comparison policy 的 SHA-256。
+- [x] 报告输出 `evidence_integrity`，篡改 Trace 在评估前失败并返回 CLI 状态 2。
+- [x] CI 同时验证完整 study 和临时目录中的篡改负向用例。
+- [ ] 哈希不替代 Contract 审核、在线供应商采样设计或真实用户研究。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

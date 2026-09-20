@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.30.0 - 2026-09-21
+
+- Add optional file-level study evidence integrity: baseline and per-run Trace
+  SHA-256 bindings plus a canonical comparison-policy digest.
+- Add `sha256_file`, `evidence_integrity` report output and fail-closed status
+  `2` for missing or mismatched required evidence hashes.
+- Extend the deterministic study example and core CI with a tamper-negative
+  test, while keeping v4.29 manifests without `integrity` backward compatible.
+- Add bilingual v4.30 acceptance documentation and update the user/technical
+  manuals to explain the integrity boundary and its limitations.
+
 ## 4.29.0 - 2026-09-21
 
 - Add a provider-neutral `study` command and `evaluate_sampling_study` API for

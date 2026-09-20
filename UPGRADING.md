@@ -4,6 +4,42 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.29.0 → v4.30.0
+
+v4.30 is additive. Existing Trace, Contract, baseline, stability and v4.29
+study manifests remain valid. No migration is required. New study manifests
+may opt into fail-closed file integrity by adding a baseline SHA-256, a SHA-256
+for every run and `integrity.require_trace_hashes: true`.
+
+The evaluator also accepts an optional digest of the normalized
+`ComparisonPolicy.to_dict()` result. The report exposes the observed digests in
+`evidence_integrity`; a changed or missing required digest returns CLI status
+`2`, which is distinct from a valid study that fails its Contract gate with
+status `1`.
+
+```bash
+python examples/sampling-study/create_demo_study.py \
+  --out-dir work/order-123-study
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --out work/order-123-study/report.json
+```
+
+See the [v4.30 acceptance record](docs/v4.30-acceptance.md) for the manifest
+shape and tamper-negative CI example.
+
+## v4.29.0 → v4.30.0（中文）
+
+v4.30 是增量兼容版本，已有 Trace、Contract、baseline、stability 以及 v4.29 study manifest
+都可以继续使用，不需要迁移。新的 study manifest 可以选择开启严格的文件完整性：写入 baseline
+SHA-256、每个 run 的 SHA-256，并设置 `integrity.require_trace_hashes: true`。
+
+评估器还支持对规范化后的 `ComparisonPolicy.to_dict()` 计算摘要。报告会在
+`evidence_integrity` 中输出观察到的摘要；必需摘要缺失或不匹配时返回 CLI 状态 `2`，与合法
+study 但 Contract 门禁失败的状态 `1` 区分开。
+
+完整 manifest 结构和篡改负向 CI 示例见[v4.30 验收记录](docs/v4.30-acceptance.md)。
+
 ## v4.28.0 → v4.29.0
 
 v4.29 is additive for existing Trace, Contract, baseline and stability files.

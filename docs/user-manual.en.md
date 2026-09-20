@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.29.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.30.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.29.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.30.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.29.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.30.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.29.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.30.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -791,6 +791,28 @@ The report includes each run, Wilson intervals, the sample-size gate and
 provenance. `study` describes observed evidence; it does not claim online
 model quality, population reliability or Contract completeness. See the
 [v4.29 acceptance](v4.29-acceptance.md) for the manifest and boundaries.
+
+### v4.30: study evidence integrity
+
+v4.30 adds optional file-level integrity checks to the study manifest. The
+project-owned example writes SHA-256 values for the baseline and every run and
+sets `integrity.require_trace_hashes` to `true`. The `evidence_integrity`
+section of the report lists the observed baseline, comparison-policy and per-run
+digests.
+
+If a Trace is changed after the manifest is written, `agent-regression study`
+returns status `2` instead of silently evaluating the changed file:
+
+```bash
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --format json \
+  --out work/reports/order-123.study.json
+```
+
+Older v4.29 manifests without `integrity` remain valid. See the [v4.30
+acceptance](v4.30-acceptance.md) for the complete fields, normalized policy
+digest and CI tamper-negative test.
 
 ### v4.21: independent AgentDojo source intake
 

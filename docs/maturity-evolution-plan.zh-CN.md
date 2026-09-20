@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.29）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.30）
 
-> 状态：v4.29 已落地，继续扩展在线随机性和真实用户验证
-> 当前基线版本：v4.29.0
+> 状态：v4.30 已落地，继续扩展在线随机性和真实用户验证
+> 当前基线版本：v4.30.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.29 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.30 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.29 目标 |
+| 维度 | v4.12 现状 | v4.30 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -658,13 +658,29 @@ manifest 记录非敏感 provenance，Trace 记录实际行为，框架只对冻
   schema SHA-256、敏感字段、路径 containment、run ID/Trace 绑定和最低样本策略。
 - [x] 报告复用 Stability 的逐次运行结果、Wilson 区间和退出码，不嵌入原始 Trace、Prompt 或 API Key。
 - [x] 增加确定性 study 示例、`agent_sampling_study` history 类型和核心 CI required report。
-- [x] 本地测试达到 275 项。
+- [x] 本地测试达到 276 项。
 - [x] v4.29.0 Release workflow（run `35542940402`）、wheel SHA-256、核心 3.9/3.11/3.13
   回归（run `35542940338`）和框架兼容 CI（run `35542940431`）均有远程证据。
 - [x] 独立消费仓库在 `1c7a151` 安装 v4.29.0，CI（run `35543025395`）验证正常路径返回 0、
   三类注入均返回 1；锁定提交 `9660c8b` 的 CI（run `35543057429`）再次通过。
 - [ ] 这仍不是在线供应商采样实验、总体可靠性、安全率或未参与实现用户研究；这些需要独立的
   provider 运行、抽样设计和真实接入者。
+
+### 7.18 v4.30：study 证据文件完整性（已落地）
+
+v4.30 把 v4.29 的记录式 study 从“可审计的声明”推进到“可检测的文件证据边界”：manifest
+可以要求 baseline、每个 run Trace 和规范化 comparison policy 的 SHA-256。评估器先校验完整性，
+再进入既有的 Contract、Stability 和 Wilson 区间计算。
+
+- [x] 新增 `sha256_file` 公共 helper，支持对磁盘证据文件计算 SHA-256。
+- [x] `integrity.require_trace_hashes=true` 时要求 baseline hash 和每个 run 的 `sha256`，并拒绝
+  缺失或不匹配的摘要。
+- [x] 支持 `comparison_policy_sha256`，绑定规范化运行时策略，避免 study bundle 内策略漂移。
+- [x] 报告新增 `evidence_integrity`，输出观察到的 baseline、policy 和逐次 run 摘要，不嵌入 Trace 原文。
+- [x] 核心 CI 增加篡改负向用例：修改临时目录内的 run Trace 后，CLI 必须返回状态 2。
+- [x] v4.30 本地测试达到 279 项；v4.29 未带 integrity 的 manifest 继续兼容。
+- [ ] 哈希只证明文件身份，不证明隐藏输入正确、样本具有代表性或 Contract 完整；在线供应商实验和
+  真实用户研究仍需后续独立完成。
 
 ## 8. 模块与文件改造清单
 
@@ -700,6 +716,7 @@ manifest 记录非敏感 provenance，Trace 记录实际行为，框架只对冻
 | `study.py` | 记录式采样 provenance、manifest 校验和 study report |
 | `examples/sampling-study/` | 脱敏 Trace study bundle 生成器和双语接入说明 |
 | `docs/v4.29-acceptance.md` | 记录式采样研究格式、退出码、隐私边界和验收 |
+| `docs/v4.30-acceptance.md` | study baseline/run/policy SHA-256 完整性、篡改负向 CI 和兼容性验收 |
 
 ## 9. CI 结构
 
@@ -731,7 +748,7 @@ manifest 记录非敏感 provenance，Trace 记录实际行为，框架只对冻
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.29 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.30 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -782,6 +799,7 @@ manifest 记录非敏感 provenance，Trace 记录实际行为，框架只对冻
 15. **v4.27**：Claude 3.5 Sonnet 四 suite `important_instructions` 模型族矩阵、显式 expected outcome、Contract provenance 和重复性 CI。
 16. **v4.28**：重复运行稳定性 Wilson 95% 区间、有限样本提醒、`min_runs` 门禁和 30 次核心 CI sampling evidence。
 17. **v4.29**：记录式 sampling study、provider/model 与输入/工具 schema provenance、敏感字段和路径边界、逐次 Trace 绑定及核心 CI required study evidence。
+18. **v4.30**：study baseline、逐次 Trace 与规范化 comparison policy 的 SHA-256 完整性、篡改失败状态和报告 integrity 摘要。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布

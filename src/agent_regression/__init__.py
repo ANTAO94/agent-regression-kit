@@ -99,6 +99,7 @@ from .study import (
     SamplingStudyReport,
     canonical_sha256,
     evaluate_sampling_study,
+    sha256_file,
 )
 from .sdk import AdapterSpec
 from .adapter_contract import check_adapter_contract, check_async_adapter_contract
@@ -219,6 +220,7 @@ __all__ = [
     "SamplingStudyReport",
     "canonical_sha256",
     "evaluate_sampling_study",
+    "sha256_file",
     "AdapterSpec",
     "check_adapter_contract",
     "check_async_adapter_contract",

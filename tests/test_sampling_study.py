@@ -6,9 +6,11 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 from agent_regression import (
+    ComparisonPolicy,
     SamplingProvenance,
     canonical_sha256,
     evaluate_sampling_study,
+    sha256_file,
 )
 from agent_regression.cli import main
 
@@ -107,6 +109,83 @@ class SamplingStudyTests(unittest.TestCase):
             self.assertIn("fixture-model-v1", rendered)
             self.assertIn("Input SHA-256", rendered)
             self.assertIn("Pass rate 95% interval", rendered)
+
+    def test_integrity_policy_binds_baseline_runs_and_normalized_comparison(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.make_manifest(Path(directory))
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            root = manifest.parent
+            raw["runs"] = [
+                {
+                    **item,
+                    "sha256": sha256_file(root / item["trace"]),
+                }
+                for item in raw["runs"]
+            ]
+            raw["integrity"] = {
+                "require_trace_hashes": True,
+                "baseline_sha256": sha256_file(root / raw["baseline"]),
+                "comparison_policy_sha256": canonical_sha256(
+                    ComparisonPolicy().to_dict()
+                ),
+            }
+            manifest.write_text(
+                json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            report = evaluate_sampling_study(manifest).to_dict()
+
+            self.assertTrue(report["evidence_integrity"]["trace_hashes_required"])
+            self.assertTrue(report["evidence_integrity"]["trace_hashes_verified"])
+            self.assertEqual(2, len(report["evidence_integrity"]["runs"]))
+            self.assertEqual(
+                raw["integrity"]["baseline_sha256"],
+                report["evidence_integrity"]["baseline_sha256"],
+            )
+
+    def test_integrity_policy_rejects_tampered_trace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.make_manifest(Path(directory))
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            root = manifest.parent
+            raw["runs"] = [
+                {
+                    **item,
+                    "sha256": sha256_file(root / item["trace"]),
+                }
+                for item in raw["runs"]
+            ]
+            raw["integrity"] = {
+                "require_trace_hashes": True,
+                "baseline_sha256": sha256_file(root / raw["baseline"]),
+            }
+            manifest.write_text(
+                json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            tampered = root / raw["runs"][0]["trace"]
+            tampered.write_text(tampered.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                evaluate_sampling_study(manifest)
+
+    def test_integrity_policy_requires_hash_for_every_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.make_manifest(Path(directory))
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            root = manifest.parent
+            raw["integrity"] = {
+                "require_trace_hashes": True,
+                "baseline_sha256": sha256_file(root / raw["baseline"]),
+            }
+            manifest.write_text(
+                json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "sha256 is required"):
+                evaluate_sampling_study(manifest)
 
     def test_provenance_rejects_secret_like_parameters(self):
         with self.assertRaisesRegex(ValueError, "must not contain credentials"):

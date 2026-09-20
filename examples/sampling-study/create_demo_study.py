@@ -6,7 +6,12 @@ import argparse
 import json
 from pathlib import Path
 
-from agent_regression import canonical_sha256
+from agent_regression import (
+    ComparisonPolicy,
+    ContractPolicy,
+    canonical_sha256,
+    sha256_file,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -38,8 +43,25 @@ def main() -> int:
         run_id = f"order-123-study-{ordinal}"
         path = output / "runs" / f"run-{ordinal}.trace.json"
         _write_trace(baseline_source, path, run_id)
-        run_paths.append({"id": run_id, "trace": str(path.relative_to(output))})
+        run_paths.append(
+            {
+                "id": run_id,
+                "trace": str(path.relative_to(output)),
+                "sha256": sha256_file(path),
+            }
+        )
 
+    comparison_policy = {
+        "final_answer_mode": "claims-only",
+        "contract": {
+            "required_claims": ["final_answer.claims.order_status"],
+            "must_call": [
+                {"tool": "get_order", "arguments": {"order_id": "123"}}
+            ],
+            "must_not_call": [{"tool": "refund_order"}],
+            "max_steps": 1,
+        },
+    }
     manifest = {
         "schema_version": "0.1",
         "study_id": "order-123-demo-sampling",
@@ -57,18 +79,18 @@ def main() -> int:
             "dataset_revision": "local-fixture-v1",
             "parameters": {"temperature": 0.0, "seed": 7},
         },
-        "comparison_policy": {
-            "final_answer_mode": "claims-only",
-            "contract": {
-                "required_claims": ["final_answer.claims.order_status"],
-                "must_call": [
-                    {"tool": "get_order", "arguments": {"order_id": "123"}}
-                ],
-                "must_not_call": [{"tool": "refund_order"}],
-                "max_steps": 1,
-            },
-        },
+        "comparison_policy": comparison_policy,
         "policy": {"min_runs": 2},
+        "integrity": {
+            "require_trace_hashes": True,
+            "baseline_sha256": sha256_file(baseline),
+            "comparison_policy_sha256": canonical_sha256(
+                ComparisonPolicy(
+                    final_answer_mode="claims-only",
+                    contract=ContractPolicy.from_dict(comparison_policy["contract"]),
+                ).to_dict()
+            ),
+        },
     }
     manifest_path = output / "study.json"
     output.mkdir(parents=True, exist_ok=True)
