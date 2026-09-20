@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/sierra-research/tau2-bench",
+  "tag": "v1.0.1",
+  "tag_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+  "dataset_path": "data/tau2/results/final/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json",
+  "download_url": "https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json",
+  "sha256": "6d6badb43b716adca31591b0b40e15fd493b49adddaa8e2c47035bb557549257",
+  "license": "MIT",
+  "license_url": "https://github.com/sierra-research/tau2-bench/blob/v1.0.1/LICENSE"
+}

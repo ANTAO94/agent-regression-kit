@@ -570,7 +570,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.10.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.11.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -650,6 +650,31 @@ agent-regression batch-compare --config .agent-regression/batch.json
 ```
 
 Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Job Summary。baseline 应该提交到代码库，并通过人工审核更新。
+
+### 用独立项目验证
+
+为了避免只用项目自带的 toy fixture，v4.11 增加了固定版本的 tau2-bench
+零售场景接入。`source.json` 记录上游 tag、commit、原始数据 URL、MIT 许可和
+SHA-256 校验和。适配器把发布的半双工轨迹转换为 `AgentTrace`，从任务推导
+写操作/通信 Contract，最后才读取 published reward 做独立测量。
+
+本地运行：
+
+```bash
+curl -L -o work/tau2-results.json \
+  https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json
+PYTHONPATH=src python examples/tau2_retail_validation.py \
+  --results work/tau2-results.json \
+  --out work/tau2/report.json \
+  --traces-dir work/tau2/traces
+```
+
+固定运行包含 456 次 simulation，其中 420 个写场景可纳入契约：253 个 true
+pass、153 个 true block、14 个 false alarm、0 个 missed failure。门禁指标为
+准确率 96.67%、失败精确率 91.62%、失败召回率 100%、误报率 5.24%、漏报率 0%。
+误报不会隐藏：严格的动作/参数契约可能拒绝语义等价但路径不同的成功运行。
+这证明的是适配器和契约的测量行为，不是上游项目背书。精确字段映射和限制见
+[`docs/tau2-independent-validation.md`](tau2-independent-validation.md)。
 
 ## 7. 常见问题
 

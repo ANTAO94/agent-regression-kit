@@ -1,0 +1,201 @@
+import unittest
+
+from agent_regression import (
+    build_tau2_retail_contract,
+    evaluate_tau2_retail_results,
+    trace_from_tau2_simulation,
+)
+
+
+def task(task_id="1", communicate=None):
+    return {
+        "id": task_id,
+        "evaluation_criteria": {
+            "actions": [
+                {
+                    "action_id": f"{task_id}_0",
+                    "name": "return_delivered_order_items",
+                    "arguments": {
+                        "order_id": "#W1",
+                        "item_ids": ["item-b", "item-a"],
+                        "payment_method_id": "card-1",
+                    },
+                }
+            ],
+            "communicate_info": communicate or [],
+        },
+    }
+
+
+def simulation(simulation_id, *, reward, calls, text="done", task_id="1"):
+    messages = []
+    for index, (name, arguments, error) in enumerate(calls):
+        call_id = f"call-{simulation_id}-{index}"
+        messages.extend(
+            [
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": call_id,
+                            "name": name,
+                            "arguments": arguments,
+                            "requestor": "assistant",
+                        }
+                    ],
+                    "turn_idx": index * 2,
+                },
+                {
+                    "role": "tool",
+                    "id": call_id,
+                    "content": "Error" if error else '{"status":"ok"}',
+                    "error": error,
+                    "turn_idx": index * 2 + 1,
+                },
+            ]
+        )
+    messages.append({"role": "assistant", "content": text, "tool_calls": None})
+    return {
+        "id": simulation_id,
+        "task_id": task_id,
+        "trial": 0,
+        "termination_reason": "user_stop",
+        "reward_info": {"reward": reward},
+        "messages": messages,
+    }
+
+
+EXPECTED_ARGUMENTS = {
+    "order_id": "#W1",
+    "item_ids": ["item-a", "item-b"],
+    "payment_method_id": "card-1",
+}
+
+
+class Tau2IntegrationTests(unittest.TestCase):
+    def test_trace_imports_tools_without_leaking_the_external_reward(self):
+        source_task = task(communicate=["refund submitted"])
+        source_simulation = simulation(
+            "pass",
+            reward=1.0,
+            calls=[("return_delivered_order_items", EXPECTED_ARGUMENTS, False)],
+            text="Refund submitted",
+        )
+        trace = trace_from_tau2_simulation(source_simulation, source_task)
+        trace.validate()
+        self.assertEqual(["tool_call", "tool_result", "final_answer"], [event["type"] for event in trace.events])
+        self.assertEqual(["item-a", "item-b"], trace.events[0]["arguments"]["item_ids"])
+        self.assertTrue(trace.events[-1]["claims"]["communication_met"])
+        self.assertNotIn("reward", repr(trace.to_dict()).lower())
+
+    def test_contract_allows_failed_attempt_before_the_expected_success(self):
+        source_task = task()
+        source_simulation = simulation(
+            "retry",
+            reward=1.0,
+            calls=[
+                (
+                    "return_delivered_order_items",
+                    {**EXPECTED_ARGUMENTS, "payment_method_id": "bad-card"},
+                    True,
+                ),
+                ("return_delivered_order_items", EXPECTED_ARGUMENTS, False),
+            ],
+        )
+        trace = trace_from_tau2_simulation(source_simulation, source_task)
+        self.assertEqual([], build_tau2_retail_contract(source_task).check(trace, trace))
+
+    def test_contract_blocks_missing_communication_and_unexpected_successful_write(self):
+        source_task = task(communicate=["confirmation 42"])
+        source_simulation = simulation(
+            "wrong",
+            reward=0.0,
+            calls=[
+                (
+                    "return_delivered_order_items",
+                    {**EXPECTED_ARGUMENTS, "payment_method_id": "other-card"},
+                    False,
+                )
+            ],
+            text="done",
+        )
+        trace = trace_from_tau2_simulation(source_simulation, source_task)
+        categories = {
+            item["category"]
+            for item in build_tau2_retail_contract(source_task).check(trace, trace)
+        }
+        self.assertIn("behavior_path", categories)
+        self.assertIn("contract_assertion", categories)
+
+    def test_external_report_keeps_confusion_matrix_honest(self):
+        source_task = task(communicate=["confirmation 42"])
+        payload = {
+            "info": {
+                "git_commit": "upstream-commit",
+                "agent_info": {"implementation": "llm_agent", "llm": "published-model"},
+            },
+            "tasks": [source_task],
+            "simulations": [
+                simulation(
+                    "true-pass",
+                    reward=1.0,
+                    calls=[("return_delivered_order_items", EXPECTED_ARGUMENTS, False)],
+                    text="confirmation 42",
+                ),
+                simulation("true-block", reward=0.0, calls=[], text="missing"),
+                simulation(
+                    "false-alarm",
+                    reward=1.0,
+                    calls=[
+                        (
+                            "return_delivered_order_items",
+                            {**EXPECTED_ARGUMENTS, "payment_method_id": "equivalent-card"},
+                            False,
+                        )
+                    ],
+                    text="confirmation 42",
+                ),
+                simulation(
+                    "missed-failure",
+                    reward=0.0,
+                    calls=[("return_delivered_order_items", EXPECTED_ARGUMENTS, False)],
+                    text="confirmation 42",
+                ),
+            ],
+        }
+        report = evaluate_tau2_retail_results(payload, source={"tag": "v1.0.1"})
+        self.assertEqual(
+            {"true_pass": 1, "true_block": 1, "false_alarm": 1, "missed_failure": 1},
+            report["confusion_matrix"],
+        )
+        self.assertEqual(0.5, report["metrics"]["accuracy"])
+        self.assertIn("reward is read after", report["benchmark"]["decision_boundary"])
+
+    def test_unknown_task_and_read_only_task_are_explicit(self):
+        with self.assertRaisesRegex(ValueError, "unknown task_id"):
+            evaluate_tau2_retail_results(
+                {"info": {}, "tasks": [], "simulations": [simulation("x", reward=0, calls=[])]}
+            )
+        read_only = {
+            "id": "2",
+            "evaluation_criteria": {
+                "actions": [{"name": "get_order_details", "arguments": {"order_id": "#W1"}}],
+                "communicate_info": [],
+            },
+        }
+        report = evaluate_tau2_retail_results(
+            {
+                "info": {},
+                "tasks": [read_only],
+                "simulations": [simulation("read", reward=1, calls=[], task_id="2")],
+            }
+        )
+        self.assertEqual(0, report["scope"]["eligible_write_scenarios"])
+        self.assertEqual(1, report["scope"]["excluded_without_write_action"])
+        with self.assertRaisesRegex(ValueError, "no write action"):
+            build_tau2_retail_contract(read_only)
+
+
+if __name__ == "__main__":
+    unittest.main()

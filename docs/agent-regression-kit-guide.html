@@ -250,7 +250,7 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v4.10.0</span>
+            <span class="badge">v4.11.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
             <span class="badge orange">v4 compatibility gate</span>
@@ -268,6 +268,8 @@
             <a class="badge" href="v4.8-acceptance.md">v4.8 验收说明 →</a>
             <a class="badge" href="v4.9-acceptance.md">v4.9 验收说明 →</a>
             <a class="badge" href="v4.10-acceptance.md">v4.10 验收说明 →</a>
+            <a class="badge" href="v4.11-acceptance.md">v4.11 独立项目验证 →</a>
+            <a class="badge" href="tau2-independent-validation.md">tau2-bench 方法说明 →</a>
             <a class="badge" href="../examples/path-variation/README.md">路径变化案例 →</a>
           </div>
           <div class="summary-grid">
@@ -372,7 +374,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.10.0</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.11.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -1032,11 +1034,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.10.0"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.11.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.10.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.11.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1262,6 +1264,7 @@ jobs:
               <tr><td><strong>v4.8</strong></td><td>全局步骤上限不能表达某个工具是否重复执行或漏执行。</td><td><code>tool_limits</code> 最小/最大/恰好次数、参数范围计数、<code>tool_count</code> 诊断和重复退款验收。</td></tr>
               <tr><td><strong>v4.9</strong></td><td>调用次数规则不能表达一个场景是否调用了根本不在业务范围内的工具。</td><td><code>tool_allowlist</code> 场景工具目录、空白名单拒绝全部、参数精确匹配、<code>unauthorized_tool_call</code> 诊断和兼容验收。</td></tr>
               <tr><td><strong>v4.10</strong></td><td>工具即使在白名单内，也可能使用错误租户、错误资源或危险参数。</td><td><code>argument_rules</code>、固定值/Trace 参考路径、<code>exists</code>/<code>absent</code>、<code>tool_argument_policy</code> 诊断和退款边界验收。</td></tr>
+              <tr><td><strong>v4.11</strong></td><td>仓库内置样例还不足以证明框架能面对独立项目的真实轨迹分布。</td><td>固定 tau2-bench 零售数据集、半双工轨迹导入、独立 Contract/Reward 混淆矩阵、误报边界、样例 Trace 和 CI 校验。</td></tr>
             </tbody>
           </table>
           <div class="panel tint-blue">
@@ -1319,7 +1322,7 @@ agent-regression migrate trace \
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v4.10.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code> 和 <a href="v4.5-acceptance.md">v4.5 验收说明</a>、<a href="v4.6-acceptance.md">v4.6 验收说明</a>、<a href="v4.7-acceptance.md">v4.7 验收说明</a>、<a href="v4.8-acceptance.md">v4.8 验收说明</a>、<a href="v4.9-acceptance.md">v4.9 验收说明</a>、<a href="v4.10-acceptance.md">v4.10 验收说明</a>。</p>
+          <p>本文档面向 Agent Regression Kit v4.11.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code> 和 <a href="v4.5-acceptance.md">v4.5 验收说明</a>、<a href="v4.6-acceptance.md">v4.6 验收说明</a>、<a href="v4.7-acceptance.md">v4.7 验收说明</a>、<a href="v4.8-acceptance.md">v4.8 验收说明</a>、<a href="v4.9-acceptance.md">v4.9 验收说明</a>、<a href="v4.10-acceptance.md">v4.10 验收说明</a>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a> 和 <a href="tau2-independent-validation.md">tau2-bench 方法说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

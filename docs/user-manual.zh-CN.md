@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.10.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.11.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.10.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.11.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -359,7 +359,7 @@ agent-regression compare --config examples/refund-business-case/compare.config.j
 
 路径规则：配置放在 .agent-regression/ 下时相对项目根目录解析；放在其他位置时相对配置文件所在目录解析。命令行参数优先于文件配置。
 
-可运行的比较策略示例位于 v4.10.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
+可运行的比较策略示例位于 v4.11.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.10.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.11.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.10.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.11.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -511,6 +511,28 @@ Action 中传 `required-reports: compare.json,coverage.json`。
 | 报告导航 | report-index | 收集 compare/batch/stability/coverage/history；可选失败门禁 |
 
 命令和完整示例见[高级使用指南](usage-guide.zh-CN.md)与[API 参考](api.md)。history 的退出码跟随最后一个识别的历史点；report-index 则要求收集到的报告全部通过。它们不是相同门禁语义。
+
+### 用独立 Agent 项目验证框架
+
+v4.11 自带一个可复现的独立项目适配案例：验证
+[tau2-bench](https://github.com/sierra-research/tau2-bench) 已发布的零售轨迹。
+当你希望证据不只来自仓库自己的 toy fixture 时，可以按下面四步执行：
+
+1. 查看 `examples/tau2-retail/source.json`，确认上游 tag、commit 和数据集校验和。
+2. 下载固定数据集并运行 `examples/tau2_retail_validation.py`。
+3. 检查 `work/tau2/report.json` 和导出的样例 Trace。
+4. 复用 `.github/workflows/tau2-independent-validation.yml`，让数据篡改或
+   质量回归在 CI 中失败。
+
+验证器把工具调用和结果映射为 `AgentTrace`，从任务的期望写操作和通信要求
+生成 Contract，然后才与上游 reward 对比；reward 不会变成 claims，也不会
+作为 Contract 输入。固定的 456 次 simulation 中，420 个写场景可纳入契约：
+253 个 true pass、153 个 true block、14 个 false alarm、0 个 missed failure；
+准确率 96.67%，失败召回率 100%，误报率 5.24%，漏报率 0%。14 个误报会保留并
+说明，因为精确的动作/参数匹配可能拒绝最终状态等价但路径不同的成功运行。
+
+这是一个独立兼容性与测量案例，不代表 tau2-bench 上游背书或依赖本项目。
+完整字段映射和限制见 [`docs/tau2-independent-validation.md`](tau2-independent-validation.md)。
 
 ## 8. v4 兼容检查与迁移
 

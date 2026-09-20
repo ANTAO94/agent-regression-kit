@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.10.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.11.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.10.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.11.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -362,7 +362,7 @@ The case also includes four controlled defects: `wrong-order`, `wrong-amount`, `
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v4.10.0. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.11.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.10.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.11.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.10.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.11.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -511,6 +511,35 @@ The example generates JSON, Markdown and JUnit even on a regression and preserve
 
 See the [advanced guide](usage-guide.en.md) and [API reference](api.md).
 history follows the last recognized point's status; report-index requires all indexed reports to pass.
+
+### Validate against an independent Agent project
+
+The v4.11 release includes a reproducible adapter for the published retail
+trajectories of [tau2-bench](https://github.com/sierra-research/tau2-bench). It
+is useful when you want evidence beyond the repository's own toy fixtures:
+
+1. Pin the upstream tag, commit and dataset checksum in
+   `examples/tau2-retail/source.json`.
+2. Download the dataset and run `examples/tau2_retail_validation.py`.
+3. Inspect `work/tau2/report.json` and the exported sample traces.
+4. Use the same command in
+   `.github/workflows/tau2-independent-validation.yml` so a checksum change or
+   quality regression fails CI.
+
+The validator maps tool calls and results into `AgentTrace`, builds a contract
+from each task's expected write actions and communication requirement, and only
+then compares the decision with the upstream reward. The reward never becomes a
+claim or an input to the contract. On the pinned 456-simulation dataset, 420
+write scenarios were eligible: 253 true passes, 153 true blocks, 14 false
+alarms and 0 missed failures. That is 96.67% accuracy, 100% failure recall,
+5.24% false-alarm rate and 0% missed-failure rate. The 14 false alarms are
+documented rather than suppressed because exact action/argument matching can
+reject a semantically equivalent successful path.
+
+This is an independent compatibility and measurement example, not a claim that
+tau2-bench endorses or depends on this kit. See
+[`docs/tau2-independent-validation.md`](tau2-independent-validation.md) for
+the full field mapping and limitations.
 
 ## 8. v4 compatibility and migration
 

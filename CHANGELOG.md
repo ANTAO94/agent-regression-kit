@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.11.0 - 2026-09-20
+
+- Add a dependency-free importer and deterministic Contract builder for published τ²-bench retail trajectories.
+- Keep the upstream reward outside Trace, claims and Contract evaluation, then compute an honest external confusion matrix after each decision.
+- Validate the pinned `v1.0.1` dataset: 420 write scenarios, 253 true passes, 153 true blocks, 14 false alarms and zero missed failures.
+- Add SHA-256-pinned independent-project CI, exported sample traces, bilingual methodology, limitations and acceptance documentation.
+
 ## 4.10.0 - 2026-09-20
 
 - Add scenario-level `contract.argument_rules` for deterministic tool-argument policies.

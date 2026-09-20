@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.10.0 源码整理；产品版本 4.10.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.11.0 源码整理；产品版本 4.11.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
 
 ## 1. 目标和适用场景
 
@@ -289,6 +289,38 @@ Core 事件接入检查、PydanticAI/OpenAI Agents/LangGraph 正反例、DeepSee
 manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等价于多年生产
 使用或任意 Agent 自动兼容。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.10.0) · [v4.10 验收](v4.10-acceptance.md)
+### 独立项目验证：tau2-bench
+
+v4.11 增加了一个可复现的独立项目验证：接入独立维护的
+[tau2-bench](https://github.com/sierra-research/tau2-bench) 零售场景结果集。
+仓库固定了上游 `v1.0.1` tag、tag commit、原始数据 URL 和 SHA-256 校验和。
+验证器把已发布的轨迹导入 `AgentTrace`，从每个任务的期望写操作和通信要求
+推导确定性 Contract；只有在 Contract 做出判断之后，才读取 tau2-bench 的
+published reward 计算混淆矩阵。因此 reward 只是独立测量 oracle，不会进入
+Trace、claims 或 Contract，也不会帮助 Agent 通过检查。
+
+固定数据集共 456 次 simulation，其中 420 个包含写操作的场景纳入契约覆盖
+（另有 36 个只读场景单独报告）。结果为：253 个 true pass、153 个 true block、
+14 个 false alarm、0 个 missed failure；准确率 96.67%，失败精确率 91.62%，
+失败召回率 100%，误报率 5.24%，漏报率 0%。这 14 个误报不会被隐藏：精确的
+动作/参数契约可能拒绝最终状态等价、但路径或参数不同的成功轨迹，这是 v4.11
+适配器当前的已知边界，不是声称 tau2-bench 上游已经采用本项目。
+
+本地复现：
+
+```bash
+curl -L -o work/tau2-results.json \
+  https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json
+sha256sum work/tau2-results.json
+PYTHONPATH=src python examples/tau2_retail_validation.py \
+  --results work/tau2-results.json \
+  --out work/tau2/report.json \
+  --traces-dir work/tau2/traces
+```
+
+字段映射、限制、样例 Trace 和 CI 行为见[完整方法说明](tau2-independent-validation.md)
+与 [v4.11 验收记录](v4.11-acceptance.md)。
+
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.11.0) · [v4.11 验收](v4.11-acceptance.md) · [v4.10 验收](v4.10-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

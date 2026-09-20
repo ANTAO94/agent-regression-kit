@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.10.0 source. Package version 4.10.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.11.0 source. Package version 4.11.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -288,6 +288,43 @@ compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.10.0) · [v4.10 acceptance](v4.10-acceptance.md)
+### Independent project validation
+
+v4.11 adds a reproducible integration against the independently maintained
+[tau2-bench](https://github.com/sierra-research/tau2-bench) retail result set.
+The repository pins upstream tag `v1.0.1`, the exact source commit, the raw
+dataset URL and its SHA-256 checksum. The validation imports published
+trajectories into `AgentTrace`, derives a deterministic contract from each
+task's expected write actions and communication requirement, and compares the
+contract decision with tau2-bench's published reward only after the decision is
+made. Reward is therefore an oracle for measurement, not input to the Trace,
+claims or contract.
+
+The pinned 456-simulation run contains 420 write scenarios (36 read-only cases
+are reported separately). It achieved 253 true passes, 153 true blocks, 14
+false alarms and 0 missed failures: 96.67% accuracy, 91.62% failure precision,
+100% failure recall, 5.24% false-alarm rate and 0% missed-failure rate. The
+false alarms are deliberately retained as evidence: an exact action/argument
+contract can reject a semantically equivalent successful trajectory. This is a
+known boundary of the v4.11 adapter, not a claim that the upstream benchmark
+adopted this project.
+
+Reproduce it with:
+
+```bash
+curl -L -o work/tau2-results.json \
+  https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json
+sha256sum work/tau2-results.json
+PYTHONPATH=src python examples/tau2_retail_validation.py \
+  --results work/tau2-results.json \
+  --out work/tau2/report.json \
+  --traces-dir work/tau2/traces
+```
+
+See [the full methodology](tau2-independent-validation.md) and the
+[v4.11 acceptance record](v4.11-acceptance.md) for field mappings, limitations,
+sample traces and CI behavior.
+
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.11.0) · [v4.11 acceptance](v4.11-acceptance.md) · [v4.10 acceptance](v4.10-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

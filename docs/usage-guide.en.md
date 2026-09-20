@@ -621,7 +621,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.10.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.11.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -705,6 +705,35 @@ Minimal GitHub Action:
 ```
 
 The Action writes JUnit and Markdown reports and appends the Markdown report to the GitHub Job Summary. Commit baselines to the repository and update them only through review.
+
+### Independent project validation
+
+To validate the framework against a project it does not own, v4.11 includes a
+pinned tau2-bench retail integration. The source manifest records the upstream
+tag, commit, raw dataset URL, MIT license and SHA-256 checksum. The adapter
+converts each published half-duplex trajectory into `AgentTrace`, derives a
+write-action/communication contract from the task, and reads the published
+reward only after the contract decision for measurement.
+
+Run it locally:
+
+```bash
+curl -L -o work/tau2-results.json \
+  https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_retail_base_gpt-4.1-2025-04-14_4trials.json
+PYTHONPATH=src python examples/tau2_retail_validation.py \
+  --results work/tau2-results.json \
+  --out work/tau2/report.json \
+  --traces-dir work/tau2/traces
+```
+
+The pinned run has 420 eligible write scenarios out of 456 simulations: 253
+true passes, 153 true blocks, 14 false alarms and 0 missed failures. The gate
+reports 96.67% accuracy, 91.62% failure precision, 100% failure recall, 5.24%
+false-alarm rate and 0% missed-failure rate. The false alarms remain visible:
+strict action/argument contracts can reject a semantically equivalent path.
+This is evidence about the adapter and contract, not an upstream endorsement.
+See [`docs/tau2-independent-validation.md`](tau2-independent-validation.md)
+for the exact mapping and limitations.
 
 ## 7. Frequently asked questions
 

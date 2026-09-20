@@ -4,6 +4,31 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.10.0 → v4.11.0
+
+v4.11 is additive. Existing Trace, Contract, config and baseline files require
+no migration. The release adds optional public helpers for consuming published
+τ²-bench retail results:
+
+```python
+from agent_regression import (
+    build_tau2_retail_contract,
+    evaluate_tau2_retail_results,
+    trace_from_tau2_simulation,
+)
+```
+
+`trace_from_tau2_simulation` does not copy the upstream reward into Trace
+metadata or claims. `evaluate_tau2_retail_results` makes the Contract decision
+first and reads reward only to label the resulting confusion matrix. Pin the
+upstream tag and checksum when reproducing the published metrics. See the
+[independent validation guide](docs/tau2-independent-validation.md).
+
+v4.11 是增量版本，旧 Trace、Contract、配置和 baseline 不需要迁移。新增 API 用于
+导入 τ²-bench 零售轨迹、根据任务定义生成契约，并在契约判断完成后用上游 reward
+计算误报与漏报。reward 不会进入 Trace 或 claims。复现实测时必须固定上游 tag 和
+SHA-256，完整方法见[独立项目验证说明](docs/tau2-independent-validation.md)。
+
 ## v4.9.0 → v4.10.0
 
 This feature release adds optional `contract.argument_rules`. Existing

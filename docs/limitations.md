@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.4 deliberately stays small. The local Viewer
+Agent Regression Kit v4.11 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -46,3 +46,9 @@ is a read-only presentation layer, not a hosted management service.
   recompute the Python comparison policy, execute Agents, edit baselines, or
   provide authentication, multi-user access, durable report storage, or
   network isolation beyond the CLI's loopback default.
+- The τ²-bench integration validates a checksum-pinned published half-duplex
+  retail result file. It does not run the upstream simulator in core CI, cover
+  voice or every domain, imply upstream adoption, or prove performance on a
+  different model/version. Its reference actions can be stricter than final
+  database-state equivalence; the measured false alarms are therefore retained
+  as evidence instead of being silently normalized away.

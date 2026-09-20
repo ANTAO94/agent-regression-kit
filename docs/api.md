@@ -48,6 +48,29 @@ and tools. Set `isolate=True` when the tools or state backend implements
 - `AgentTrace.to_dict()` returns JSON-serializable evidence.
 - `TraceValidationError` reports schema or lifecycle violations.
 
+## Independent project validation
+
+v4.11 exposes a small, dependency-free bridge for validating a published
+external Agent trajectory set without turning the external score into a test
+input:
+
+- `trace_from_tau2_simulation(simulation, task, source=None, agent=None)` maps a
+  tau2-bench half-duplex simulation into a validated `AgentTrace`.
+- `build_tau2_retail_contract(task)` converts the task's expected write actions
+  and communication requirement into a deterministic `ContractPolicy`.
+- `evaluate_tau2_retail_results(payload, source=None, sample_limit=5)` returns
+  eligible coverage, confusion-matrix counts, quality metrics and representative
+  traces. It reads the published reward only after the contract decision, so
+  reward is an evaluation oracle and is never copied into Trace metadata,
+  claims or the contract itself.
+- `TAU2_RETAIL_WRITE_TOOLS` and `TAU2_RETAIL_OBSERVATION_TOOLS` document the
+  retail tool classification used by the adapter.
+
+The shipped example pins the upstream tag and SHA-256 in
+`examples/tau2-retail/source.json`; see
+[`docs/tau2-independent-validation.md`](tau2-independent-validation.md) for
+the mapping, false-alarm boundary and reproduction command.
+
 ## Recording
 
 - `record_run(adapter, request, tools, *, run_id, metadata=None, redaction_policy=None, state_backend=None)` records any `AgentAdapter` with any `ToolExecutor`. When supplied, `state_backend.snapshot()` is used for the recorded initial/final world state instead of the tool executor.

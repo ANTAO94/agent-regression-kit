@@ -106,6 +106,13 @@ from .migration import (
     migrate_trace,
 )
 from .templates import initialize_adapter_template
+from .tau2 import (
+    TAU2_RETAIL_OBSERVATION_TOOLS,
+    TAU2_RETAIL_WRITE_TOOLS,
+    build_tau2_retail_contract,
+    evaluate_tau2_retail_results,
+    trace_from_tau2_simulation,
+)
 from .workspace import build_workspace_manifest
 from .rule_agent import (
     NORMAL,
@@ -194,6 +201,11 @@ __all__ = [
     "check_public_api_version",
     "migrate_trace",
     "initialize_adapter_template",
+    "TAU2_RETAIL_OBSERVATION_TOOLS",
+    "TAU2_RETAIL_WRITE_TOOLS",
+    "build_tau2_retail_contract",
+    "evaluate_tau2_retail_results",
+    "trace_from_tau2_simulation",
     "HistoryPoint",
     "HistoryReport",
     "build_history_report",

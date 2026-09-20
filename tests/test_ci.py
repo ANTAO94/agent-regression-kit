@@ -70,6 +70,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("v4.6-acceptance.md", workflow)
         self.assertIn("v4.9-acceptance.md", workflow)
         self.assertIn("v4.10-acceptance.md", workflow)
+        self.assertIn("v4.11-acceptance.md", workflow)
         self.assertIn("generate_release_metadata.py", workflow)
         self.assertIn("dist/SHA256SUMS", workflow)
         self.assertIn("actions/attest@v4", workflow)
@@ -119,6 +120,18 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("forbidden", workflow)
         self.assertIn('test "$exit_code" -eq 1', workflow)
         self.assertIn("path-variation-evidence", workflow)
+
+    def test_tau2_workflow_pins_external_data_and_gates_measured_quality(self):
+        workflow = (ROOT / ".github/workflows/tau2-independent-validation.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("sierra-research/tau2-bench", workflow)
+        self.assertIn("v1.0.1", workflow)
+        self.assertIn("6d6badb43b716adca31591b0b40e15fd493b49adddaa8e2c47035bb557549257", workflow)
+        self.assertIn("tau2_retail_validation.py", workflow)
+        self.assertIn("report.json", workflow)
+        self.assertIn("sample-traces", workflow)
+        self.assertIn("actions/upload-artifact@v7", workflow)
 
 
 if __name__ == "__main__":
