@@ -354,7 +354,13 @@ class ContractPolicy:
             raise ValueError("contract.path_rules must be an object")
         _reject_unknown_fields(
             self.path_rules,
-            {"any_of", "ordered", "mode", "extra_calls"},
+            {
+                "any_of",
+                "ordered",
+                "mode",
+                "extra_calls",
+                "ignore_argument_paths",
+            },
             "path_rules",
         )
         alternatives = self.path_rules.get("any_of", [])
@@ -391,6 +397,16 @@ class ContractPolicy:
                 raise ValueError("contract.path_rules.extra_calls must be an array")
             for raw_rule in extra_calls:
                 validate_path_rule(raw_rule, "extra call rule")
+        ignored_argument_paths = self.path_rules.get("ignore_argument_paths", [])
+        if not isinstance(ignored_argument_paths, list) or not all(
+            isinstance(path, str) and path.strip() for path in ignored_argument_paths
+        ):
+            raise ValueError(
+                "contract.path_rules.ignore_argument_paths must be an array "
+                "of non-empty strings"
+            )
+        for path in ignored_argument_paths:
+            _tokens(path)
         if "ordered" in self.path_rules and not isinstance(self.path_rules["ordered"], bool):
             raise ValueError("contract.path_rules.ordered must be a boolean")
         mode = self.path_rules.get("mode", "exact")
@@ -1355,11 +1371,35 @@ class ContractPolicy:
     ) -> bool:
         if not self._equivalent_tools(str(rule.get("tool")), str(event.get("tool"))):
             return False
-        if "arguments" in rule and event.get("arguments") != rule["arguments"]:
+        if not self._arguments_match(rule, event):
             return False
         if "result" in rule and event.get("result") != rule["result"]:
             return False
         return "is_error" not in rule or event.get("is_error", False) == rule["is_error"]
+
+    def _arguments_match(
+        self, rule: Mapping[str, Any], event: Mapping[str, Any]
+    ) -> bool:
+        """Match declared path arguments after removing explicit transport noise."""
+
+        if "arguments" not in rule:
+            return True
+        patterns = []
+        for path in self.path_rules.get("ignore_argument_paths", []):
+            tokens = _tokens(path)
+            # An explicit expected value remains an assertion. The ignore list
+            # only removes fields that the baseline rule does not model, which
+            # lets transports add request IDs without turning payment IDs or
+            # resource IDs into wildcards.
+            if not _lookup(rule["arguments"], tokens):
+                patterns.append(tokens)
+        expected = _prune(rule["arguments"], [], patterns)
+        observed = _prune(event.get("arguments", {}), [], patterns)
+        if expected is _IGNORED:
+            expected = {}
+        if observed is _IGNORED:
+            observed = {}
+        return expected == observed
 
     def _intent_key(self, rule: Mapping[str, Any]) -> tuple[str, str]:
         arguments = deepcopy(rule.get("arguments", {}))
@@ -1606,9 +1646,12 @@ class ContractPolicy:
             for left in left_values
         )
 
-    @staticmethod
-    def _path_rule_matches(rule: Mapping[str, Any], event: Mapping[str, Any]) -> bool:
-        if not ContractPolicy._tool_rule_matches(rule, event):
+    def _path_rule_matches(
+        self, rule: Mapping[str, Any], event: Mapping[str, Any]
+    ) -> bool:
+        if event.get("tool") != rule.get("tool"):
+            return False
+        if not self._arguments_match(rule, event):
             return False
         if "result" in rule and event.get("result") != rule["result"]:
             return False

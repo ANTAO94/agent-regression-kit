@@ -58,6 +58,12 @@ class ViewerTests(unittest.TestCase):
             self.assertIn(field, config)
         self.assertIn("state_equivalence", config)
 
+    def test_config_viewer_can_generate_v4_18_path_noise_rules(self):
+        config = (ROOT / "viewer" / "config.html").read_text(encoding="utf-8")
+        self.assertIn('id="pathIgnoreArguments"', config)
+        self.assertIn("ignore_argument_paths", config)
+        self.assertIn("baseline 路径没有声明", config)
+
     def test_missing_viewer_directory_has_actionable_error(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ViewerNotFoundError, "viewer assets were not found"):

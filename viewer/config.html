@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v4.17 Configuration Center">
+  <meta name="description" content="Agent Regression Kit v4.18 Configuration Center">
   <title>Configuration Center · Agent Regression Kit</title>
   <style>
     :root {
@@ -283,7 +283,7 @@
         <div class="brand-mark" aria-hidden="true">AR</div>
         <div>
           <span class="brand-name">Agent Regression Kit <span style="color: var(--blue)">/</span> Configuration Center</span>
-          <span class="brand-sub">v4.17 · policy before execution</span>
+          <span class="brand-sub">v4.18 · policy before execution</span>
         </div>
       </div>
       <div class="top-actions">
@@ -448,6 +448,11 @@ tool_results[0].result.trace_id"></textarea>
             <div class="subsection-head"><h3>允许的完整工具路径</h3><span>path_rules.any_of</span></div>
             <div class="field"><textarea id="pathRules" rows="4">get_order
 get_order -&gt; get_shipping</textarea></div>
+            <div class="field" style="margin-top:.8rem">
+              <label for="pathIgnoreArguments">路径规则忽略字段</label>
+              <textarea id="pathIgnoreArguments" rows="2" placeholder="request_id&#10;transport.trace_id"></textarea>
+              <p class="help">相对于工具 <code>arguments</code>。只忽略 baseline 路径没有声明的传输噪音；如果 baseline 明确写出该字段，仍会严格比较。不要填写订单号、租户号或金额。</p>
+            </div>
             <p class="help">每行是一条完整合法路径。字符串工具规则只检查工具名，不限制参数；如果参数是产品契约，请用必须调用或 baseline 比较固定下来。</p>
           </div>
 
@@ -634,7 +639,7 @@ get_order -&gt; get_shipping</textarea></div>
             { tool: "get_order", path: "order_id", operator: "equals_path", right_path: "metadata.input.order_id", message: "查询必须使用用户请求中的订单号" },
             { tool: "refund_order", path: "amount", operator: "less_or_equal_path", right_path: "tool_results[0].result.paid_amount", message: "退款金额不得超过实付金额" }
           ],
-          path_rules: { ordered: true, any_of: [["get_order"], ["get_order", "get_shipping"]] },
+          path_rules: { ordered: true, any_of: [["get_order"], ["get_order", "get_shipping"]], ignore_argument_paths: ["request_id"] },
           side_effects: []
         }
       };
@@ -784,7 +789,11 @@ get_order -&gt; get_shipping</textarea></div>
 
       function parsePathRules() {
         const alternatives = lines(textValue("pathRules")).map((line) => line.split(/\s*->\s*/).map((tool) => tool.trim()).filter(Boolean)).filter((path) => path.length);
-        return alternatives.length ? { ordered: ids("orderedPaths").value === "true", any_of: alternatives } : {};
+        const ignored = lines(textValue("pathIgnoreArguments"));
+        if (!alternatives.length && !ignored.length) return {};
+        const value = { ordered: ids("orderedPaths").value === "true", any_of: alternatives };
+        if (ignored.length) value.ignore_argument_paths = ignored;
+        return value;
       }
 
       function parseStateEquivalence() {
@@ -852,6 +861,7 @@ get_order -&gt; get_shipping</textarea></div>
         const pathOperators = ["equals_path", "not_equals_path", "less_than_path", "less_or_equal_path", "greater_than_path", "greater_or_equal_path"];
         config.contract.argument_rules.forEach((rule, index) => { if (!rule.tool) errors.push(`argument_rules 第 ${index + 1} 行缺少工具名`); if (!rule.path) errors.push(`argument_rules 第 ${index + 1} 行缺少参数路径`); if (!rule.operator) errors.push(`argument_rules 第 ${index + 1} 行缺少运算符`); if (pathOperators.includes(rule.operator) && !rule.right_path) errors.push(`argument_rules 第 ${index + 1} 行缺少参考路径`); if (!pathOperators.includes(rule.operator) && !["exists", "absent"].includes(rule.operator) && rule.value === "") errors.push(`argument_rules 第 ${index + 1} 行缺少固定值`); });
         config.contract.assertions.forEach((rule, index) => { if (!rule.path) errors.push(`assertions 第 ${index + 1} 行缺少路径`); });
+        if (config.contract.path_rules.ignore_argument_paths !== undefined && config.contract.path_rules.ignore_argument_paths.some((path) => !path)) errors.push("path_rules.ignore_argument_paths 必须是非空路径");
         config.contract.normalizers.forEach((rule, index) => { if (!rule.path) errors.push(`normalizers 第 ${index + 1} 行缺少路径`); if (!["timestamp", "sort"].includes(rule.type)) errors.push(`normalizers 第 ${index + 1} 行类型不支持`); });
         config.contract.side_effects.forEach((rule, index) => { if (!rule.path) errors.push(`side_effects 第 ${index + 1} 行缺少路径`); if (!rule.from && !rule.to) errors.push(`side_effects 第 ${index + 1} 行至少需要 from 或 to`); });
         const state = config.contract.state_equivalence;
@@ -942,6 +952,7 @@ get_order -&gt; get_shipping</textarea></div>
         ids("maxSteps").value = config.contract && config.contract.max_steps !== null && config.contract.max_steps !== undefined ? config.contract.max_steps : "";
         ids("orderedPaths").value = config.contract && config.contract.path_rules && config.contract.path_rules.ordered === false ? "false" : "true";
         ids("pathRules").value = config.contract && config.contract.path_rules && config.contract.path_rules.any_of ? config.contract.path_rules.any_of.map((path) => path.map((rule) => typeof rule === "string" ? rule : rule.tool).join(" -> ")).join("\n") : "";
+        ids("pathIgnoreArguments").value = config.contract && config.contract.path_rules && config.contract.path_rules.ignore_argument_paths ? config.contract.path_rules.ignore_argument_paths.join("\n") : "";
         const stateEquivalence = config.contract && config.contract.state_equivalence;
         ids("stateEquivalenceEnabled").checked = stateEquivalence !== undefined;
         ids("stateEquivalenceMode").value = stateEquivalence && stateEquivalence.mode ? stateEquivalence.mode : "exact";

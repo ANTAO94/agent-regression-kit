@@ -697,6 +697,105 @@ class ContractTests(unittest.TestCase):
                 }
             )
 
+    def test_path_rules_can_ignore_explicit_transport_noise_without_widening_business_identity(self):
+        baseline = make_trace(
+            arguments={"order_id": "123", "request_id": "baseline-request"}
+        )
+        candidate = make_trace(
+            arguments={"order_id": "123", "request_id": "candidate-request"},
+        )
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "any_of": [
+                            [
+                                {
+                                    "tool": "get_order",
+                                    "arguments": {
+                                        "order_id": "123",
+                                    },
+                                }
+                            ]
+                        ],
+                        "ignore_argument_paths": ["request_id"],
+                    }
+                }
+            ),
+        )
+        report = compare_traces(baseline, candidate, policy)
+        self.assertTrue(report["passed"], report["differences"])
+
+        wrong_business_object = make_trace(
+            arguments={"order_id": "999", "request_id": "candidate-request"},
+        )
+        blocked = compare_traces(baseline, wrong_business_object, policy)
+        self.assertFalse(blocked["passed"])
+        self.assertIn(
+            "behavior_path",
+            {item["category"] for item in blocked["differences"]},
+        )
+
+        explicit_noise_change = make_trace(
+            arguments={"order_id": "123", "request_id": "another-request"},
+        )
+        explicit_policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "any_of": [
+                            [
+                                {
+                                    "tool": "get_order",
+                                    "arguments": {
+                                        "order_id": "123",
+                                        "request_id": "baseline-request",
+                                    },
+                                }
+                            ]
+                        ],
+                        "ignore_argument_paths": ["request_id"],
+                    }
+                }
+            ),
+        )
+        explicit_block = compare_traces(baseline, explicit_noise_change, explicit_policy)
+        self.assertFalse(explicit_block["passed"])
+
+    def test_path_rule_noise_configuration_is_validated(self):
+        policy = ContractPolicy.from_dict(
+            {
+                "path_rules": {
+                    "any_of": [["get_order"]],
+                    "ignore_argument_paths": ["request_id", "headers.trace_id"],
+                }
+            }
+        )
+        self.assertEqual(
+            ["request_id", "headers.trace_id"],
+            policy.to_dict()["path_rules"]["ignore_argument_paths"],
+        )
+        with self.assertRaisesRegex(ValueError, "path_rules.ignore_argument_paths"):
+            ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "any_of": [["get_order"]],
+                        "ignore_argument_paths": [""],
+                    }
+                }
+            )
+        with self.assertRaisesRegex(ValueError, "invalid contract path"):
+            ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "any_of": [["get_order"]],
+                        "ignore_argument_paths": ["headers..trace_id"],
+                    }
+                }
+            )
+
     def test_extra_calls_allowlist_is_explicit_and_fail_closed(self):
         baseline = make_path_trace(["get_order", "get_payment_status"])
         candidate = make_path_trace(

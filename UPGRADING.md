@@ -4,6 +4,42 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.17.0 → v4.18.0
+
+v4.18 is additive for existing Trace, Contract and baseline files. No migration
+is required. It adds `path_rules.ignore_argument_paths` for path-local
+transport noise:
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "any_of": [[{"tool": "get_order", "arguments": {"order_id": "123"}}]],
+      "ignore_argument_paths": ["request_id"]
+    }
+  }
+}
+```
+
+The field removes a path only when the baseline rule does not declare it. An
+explicitly declared order ID, tenant ID or payment ID remains strict. This is
+different from `state_equivalence.ignore_argument_paths`, which groups
+declared outcome intents. Review every ignored field as part of the Contract;
+do not use `*` as a convenience wildcard. v4.18 also adds the independent
+τ²-bench airline importer and its checksum-bound validation workflow. See the
+[v4.18 acceptance record](docs/v4.18-acceptance.md).
+
+## v4.17.0 → v4.18.0（中文）
+
+v4.18 对已有 Trace、Contract 和 baseline 保持增量兼容，不需要迁移。新增的
+`path_rules.ignore_argument_paths` 用于路径契约中的传输层噪音字段。它只会忽略 baseline
+没有声明的字段；baseline 明确写出的订单号、租户号或支付 ID 仍然严格检查。它与用于
+outcome 意图分组的 `state_equivalence.ignore_argument_paths` 不是同一个字段。每个被忽略的
+字段都必须经过业务评审，不要使用 `*` 作为方便的通配符。
+
+v4.18 同时增加 τ²-bench airline 独立导入器、来源哈希和 CI 验证。详见
+[v4.18 验收记录](docs/v4.18-acceptance.md) 和[航空复现说明](examples/tau2-airline/README.md)。
+
 ## v4.12.0 → v4.13.0
 
 v4.13 keeps the AgentTrace schema and existing files compatible, but makes two

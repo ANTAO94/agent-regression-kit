@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.17.0 源码整理；产品版本 4.17.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
+依据 v4.18.0 源码整理；产品版本 4.18.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
 
 ## 1. 目标和适用场景
 
@@ -99,6 +99,7 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | path_rules.any_of | 接受显式列举的多条工具路径，可同时约束结果和 is_error |
 | path_rules.mode | `exact`、`ordered_subsequence` 或 `unordered_subset`；省略时保持严格完整路径 |
 | path_rules.extra_calls | 放宽模式下对未匹配额外调用的显式白名单；省略保持 v4.6，空数组拒绝全部额外调用 |
+| path_rules.ignore_argument_paths | 只从当前路径规则中移除 baseline 未声明的显式传输噪音字段；baseline 已声明字段仍严格匹配 |
 | tool_limits | 按工具和可选参数约束最小/最大调用次数；失败生成 `tool_count` |
 | tool_allowlist | 约束场景允许调用的工具目录，可按参数精确匹配；失败生成 `unauthorized_tool_call` |
 | argument_rules | 对指定工具的每一次调用检查相对参数路径、固定值/Trace 参考值以及存在性；失败生成 `tool_argument_policy` |
@@ -118,6 +119,11 @@ arguments、result 和 is_error；不匹配的调用生成 `extra_tool_call`，�
 `behavior_path` 失败。候选如果有额外调用，比较器不会把它们强行按 baseline 位置
 对齐；因此有业务意义的额外结果也应通过 path rule、assertions、relations 或
 side_effects 单独声明。
+
+`path_rules.ignore_argument_paths` 与 `state_equivalence.ignore_argument_paths` 分工不同：
+前者用于当前路径规则的参数匹配，适合 `request_id` 等未建模的传输噪音；它只会忽略
+baseline 规则没有写出的字段。如果 baseline 明确写出该字段，candidate 的值仍必须相同。
+后者只负责 outcome 意图分组，不能替代路径参数断言。
 
 `tool_limits` 负责调用次数而不是总步数：只配置 `min_calls` 检查下限，只配置
 `max_calls` 检查上限，同时配置且相等表示恰好次数。可选 `arguments` 会把统计范围
@@ -340,6 +346,6 @@ PYTHONPATH=src python examples/tau2_retail_validation.py \
 [状态等价契约](state-equivalence.md)、[v4.12 验收记录](v4.12-acceptance.md)与
 [v4.13 验收记录](v4.13-acceptance.md)。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [性能 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [独立消费项目](consumer-pilot.md) · [性能基线](performance.md) · [状态等价契约](state-equivalence.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.17.0) · [v4.17 验收](v4.17-acceptance.md) · [v4.16 验收](v4.16-acceptance.md) · [v4.15 验收](v4.15-acceptance.md) · [v4.14 验收](v4.14-acceptance.md) · [v4.13 验收](v4.13-acceptance.md) · [v4.12 验收](v4.12-acceptance.md) · [v4.11 验收](v4.11-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [性能 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [独立消费项目](consumer-pilot.md) · [性能基线](performance.md) · [状态等价契约](state-equivalence.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.18.0) · [v4.18 验收](v4.18-acceptance.md) · [v4.17 验收](v4.17-acceptance.md) · [v4.16 验收](v4.16-acceptance.md) · [v4.15 验收](v4.15-acceptance.md) · [v4.14 验收](v4.14-acceptance.md) · [v4.13 验收](v4.13-acceptance.md) · [v4.12 验收](v4.12-acceptance.md) · [v4.11 验收](v4.11-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

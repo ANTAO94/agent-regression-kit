@@ -109,9 +109,13 @@ from .migration import (
 )
 from .templates import initialize_adapter_template
 from .tau2 import (
+    TAU2_AIRLINE_OBSERVATION_TOOLS,
+    TAU2_AIRLINE_WRITE_TOOLS,
     TAU2_RETAIL_OBSERVATION_TOOLS,
     TAU2_RETAIL_WRITE_TOOLS,
+    build_tau2_airline_contract,
     build_tau2_retail_contract,
+    evaluate_tau2_airline_results,
     evaluate_tau2_retail_results,
     trace_from_tau2_simulation,
 )
@@ -210,7 +214,11 @@ __all__ = [
     "initialize_adapter_template",
     "TAU2_RETAIL_OBSERVATION_TOOLS",
     "TAU2_RETAIL_WRITE_TOOLS",
+    "TAU2_AIRLINE_OBSERVATION_TOOLS",
+    "TAU2_AIRLINE_WRITE_TOOLS",
+    "build_tau2_airline_contract",
     "build_tau2_retail_contract",
+    "evaluate_tau2_airline_results",
     "evaluate_tau2_retail_results",
     "trace_from_tau2_simulation",
     "HistoryPoint",

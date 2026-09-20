@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import Counter
 from copy import deepcopy
 import json
-from typing import Any, Dict, Iterable, List, Mapping, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence
 
 from .contracts import ContractPolicy
 from .model import AgentTrace
@@ -39,6 +39,30 @@ TAU2_RETAIL_OBSERVATION_TOOLS = frozenset(
         "get_product_details",
         "get_user_details",
         "list_all_product_types",
+        "transfer_to_human_agents",
+    }
+)
+
+TAU2_AIRLINE_WRITE_TOOLS = frozenset(
+    {
+        "book_reservation",
+        "cancel_reservation",
+        "send_certificate",
+        "update_reservation_baggages",
+        "update_reservation_flights",
+        "update_reservation_passengers",
+    }
+)
+
+TAU2_AIRLINE_OBSERVATION_TOOLS = frozenset(
+    {
+        "calculate",
+        "get_flight_status",
+        "get_reservation_details",
+        "get_user_details",
+        "list_all_airports",
+        "search_direct_flight",
+        "search_onestop_flight",
         "transfer_to_human_agents",
     }
 )
@@ -80,7 +104,9 @@ def _evaluation_criteria(task: Mapping[str, Any]) -> Mapping[str, Any]:
     return _object(task.get("evaluation_criteria", {}), "tau2 task evaluation_criteria")
 
 
-def _expected_writes(task: Mapping[str, Any]) -> List[Dict[str, Any]]:
+def _expected_writes(
+    task: Mapping[str, Any], write_tools: Iterable[str]
+) -> List[Dict[str, Any]]:
     actions = _array(
         _evaluation_criteria(task).get("actions", []),
         "tau2 task evaluation_criteria.actions",
@@ -89,7 +115,7 @@ def _expected_writes(task: Mapping[str, Any]) -> List[Dict[str, Any]]:
     for index, raw_action in enumerate(actions):
         action = _object(raw_action, f"tau2 task action[{index}]")
         tool = action.get("name")
-        if tool not in TAU2_RETAIL_WRITE_TOOLS:
+        if tool not in write_tools:
             continue
         arguments = _object(action.get("arguments", {}), f"tau2 task action[{index}].arguments")
         expected.append(
@@ -134,6 +160,7 @@ def trace_from_tau2_simulation(
     *,
     source: Mapping[str, Any] | None = None,
     agent: Mapping[str, Any] | None = None,
+    domain: str = "retail",
 ) -> AgentTrace:
     """Convert one half-duplex tau2 simulation into a validated AgentTrace."""
 
@@ -233,7 +260,7 @@ def trace_from_tau2_simulation(
     identity = dict(agent or {"name": "tau2-published-agent", "framework": "tau2-bench"})
     metadata = {
         "integration": "tau2-bench",
-        "domain": "retail",
+        "domain": domain,
         "source_simulation_id": run_id,
         "task_id": task_id,
         "trial": simulation.get("trial"),
@@ -253,16 +280,31 @@ def trace_from_tau2_simulation(
     return trace
 
 
-def build_tau2_retail_contract(task: Mapping[str, Any]) -> ContractPolicy:
-    """Build a deterministic contract from a tau2 retail task specification."""
+def _build_tau2_contract(
+    task: Mapping[str, Any],
+    *,
+    write_tools: Iterable[str],
+    observation_tools: Iterable[str],
+    ignore_argument_paths: Iterable[str] = (),
+    state_ignore_argument_paths: Iterable[str] | None = None,
+) -> ContractPolicy:
+    """Build a deterministic contract from one tau2 domain task."""
 
-    expected_writes = _expected_writes(_object(task, "tau2 task"))
+    expected_writes = _expected_writes(_object(task, "tau2 task"), write_tools)
     if not expected_writes:
-        raise ValueError("tau2 retail task has no write action to validate")
-    extra_calls: List[Any] = sorted(TAU2_RETAIL_OBSERVATION_TOOLS)
+        raise ValueError("tau2 task has no write action to validate")
+    extra_calls: List[Any] = sorted(observation_tools)
     extra_calls.extend(
         {"tool": tool, "is_error": True}
-        for tool in sorted(TAU2_RETAIL_WRITE_TOOLS)
+        for tool in sorted(write_tools)
+    )
+    ignored_arguments = sorted(set(ignore_argument_paths))
+    state_ignored_arguments = sorted(
+        set(
+            ignore_argument_paths
+            if state_ignore_argument_paths is None
+            else state_ignore_argument_paths
+        )
     )
     return ContractPolicy.from_dict(
         {
@@ -276,10 +318,11 @@ def build_tau2_retail_contract(task: Mapping[str, Any]) -> ContractPolicy:
                 "mode": "unordered_subset",
                 "any_of": [expected_writes],
                 "extra_calls": extra_calls,
+                "ignore_argument_paths": ignored_arguments,
             },
             "state_equivalence": {
                 "mode": "outcome",
-                "ignore_argument_paths": ["payment_method_id"],
+                "ignore_argument_paths": state_ignored_arguments,
                 "tool_aliases": [
                     [
                         "exchange_delivered_order_items",
@@ -303,17 +346,42 @@ def build_tau2_retail_contract(task: Mapping[str, Any]) -> ContractPolicy:
     )
 
 
+def build_tau2_retail_contract(task: Mapping[str, Any]) -> ContractPolicy:
+    """Build a deterministic contract from a tau2 retail task specification."""
+
+    return _build_tau2_contract(
+        task,
+        write_tools=TAU2_RETAIL_WRITE_TOOLS,
+        observation_tools=TAU2_RETAIL_OBSERVATION_TOOLS,
+        state_ignore_argument_paths=("payment_method_id",),
+    )
+
+
+def build_tau2_airline_contract(task: Mapping[str, Any]) -> ContractPolicy:
+    """Build a deterministic contract from a tau2 airline task specification."""
+
+    return _build_tau2_contract(
+        task,
+        write_tools=TAU2_AIRLINE_WRITE_TOOLS,
+        observation_tools=TAU2_AIRLINE_OBSERVATION_TOOLS,
+        ignore_argument_paths=("payment_id",),
+    )
+
+
 def _rate(numerator: int, denominator: int) -> float | None:
     return numerator / denominator if denominator else None
 
 
-def evaluate_tau2_retail_results(
+def _evaluate_tau2_results(
     payload: Mapping[str, Any],
     *,
+    domain: str,
+    write_tools: Iterable[str],
+    contract_builder: Callable[[Mapping[str, Any]], ContractPolicy],
     source: Mapping[str, Any] | None = None,
     sample_limit: int = 5,
 ) -> Dict[str, Any]:
-    """Compare deterministic contracts with tau2's independent reward labels."""
+    """Compare one tau2 domain's deterministic contracts with reward labels."""
 
     if not isinstance(sample_limit, int) or isinstance(sample_limit, bool) or sample_limit < 0:
         raise ValueError("sample_limit must be a non-negative integer")
@@ -348,7 +416,7 @@ def evaluate_tau2_retail_results(
         if task_id not in tasks:
             raise ValueError(f"tau2 simulation references unknown task_id {task_id!r}")
         task = tasks[task_id]
-        if not _expected_writes(task):
+        if not _expected_writes(task, write_tools):
             excluded += 1
             continue
         trace = trace_from_tau2_simulation(
@@ -356,8 +424,9 @@ def evaluate_tau2_retail_results(
             task,
             source=source_info,
             agent=agent_identity,
+            domain=domain,
         )
-        contract = build_tau2_retail_contract(task)
+        contract = contract_builder(task)
         differences = contract.check(trace, trace)
         contract_passed = not differences
         reward_info = _object(simulation.get("reward_info", {}), "tau2 simulation.reward_info")
@@ -402,7 +471,7 @@ def evaluate_tau2_retail_results(
         "report_type": "external_project_validation",
         "project": {
             "name": "tau2-bench",
-            "domain": "retail",
+            "domain": domain,
             **source_info,
         },
         "benchmark": {
@@ -436,3 +505,39 @@ def evaluate_tau2_retail_results(
         "samples": samples,
         "outcomes": outcomes,
     }
+
+
+def evaluate_tau2_retail_results(
+    payload: Mapping[str, Any],
+    *,
+    source: Mapping[str, Any] | None = None,
+    sample_limit: int = 5,
+) -> Dict[str, Any]:
+    """Compare retail contracts with tau2's independent reward labels."""
+
+    return _evaluate_tau2_results(
+        payload,
+        domain="retail",
+        write_tools=TAU2_RETAIL_WRITE_TOOLS,
+        contract_builder=build_tau2_retail_contract,
+        source=source,
+        sample_limit=sample_limit,
+    )
+
+
+def evaluate_tau2_airline_results(
+    payload: Mapping[str, Any],
+    *,
+    source: Mapping[str, Any] | None = None,
+    sample_limit: int = 5,
+) -> Dict[str, Any]:
+    """Compare airline contracts with tau2's independent reward labels."""
+
+    return _evaluate_tau2_results(
+        payload,
+        domain="airline",
+        write_tools=TAU2_AIRLINE_WRITE_TOOLS,
+        contract_builder=build_tau2_airline_contract,
+        source=source,
+        sample_limit=sample_limit,
+    )

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 4.18.0 - 2026-09-21
+
+- Add `path_rules.ignore_argument_paths` for explicit transport-noise filtering:
+  fields omitted from the baseline rule may vary, while explicitly declared
+  business fields remain strict.
+- Add a domain-specific τ²-bench airline importer, Contract builder and
+  checksum-bound validation workflow alongside the retail evidence.
+- Validate the pinned published airline result: 120 eligible write scenarios,
+  69 oracle failures, 100% failure recall and 3.92% false-alarm rate.
+- Add a prospective o4-mini airline report with an explicit 12% observation
+  threshold because its measured false-alarm rate is 10.42%; do not interpret
+  that threshold as the general maturity target.
+- Add bilingual v4.18 acceptance, airline reproduction instructions and
+  configuration guidance.
+
 ## 4.17.0 - 2026-09-21
 
 - Bind the τ² result file to the source manifest SHA-256 before writing a

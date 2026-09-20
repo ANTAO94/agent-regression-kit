@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.17.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.18.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.17.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.18.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.17.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.18.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.17.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.18.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -590,6 +590,27 @@ agent-regression performance gate \
 
 默认耗时回退超过 20% 报警，超过 40% 阻断；性能结果必须在同一 Python、操作系统和硬件
 条件下比较。详见[性能基线说明](performance.md)与[v4.16 验收](v4.16-acceptance.md)。
+
+### v4.18：路径噪音字段与第二任务域
+
+如果 baseline 的路径规则没有声明某个传输字段，但 candidate 每次运行都会生成不同值，
+可以使用 `path_rules.ignore_argument_paths`：
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "any_of": [[{"tool": "get_order", "arguments": {"order_id": "123"}}]],
+      "ignore_argument_paths": ["request_id"]
+    }
+  }
+}
+```
+
+它只忽略 baseline 没有写出的字段；如果 baseline 明确写出 `request_id`、订单号或支付 ID，
+这些值仍然严格检查。与 outcome 意图分组使用的 `state_equivalence.ignore_argument_paths`
+不要混用。完整的航空域复现命令见[航空示例](../examples/tau2-airline/README.md)，v4.18
+验收数据为 246 项测试、已发布航空结果 120 个适用场景和 100% 失败召回。
 
 ### v4.17：外部评测 provenance
 

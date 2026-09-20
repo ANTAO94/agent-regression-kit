@@ -350,6 +350,26 @@ v4.10 增加 `argument_rules`，用于把工具参数安全边界写成可执行
 `unexpected_state_change`。缺少 `paths` 证据会生成 `state_evidence_missing`。完整字段说明见
 [状态等价契约](state-equivalence.md) 和 [v4.13 验收](v4.13-acceptance.md)。
 
+如果路径契约里存在每次请求都会变化、但不属于业务身份的字段，例如 `request_id` 或某些
+传输层 `payment_id`，可以单独配置 `path_rules.ignore_argument_paths`：
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "any_of": [[
+        {"tool": "get_order", "arguments": {"order_id": "123"}}
+      ]],
+      "ignore_argument_paths": ["request_id"]
+    }
+  }
+}
+```
+
+它只对当前路径规则生效，并且只忽略 baseline 规则没有声明的字段；如果 baseline 明确写了
+`request_id`，candidate 仍必须匹配它。它不能把订单号、租户号或金额变成通配符，也不同于
+`state_equivalence.ignore_argument_paths`（后者用于 outcome 意图分组）。
+
 ### 有状态场景和副作用检查
 
 普通 Trace 只能说明 Agent 调用了什么工具；有状态场景还要说明这些调用有没有把订单、库存或权限状态改坏。实现一个带 `snapshot()` 的工具执行器即可让录制器自动写入：

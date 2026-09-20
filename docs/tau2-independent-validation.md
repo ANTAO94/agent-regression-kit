@@ -93,6 +93,23 @@ python examples/tau2_retail_validation.py \
 上游代码和数据按 MIT License 发布。固定来源见
 [`examples/tau2-retail/source.json`](../examples/tau2-retail/source.json)。
 
+### v4.18 航空任务域验证
+
+v4.18 增加了同一上游固定版本中的 airline 任务域。航空域使用独立的写工具集合和
+`payment_id` 噪音规则，不复用 retail 的 Contract；任务未声明的 `payment_id` 可以变化，
+但任务明确声明的支付 ID 仍然必须匹配。
+
+固定的 `gpt-4.1-mini` 航空结果包含 200 条轨迹，其中 120 条进入写场景评估，69 条上游
+oracle 失败。结果为 49 条正确放行、69 条正确阻断、2 条误报、0 条漏报：失败召回率 100%，
+误报率 3.92%。这是一条跨任务域迁移证据，说明契约引擎不只适用于零售；但它仍来自同一
+τ²-bench 发布版本，不能扩大解释为所有未见任务分布的泛化证明。
+
+对应的前瞻 `o4-mini` 航空结果为 43 条正确放行、72 条正确阻断、5 条误报、0 条漏报，
+失败召回率 100%，误报率 10.42%。由于这个模型/任务域组合的实际误报率高于项目通用的 5%
+目标，CI 使用显式的 12% 观察阈值，并把该差异写入报告；它不是 5% 通用保证。详见
+[`v4.18 验收记录`](v4.18-acceptance.md) 和
+[`examples/tau2-airline/README.md`](../examples/tau2-airline/README.md)。
+
 ## English
 
 This validation consumes published retail Agent results from the independent
@@ -141,8 +158,28 @@ This is model-result-level prospective evidence: the task family, task
 definitions and upstream reward oracle are shared with the calibration source.
 It is not an unseen-domain or independent-task generalization claim.
 
+### v4.18 airline domain validation
+
+v4.18 adds the airline domain from the same pinned tau2-bench release. The
+airline adapter has its own write-tool set and treats `payment_id` as ignorable
+only when the task does not declare that field. An explicitly declared payment
+ID remains an assertion.
+
+The pinned `gpt-4.1-mini` airline result has 200 trajectories and 120 eligible
+write scenarios, including 69 oracle failures. It yields 49 true passes, 69
+true blocks, 2 false alarms and 0 missed failures: 100% failure recall and a
+3.92% false-alarm rate. This is cross-domain transfer evidence, not proof of
+generalization to every unseen task distribution.
+
+The prospective `o4-mini` airline result yields 43 true passes, 72 true
+blocks, 5 false alarms and 0 missed failures. Its observed false-alarm rate is
+10.42%, so CI uses an explicit 12% observation threshold and records that
+relaxation. It is not a general 5% guarantee. See the [v4.18 acceptance
+record](v4.18-acceptance.md) and the [airline example](../examples/tau2-airline/README.md).
+
 Run the commands in the Chinese section above or execute the dedicated
 `tau2 independent validation` GitHub Actions workflow. The check covers pinned
-published half-duplex retail trajectories, including the v4.17 prospective
-o4-mini result file. It is not evidence of upstream adoption, voice coverage,
-every τ²-bench domain, every model, or production reliability.
+published half-duplex retail and airline trajectories, including the v4.17
+retail and v4.18 airline prospective o4-mini result files. It is not evidence
+of upstream adoption, voice coverage, every τ²-bench domain, every model, or
+production reliability.

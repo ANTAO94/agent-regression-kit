@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.17.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.18.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.17.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.18.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.17.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.18.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.17.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.18.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -599,6 +599,30 @@ agent-regression performance gate \
 The default gate warns above 20% and blocks above 40% elapsed-time regression
 on like-for-like Python/OS/hardware. See the [performance guide](performance.md)
 and [v4.16 acceptance](v4.16-acceptance.md).
+
+### v4.18: path noise and a second task domain
+
+If the baseline path rule does not declare a transport field but candidates
+generate a different value on every run, use
+`path_rules.ignore_argument_paths` explicitly:
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "any_of": [[{"tool": "get_order", "arguments": {"order_id": "123"}}]],
+      "ignore_argument_paths": ["request_id"]
+    }
+  }
+}
+```
+
+It removes only fields absent from the baseline rule. An explicitly declared
+`request_id`, order ID or payment ID remains strict. Do not confuse this with
+`state_equivalence.ignore_argument_paths`, which groups outcome intents. The
+[airline example](../examples/tau2-airline/README.md) contains the full
+cross-domain reproduction. v4.18 records 246 tests, 120 eligible published
+airline scenarios and 100% failure recall.
 
 ### v4.17: external evaluation provenance
 

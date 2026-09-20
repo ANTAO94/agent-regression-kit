@@ -113,6 +113,12 @@ evaluating a different published model result; a mismatch fails closed. The
 v4.17 prospective o4-mini example and its minimum-failure gate are documented
 in [`docs/v4.17-acceptance.md`](v4.17-acceptance.md).
 
+v4.18 adds `path_rules.ignore_argument_paths` for path-local transport noise:
+it removes a field only when the baseline path rule does not declare it. It is
+not a wildcard for business identifiers. The second τ² airline importer and
+its checksum-bound reproduction are documented in
+[`docs/v4.18-acceptance.md`](v4.18-acceptance.md).
+
 ## Recording
 
 - `record_run(adapter, request, tools, *, run_id, metadata=None, redaction_policy=None, state_backend=None)` records any `AgentAdapter` with any `ToolExecutor`. When supplied, `state_backend.snapshot()` is used for the recorded initial/final world state instead of the tool executor.
@@ -571,7 +577,7 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
   `sort`), `must_call`, `must_not_call`, `path_rules.any_of`,
-  `path_rules.mode`, `path_rules.extra_calls`, `tool_limits`, `tool_allowlist`, `argument_rules`, `side_effects`,
+  `path_rules.mode`, `path_rules.extra_calls`, `path_rules.ignore_argument_paths`, `tool_limits`, `tool_allowlist`, `argument_rules`, `side_effects`,
   `relations`, `state_equivalence`, and `max_steps`. Path mode `exact` is the default; `ordered_subsequence` allows
   extra calls while preserving required order, and `unordered_subset` allows
   extra calls and reordering. In tolerant modes, omit `extra_calls` for v4.6

@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.17 deliberately stays small. The local Viewer
+Agent Regression Kit v4.18 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -15,6 +15,7 @@ is a read-only presentation layer, not a hosted management service.
 - An external MCP server runs as a local child process with the current user's permissions. Only run commands you trust. The bundled fixture performs no network or durable side effects.
 - Baseline acceptance is explicit but unsigned. Review baseline changes in version control. `claims-only` final-answer comparison is also explicit: it ignores prose differences only when selected, and still compares recorded claims. Integrators must ensure those claims are present and meaningful. It is not semantic judging and does not infer claims from free-form text.
 - Contract normalizers intentionally include only deterministic timestamp and list sorting rules. World-state comparison and isolation are snapshot-based: `StateIsolation` restores only the database, cache, or service-emulator state exposed by the supplied `SnapshotBackend`; hidden writes to another service still require project-specific cleanup. Session comparison requires one terminal answer per turn; streaming conversation state is represented as separate turns, not a hidden live transcript. Business branch coverage depends on structured claims; it cannot infer a reliable business state from free-form prose. Arbitrary regex rewriting, model-based judging, and framework-specific semantic policies remain outside the core.
+- `path_rules.ignore_argument_paths` is an explicit, path-local noise filter. It removes a field only when the baseline path rule does not declare it; it does not make an explicitly asserted payment ID, order ID or tenant ID arbitrary. The separate `state_equivalence.ignore_argument_paths` still only groups declared outcome intents.
 - Scenario path coverage measures ordered tool-call paths represented by recorded
   traces. It is not source-code coverage, model-quality scoring, or proof that
   every hidden branch inside a framework was reached.
@@ -83,3 +84,9 @@ is a read-only presentation layer, not a hosted management service.
 - The v4.17 prospective τ² result is bound to a separate published model file
   and adds a model-level evaluation signal. It shares the task family and
   oracle with calibration, so it is not unseen-domain generalization.
+- The v4.18 airline validation adds a second task domain and reports 120
+  eligible scenarios, but that slice is below the roadmap's 300-scenario final
+  maturity threshold. Its prospective o4-mini false-alarm observation is
+  10.42%, so the workflow records an explicit 12% model/domain threshold
+  rather than presenting it as the general 5% target. An uninvolved human
+  usability study is still required.

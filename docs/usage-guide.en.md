@@ -369,6 +369,29 @@ and missing state evidence produces `state_evidence_missing`.
 [state-equivalence guide](state-equivalence.md) and [v4.13 acceptance record](v4.13-acceptance.md)
 for the complete field reference.
 
+If a path contract contains a per-request transport field that is not part of
+business identity, such as `request_id` or a domain-specific `payment_id`, use
+`path_rules.ignore_argument_paths` explicitly:
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "any_of": [[
+        {"tool": "get_order", "arguments": {"order_id": "123"}}
+      ]],
+      "ignore_argument_paths": ["request_id"]
+    }
+  }
+}
+```
+
+This applies only to the current path rules and only removes fields that the
+baseline rule does not declare. If the baseline explicitly contains
+`request_id`, the candidate must still match it. It never turns order IDs,
+tenant IDs or amounts into wildcards, and it is distinct from
+`state_equivalence.ignore_argument_paths`, which groups outcome intents.
+
 ### Stateful scenarios and side effects
 
 A normal Trace says which tools the Agent called. A stateful scenario also proves that those calls did not corrupt an order, inventory, or permission state. Give the tool executor a `snapshot()` method and the recorder automatically stores the state before and after the run:

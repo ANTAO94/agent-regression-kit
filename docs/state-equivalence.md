@@ -118,7 +118,7 @@ preserves the pre-v4.12 behavior. v4.13 adds explicit `attempt_policy` and
 | --- | --- | --- |
 | `mode` | `exact` | `exact` keeps normal strict comparison; `outcome` groups documented alternative intent rules and checks declared outcomes; `hybrid` keeps each rule separate but allows explicitly configured equivalent tools. |
 | `paths` | `[]` | Baseline/candidate JSON paths whose values must be equal. Usually points to `world_state.final`; missing paths fail closed. |
-| `ignore_argument_paths` | `[]` | Relative argument paths removed only while grouping declared rules into one intent. It is not a wildcard allowlist for candidate arguments. |
+| `ignore_argument_paths` | `[]` | Relative argument paths removed only while grouping declared rules into one intent. It is not a wildcard allowlist for candidate arguments. For path-level transport noise, use the separate `path_rules.ignore_argument_paths` field. |
 | `tool_aliases` | `[]` | Lists of tool names with an explicitly reviewed semantic relationship. No aliases are inferred from spelling or result shape. |
 | `allow_failed_expected` | `false` | Allows a candidate error event to satisfy a rule that did not require success. Use only when retry/fallback is a valid business behavior. An explicit `is_error: true` rule is always allowed to match an error. |
 | `attempt_policy.require_success` | `true` | Requires at least one successful matching event for each expected intent. |

@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/sierra-research/tau2-bench",
+  "tag": "v1.0.1",
+  "tag_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+  "dataset_path": "data/tau2/results/final/o4-mini-2025-04-16_airline_default_gpt-4.1-2025-04-14_4trials.json",
+  "download_url": "https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/o4-mini-2025-04-16_airline_default_gpt-4.1-2025-04-14_4trials.json",
+  "sha256": "6a3a354c9bce42b52905af096e9cea6f555548acbb17b567fd403c356df7b4ec",
+  "license": "MIT",
+  "license_url": "https://github.com/sierra-research/tau2-bench/blob/v1.0.1/LICENSE",
+  "evaluation_role": "prospective-model-evaluation",
+  "domain": "airline"
+}

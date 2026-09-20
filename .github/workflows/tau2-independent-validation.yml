@@ -8,6 +8,8 @@ on:
       - "src/agent_regression/compare.py"
       - "examples/tau2_retail_validation.py"
       - "examples/tau2-retail/**"
+      - "examples/tau2_airline_validation.py"
+      - "examples/tau2-airline/**"
       - "tests/test_tau2.py"
       - "tests/test_contracts.py"
       - ".github/workflows/tau2-independent-validation.yml"
@@ -19,6 +21,8 @@ on:
       - "src/agent_regression/compare.py"
       - "examples/tau2_retail_validation.py"
       - "examples/tau2-retail/**"
+      - "examples/tau2_airline_validation.py"
+      - "examples/tau2-airline/**"
       - "tests/test_tau2.py"
       - "tests/test_contracts.py"
       - ".github/workflows/tau2-independent-validation.yml"
@@ -131,3 +135,110 @@ jobs:
         with:
           name: tau2-prospective-o4-retail
           path: work/tau2-prospective/
+
+  published-airline-trajectories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install Agent Regression Kit
+        run: python -m pip install .
+      - name: Download the pinned airline result file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/tau2-airline
+          curl --fail --location --retry 3 \
+            --output work/tau2-airline/results.json \
+            "https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_airline_base_gpt-4.1-2025-04-14_4trials.json"
+          echo "41788956547a100fb8e34baf159f36dd1f07f0765798a5fdaf917576c5dba9d0  work/tau2-airline/results.json" \
+            | shasum -a 256 -c -
+      - name: Evaluate the unseen airline task domain
+        run: |
+          python examples/tau2_airline_validation.py \
+            --results work/tau2-airline/results.json \
+            --out work/tau2-airline/report.json \
+            --traces-dir work/tau2-airline/sample-traces \
+            --min-eligible 100 \
+            --min-failures 50 \
+            --min-failure-recall 0.99 \
+            --max-false-alarm-rate 0.05 \
+            --max-missed-failure-rate 0.0
+      - name: Publish the airline validation summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          report = json.load(open("work/tau2-airline/report.json"))
+          scope = report["scope"]
+          matrix = report["confusion_matrix"]
+          metrics = report["metrics"]
+          print("## tau2-bench independent airline validation")
+          print()
+          print(f"- Eligible write scenarios: {scope['eligible_write_scenarios']}")
+          print(f"- Oracle failures: {matrix['true_block'] + matrix['missed_failure']}")
+          print(f"- Failure recall: {metrics['failure_recall']:.2%}")
+          print(f"- False alarm rate: {metrics['false_alarm_rate']:.2%}")
+          print(f"- Results SHA-256: {report['provenance']['results']['results_sha256']}")
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: tau2-independent-airline-validation
+          path: work/tau2-airline/
+
+  prospective-o4-airline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install Agent Regression Kit
+        run: python -m pip install .
+      - name: Download the prospective airline result file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/tau2-airline-prospective
+          curl --fail --location --retry 3 \
+            --output work/tau2-airline-prospective/results.json \
+            "https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/o4-mini-2025-04-16_airline_default_gpt-4.1-2025-04-14_4trials.json"
+          echo "6a3a354c9bce42b52905af096e9cea6f555548acbb17b567fd403c356df7b4ec  work/tau2-airline-prospective/results.json" \
+            | shasum -a 256 -c -
+      - name: Evaluate the prospective airline model result
+        run: |
+          python examples/tau2_airline_validation.py \
+            --results work/tau2-airline-prospective/results.json \
+            --source-manifest examples/tau2-airline/prospective-o4-mini-source.json \
+            --out work/tau2-airline-prospective/report.json \
+            --traces-dir work/tau2-airline-prospective/sample-traces \
+            --min-eligible 100 \
+            --min-failures 50 \
+            --min-failure-recall 0.99 \
+            --max-false-alarm-rate 0.12 \
+            --max-missed-failure-rate 0.0
+      - name: Publish the prospective airline summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          report = json.load(open("work/tau2-airline-prospective/report.json"))
+          scope = report["scope"]
+          matrix = report["confusion_matrix"]
+          metrics = report["metrics"]
+          print("## tau2-bench prospective airline model evaluation")
+          print()
+          print(f"- Eligible write scenarios: {scope['eligible_write_scenarios']}")
+          print(f"- Oracle failures: {matrix['true_block'] + matrix['missed_failure']}")
+          print(f"- Failure recall: {metrics['failure_recall']:.2%}")
+          print(f"- False alarm rate: {metrics['false_alarm_rate']:.2%}")
+          print(f"- Results SHA-256: {report['provenance']['results']['results_sha256']}")
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: tau2-prospective-o4-airline
+          path: work/tau2-airline-prospective/

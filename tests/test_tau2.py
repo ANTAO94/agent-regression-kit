@@ -1,7 +1,9 @@
 import unittest
 
 from agent_regression import (
+    build_tau2_airline_contract,
     build_tau2_retail_contract,
+    evaluate_tau2_airline_results,
     evaluate_tau2_retail_results,
     trace_from_tau2_simulation,
 )
@@ -74,6 +76,94 @@ EXPECTED_ARGUMENTS = {
 
 
 class Tau2IntegrationTests(unittest.TestCase):
+    def test_airline_contract_can_ignore_explicit_payment_noise(self):
+        source_task = {
+            "id": "airline-1",
+            "evaluation_criteria": {
+                "actions": [
+                    {
+                        "name": "update_reservation_flights",
+                        "arguments": {
+                            "reservation_id": "R1",
+                            "cabin": "economy",
+                            "flights": [{"flight_number": "HAT001", "date": "2024-05-20"}],
+                        },
+                    }
+                ],
+                "communicate_info": [],
+            },
+        }
+        source_simulation = simulation(
+            "airline-pass",
+            reward=1.0,
+            calls=[
+                (
+                    "update_reservation_flights",
+                    {
+                        "reservation_id": "R1",
+                        "cabin": "economy",
+                        "flights": [{"flight_number": "HAT001", "date": "2024-05-20"}],
+                        "payment_id": "gift_card-1",
+                    },
+                    False,
+                )
+            ],
+        )
+        trace = trace_from_tau2_simulation(
+            source_simulation,
+            source_task,
+            domain="airline",
+        )
+        self.assertEqual([], build_tau2_airline_contract(source_task).check(trace, trace))
+
+    def test_airline_external_report_is_domain_scoped(self):
+        source_task = {
+            "id": "airline-1",
+            "evaluation_criteria": {
+                "actions": [
+                    {
+                        "name": "update_reservation_flights",
+                        "arguments": {
+                            "reservation_id": "R1",
+                            "cabin": "economy",
+                            "flights": [{"flight_number": "HAT001", "date": "2024-05-20"}],
+                        },
+                    }
+                ],
+                "communicate_info": [],
+            },
+        }
+        payload = {
+            "info": {
+                "git_commit": "airline-upstream",
+                "agent_info": {"implementation": "llm_agent", "llm": "test-model"},
+            },
+            "tasks": [source_task],
+            "simulations": [
+                simulation(
+                    "airline-pass",
+                    reward=1.0,
+                    calls=[
+                        (
+                            "update_reservation_flights",
+                            {
+                                "reservation_id": "R1",
+                                "cabin": "economy",
+                                "flights": [{"flight_number": "HAT001", "date": "2024-05-20"}],
+                                "payment_id": "gift_card-1",
+                            },
+                            False,
+                        )
+                    ],
+                    task_id="airline-1",
+                )
+            ],
+        }
+        report = evaluate_tau2_airline_results(payload, source={"tag": "v1.0.1"})
+        self.assertEqual("airline", report["project"]["domain"])
+        self.assertEqual(1, report["confusion_matrix"]["true_pass"])
+        self.assertEqual(0, report["confusion_matrix"]["false_alarm"])
+
     def test_trace_imports_tools_without_leaking_the_external_reward(self):
         source_task = task(communicate=["refund submitted"])
         source_simulation = simulation(
