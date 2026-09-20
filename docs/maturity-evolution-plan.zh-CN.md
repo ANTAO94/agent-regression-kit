@@ -638,6 +638,11 @@ v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本�
 - [x] `StabilityPolicy.min_runs` 与 CLI `stability --min-runs` 支持把最低重复数变成门禁，默认值
   保持为 1，不破坏旧配置。
 - [x] 核心 CI 增加 30 次重复、`--min-runs 30` 和 required sampling report；本地测试达到 271 项。
+- [x] v4.28.0 Release workflow（run `35541616781`）、发布 wheel 和 SHA-256 已完成；核心 `main`
+  workflow（run `35541617140`）通过 30 次 sampling evidence。
+- [x] 独立消费仓库安装 v4.28.0 wheel，提交 `491c33c` 的 CI（run `35541894413`）验证正常路径
+  返回 0，wrong-resource、skip-tool、misread-result 三类注入均返回 1；后续锁定提交 `47a6300`
+  的 CI（run `35541931223`）再次通过。
 - [ ] 这仍然不是在线模型采样方差、总体可靠性、更多模型族安全率或未参与实现用户研究。
 
 ## 8. 模块与文件改造清单

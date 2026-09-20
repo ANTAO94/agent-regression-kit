@@ -1,24 +1,24 @@
 # Independent consumer pilot / 独立消费项目验证
 
 v4.15 introduced an end-to-end consumer repository that is separate from the
-core checkout. After the v4.27 release, that consumer was upgraded and
-re-verified against the immutable v4.27 wheel:
+core checkout. After the v4.28 release, that consumer was upgraded and
+re-verified against the immutable v4.28 wheel:
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.27 发布后，消费项目又升级到
-v4.27 wheel 并重新验收：
+v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.28 发布后，消费项目又升级到
+v4.28 wheel 并重新验收：
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
 ## Consumer boundary / 消费边界
 
 The pilot installs exactly this immutable Release asset for the current
-v4.27 evidence:
+v4.28 evidence:
 
 ```text
-https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.27.0/agent_regression_kit-4.27.0-py3-none-any.whl
-sha256: d63dfd4d7914b3b42030aa2a3ccb3e2ece04aadce192e46408ea2ec35c384854
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.28.0/agent_regression_kit-4.28.0-py3-none-any.whl
+sha256: e9c18cc68404807ef7bdede54a2d72d6ea9b7c4bbe5e2f9f31a5059006bc3eab
 ```
 
 The pilot does not import the producer checkout, add the producer `src/`
@@ -49,8 +49,8 @@ Agent 的真实消费流程是两步依赖：先查订单，再使用订单返�
 
 ## Injected regressions / 注入回归
 
-The consumer workflow ran on the v4.27 upgrade commit `5dfab07` and passed
-(GitHub Actions run [`35540425730`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35540425730)):
+The consumer workflow ran on the v4.28 upgrade commit `491c33c` and passed
+(GitHub Actions run [`35541894413`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35541894413)):
 
 | Case / 用例 | Expected / 预期 | Observed / 实测 |
 | --- | --- | --- |
@@ -61,9 +61,13 @@ The consumer workflow ran on the v4.27 upgrade commit `5dfab07` and passed
 
 CI run: [Consumer Agent regression workflow](https://github.com/ANTAO94/agent-regression-pilot/actions/workflows/regression.yml)
 
-The v4.27 evidence binding is recorded in consumer follow-up commit `a2bb7fa`
+The v4.28 evidence binding is recorded in consumer follow-up commit `47a6300`
 and its CI run is
-[`35540456637`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35540456637).
+[`35541931223`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35541931223).
+The previous v4.27 evidence binding remains useful history: its upgrade commit
+was `5dfab07`, its follow-up commit was `a2bb7fa`, and its CI runs were
+[`35540425730`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35540425730)
+and [`35540456637`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35540456637).
 The previous v4.26 evidence remains useful history: its upgrade commit was
 `56a1316`, its follow-up commit was `eb5ce5d`, and its CI runs were
 [`35539092690`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35539092690)
@@ -83,10 +87,12 @@ acceptance snapshot used the v4.14.0 wheel at commit
 post-release verification uses the v4.24.0 wheel at `be445f1` (metadata recorded
 in follow-up commit `48f34ab`); the v4.25 post-release verification uses the
 v4.25.0 wheel at `36d3852` (metadata recorded in follow-up commit `b32d6bc`).
-The current v4.27 post-release verification uses the v4.27.0 wheel at `5dfab07`
-(metadata recorded in follow-up commit `a2bb7fa`).
+The v4.27 post-release verification uses the v4.27.0 wheel at `5dfab07`
+(metadata recorded in follow-up commit `a2bb7fa`). The current v4.28
+post-release verification uses the v4.28.0 wheel at `491c33c` (metadata recorded
+in follow-up commit `47a6300`).
 
-消费仓库的 v4.27 CI（run `35540425730`）已验证正常场景返回 0，三类注入均返回 1。报告会保留在
+消费仓库的 v4.28 CI（run `35541894413`）已验证正常场景返回 0，三类注入均返回 1。报告会保留在
 workflow artifact 中，baseline 由人工审核后提交，CI 不会自动覆盖 baseline。
 
 ## Reproduce / 复现
