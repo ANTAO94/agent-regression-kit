@@ -281,4 +281,4 @@ jobs:
 | 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
 | 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [API](docs/api.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [发布验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [发布验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
