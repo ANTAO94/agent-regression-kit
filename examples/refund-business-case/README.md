@@ -30,11 +30,14 @@ The contract contains four kinds of checks:
 - `assertions`: fixed business values such as `refund_status=refunded`;
 - `must_call` and `path_rules`: required tools and their order;
 - `tool_limits`: minimum/maximum calls per tool, preventing duplicate refunds and runaway loops;
+- `tool_allowlist`: the complete tool catalog this scenario permits; an unknown tool or argument scope produces `unauthorized_tool_call`;
 - `side_effects`: the expected before/after state;
 - `relations`: values carried between steps, such as “refund amount <= paid amount”。
 
-契约包含五类检查：固定字段断言、必需工具和路径、工具调用次数、状态变化，以及
+契约包含六类检查：固定字段断言、必需工具和路径、工具调用次数、场景工具白名单、状态变化，以及
 跨步骤的业务关系。`tool_limits` 能把“退款只能执行一次”写成明确的最小/最大次数；
+`tool_allowlist` 则把“这个场景根本不能调用哪些工具”写成安全边界，未知工具会产生
+`unauthorized_tool_call`，而不是等到最终答案错误才发现；
 `relations` 是本案例的重点之一：它能检查 Agent 是否把前一步工具结果正确传给后一步，
 而不是只检查工具名称。
 

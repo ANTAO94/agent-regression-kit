@@ -68,6 +68,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("v4-acceptance.md", workflow)
         self.assertIn("v4.5-acceptance.md", workflow)
         self.assertIn("v4.6-acceptance.md", workflow)
+        self.assertIn("v4.9-acceptance.md", workflow)
         self.assertIn("generate_release_metadata.py", workflow)
         self.assertIn("dist/SHA256SUMS", workflow)
         self.assertIn("actions/attest@v4", workflow)

@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.8.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.9.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.8.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.9.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -174,6 +174,7 @@ baseline 保存预期证据；检查规则放在独立 config 中，便于代码
 | path_rules.mode | 路径匹配模式：`exact`、`ordered_subsequence` 或 `unordered_subset`；省略时为严格 `exact` |
 | path_rules.extra_calls | 放宽模式下允许的额外调用白名单；省略保持 v4.6 兼容，`[]` 表示不允许额外调用 |
 | tool_limits | 按工具和可选参数限制最小/最大调用次数；失败类别为 `tool_count` |
+| tool_allowlist | 限制场景允许调用的完整工具目录；可按参数精确匹配；失败类别为 `unauthorized_tool_call` |
 | side_effects | 检查 world_state 的初始/最终状态，要求先录制快照 |
 | relations | 检查跨步骤字段关系，例如退款金额不超过查询结果中的 paid_amount |
 
@@ -268,6 +269,30 @@ v4.6 兼容行为，所有未匹配的额外调用都允许；配置 `extra_call
 副作用检查互补，不能替代权限控制。完整退款案例已经用它阻断重复退款，见
 [`examples/refund-business-case/README.md`](../examples/refund-business-case/README.md)。
 
+### 场景工具白名单：拒绝未授权工具
+
+`tool_limits` 解决“某个工具调用几次”，`tool_allowlist` 解决“这个场景根本允许
+调用哪些工具”。省略 `tool_allowlist` 时保持旧版本行为；显式配置空数组表示拒绝
+所有工具调用。字符串是只匹配工具名的简写，对象可以用 `arguments` 做完整参数匹配：
+
+```json
+{
+  "tool_allowlist": [
+    "get_order",
+    "check_refund_eligibility",
+    {
+      "tool": "refund_order",
+      "arguments": {"order_id": "123", "amount": 88}
+    }
+  ]
+}
+```
+
+如果候选 Trace 调用了 `delete_order`，或用不同参数调用 `refund_order`，比较会失败，
+并生成 `unauthorized_tool_call`，路径类似 `tool_calls[2]`。它是 Trace 证据边界，
+不是生产权限系统；真实 Tool Gateway 仍必须执行权限控制。完整规则和空白名单案例见
+[v4.9 验收说明](v4.9-acceptance.md)。
+
 可以直接运行完整的退款案例：
 
 ```bash
@@ -281,7 +306,7 @@ agent-regression compare --config examples/refund-business-case/compare.config.j
 
 路径规则：配置放在 .agent-regression/ 下时相对项目根目录解析；放在其他位置时相对配置文件所在目录解析。命令行参数优先于文件配置。
 
-可运行的比较策略示例位于 v4.8.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
+可运行的比较策略示例位于 v4.9.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -375,7 +400,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.8.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.9.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -398,7 +423,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.8.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.9.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -463,7 +488,7 @@ agent-regression validate --trace work/order-123.v4.trace.json
 ```
 
 迁移报告只记录迁移状态和 schema 版本，不复制 Trace 事件。完整的 v4 验收
-清单见 [v4.8 验收说明](v4.8-acceptance.md)；路径白名单边界见 [v4.7 验收说明](v4.7-acceptance.md)。
+清单见 [v4.9 验收说明](v4.9-acceptance.md)；调用次数边界见 [v4.8 验收说明](v4.8-acceptance.md)，路径白名单边界见 [v4.7 验收说明](v4.7-acceptance.md)。
 
 ## 9. 排错与维护
 

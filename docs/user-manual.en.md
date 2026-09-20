@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.8.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.9.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.8.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.9.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -170,6 +170,7 @@ Store expected evidence in baseline files and policy in a separate config. Examp
 | path_rules.mode | `exact`, `ordered_subsequence` or `unordered_subset`; omitted means strict `exact` |
 | path_rules.extra_calls | Allowlist for unmatched calls in tolerant modes; omitted preserves v4.6, `[]` rejects all extras |
 | tool_limits | Per-tool and optional argument-scoped minimum/maximum counts; failures use `tool_count` |
+| tool_allowlist | Scenario-level permitted tool catalog with optional exact arguments; failures use `unauthorized_tool_call` |
 | side_effects | Constraints on recorded initial/final world snapshots |
 | relations | Cross-step field rules such as refund amount <= the paid amount returned by lookup |
 
@@ -265,6 +266,34 @@ complements `must_not_call`, path rules and side-effect checks; it is not an
 authorization mechanism. The [refund business case](../examples/refund-business-case/README.md)
 uses it to block duplicate refunds.
 
+### Scenario tool allowlist: reject unauthorized tools
+
+`tool_limits` answers “how many times may this tool run?” `tool_allowlist` answers
+“which tools may this scenario call at all?” Omitting the field preserves older
+behavior; an explicit empty list denies every tool call. A string is shorthand
+for a tool-name rule. An object may add `arguments` for an exact JSON argument
+match:
+
+```json
+{
+  "tool_allowlist": [
+    "get_order",
+    "check_refund_eligibility",
+    {
+      "tool": "refund_order",
+      "arguments": {"order_id": "123", "amount": 88}
+    }
+  ]
+}
+```
+
+If a candidate calls `delete_order`, or calls `refund_order` with different
+arguments, comparison fails with an `unauthorized_tool_call` at a path such as
+`tool_calls[2]`. This verifies the Trace boundary; it is not a production
+permission system, so the real Tool Gateway must still enforce authorization.
+See the [v4.9 acceptance contract](v4.9-acceptance.md) for the empty-list and
+argument-scope cases.
+
 Run the complete refund case:
 
 ```bash
@@ -278,7 +307,7 @@ The case also includes four controlled defects: `wrong-order`, `wrong-amount`, `
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v4.8.0. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.9.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -367,7 +396,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.8.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.9.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -390,7 +419,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.8.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.9.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -460,8 +489,9 @@ agent-regression validate --trace work/order-123.v4.trace.json
 ```
 
 The migration report contains status and schema versions only; it does not copy
-Trace events. See the [v4.8 acceptance contract](v4.8-acceptance.md) for the
-current release checklist; the v4.7 contract documents the path-mode boundary.
+Trace events. See the [v4.9 acceptance contract](v4.9-acceptance.md) for the
+current release checklist; v4.8 documents call-count boundaries and v4.7
+documents the path-mode boundary.
 
 ## 9. Troubleshooting and maintenance
 

@@ -366,6 +366,91 @@ class ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "tool_limits must be an array"):
             ContractPolicy.from_dict({"tool_limits": {"tool": "get_order"}})
 
+    def test_tool_allowlist_is_optional_but_empty_means_deny_all(self):
+        unrestricted = ContractPolicy.from_dict({})
+        self.assertNotIn("tool_allowlist", unrestricted.to_dict())
+        unrestricted_report = compare_traces(
+            make_trace(),
+            make_trace(),
+            ComparisonPolicy(final_answer_mode="claims-only", contract=unrestricted),
+        )
+        self.assertTrue(unrestricted_report["passed"])
+
+        allowed = ContractPolicy.from_dict(
+            {
+                "tool_allowlist": [
+                    "get_order",
+                    {"tool": "get_payment_status", "arguments": {"order_id": "123"}},
+                ]
+            }
+        )
+        allowed_report = compare_traces(
+            make_trace(),
+            make_trace(),
+            ComparisonPolicy(final_answer_mode="claims-only", contract=allowed),
+        )
+        self.assertTrue(allowed_report["passed"], allowed_report["differences"])
+        self.assertEqual(
+            [
+                {"tool": "get_order"},
+                {"tool": "get_payment_status", "arguments": {"order_id": "123"}},
+            ],
+            allowed.to_dict()["tool_allowlist"],
+        )
+
+        denied_all = compare_traces(
+            make_trace(),
+            make_trace(),
+            ComparisonPolicy(
+                final_answer_mode="claims-only",
+                contract=ContractPolicy.from_dict({"tool_allowlist": []}),
+            ),
+        )
+        self.assertFalse(denied_all["passed"])
+        self.assertEqual(
+            {"unauthorized_tool_call"},
+            {item["category"] for item in denied_all["differences"]},
+        )
+
+        argument_mismatch = compare_traces(
+            make_trace(),
+            make_trace(),
+            ComparisonPolicy(
+                final_answer_mode="claims-only",
+                contract=ContractPolicy.from_dict(
+                    {
+                        "tool_allowlist": [
+                            {"tool": "get_order", "arguments": {"order_id": "999"}}
+                        ]
+                    }
+                ),
+            ),
+        )
+        self.assertFalse(argument_mismatch["passed"])
+        difference = argument_mismatch["differences"][0]
+        self.assertEqual("unauthorized_tool_call", difference["category"])
+        self.assertEqual("tool_calls[0]", difference["path"])
+        self.assertEqual("get_order", difference["candidate"]["tool"])
+
+    def test_tool_allowlist_validates_nested_rules_and_migration_shape(self):
+        cases = [
+            ({"tool_allowlist": {"tool": "get_order"}}, "tool_allowlist must be an array"),
+            ({"tool_allowlist": [1]}, "tool_allowlist entries must be strings or objects"),
+            ({"tool_allowlist": [{"tool": ""}]}, "non-empty tool"),
+            (
+                {"tool_allowlist": [{"tool": "get_order", "argument": {}}]},
+                "unsupported tool allowlist rule fields",
+            ),
+            (
+                {"tool_allowlist": [{"tool": "get_order", "arguments": []}]},
+                "tool allowlist rule arguments must be an object",
+            ),
+        ]
+        for value, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    ContractPolicy.from_dict(value)
+
     def test_contract_rejects_unknown_fields_instead_of_ignoring_typos(self):
         with self.assertRaisesRegex(ValueError, "unsupported contract fields"):
             ContractPolicy.from_dict({"must_not_cal": ["delete_order"]})

@@ -213,6 +213,11 @@ def build_contract() -> ContractPolicy:
                 },
                 {"tool": "refund_order", "min_calls": 1, "max_calls": 1},
             ],
+            "tool_allowlist": [
+                "get_order",
+                "check_refund_eligibility",
+                "refund_order",
+            ],
             "must_not_call": ["delete_order"],
             "path_rules": {
                 "any_of": [[

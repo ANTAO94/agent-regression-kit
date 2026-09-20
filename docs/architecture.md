@@ -64,7 +64,7 @@ truth for comparison outcomes.
 - `compare_trace_coverage` aggregates ordered tool paths across a directory of traces. It is a scenario-suite gate, not a statement about internal model neuron or code coverage.
 - `compare_sessions` compares corresponding turns without flattening a conversation into one opaque final answer. Outcome-aware coverage can distinguish `tool[ok]` from `tool[error]`.
 - `check_session_state_continuity` verifies that an instrumented candidate turn starts from the previous turn's final world snapshot. `trace_business_branch` projects structured claims into explicit business branches.
-- `ContractPolicy` adds explicit behavior constraints: required and forbidden tools, field assertions, nested noise paths, deterministic normalizers, maximum tool-call steps, multiple allowed tool paths, and side-effect transitions.
+- `ContractPolicy` adds explicit behavior constraints: required and forbidden tools, scenario tool allowlists, field assertions, nested noise paths, deterministic normalizers, maximum tool-call steps, multiple allowed tool paths, and side-effect transitions.
 - The CLI configuration layer resolves project-level baseline, candidate, report, and policy defaults while keeping direct command-line flags authoritative.
 - The reusable GitHub Action forwards the same final-answer mode and allow-list controls, so local and CI policy decisions do not diverge.
 - `config validate` is a side-effect-free config preflight boundary; `check` adds the next boundary by reading every configured Trace and validating batch file-set symmetry before CI executes a comparison.

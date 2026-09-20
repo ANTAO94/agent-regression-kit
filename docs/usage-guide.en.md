@@ -278,6 +278,25 @@ produce `tool_count`, which is useful for blocking duplicate refunds, repeated
 writes and accidental loops. It complements `max_steps`, `must_not_call` and
 side-effect Contracts; it is not authorization.
 
+v4.9 adds `tool_allowlist` for the complete tool catalog permitted in one
+scenario. Omitting the field preserves older behavior; an explicit `[]` denies
+every tool call. Strings match tool names, while objects may add `arguments`
+for an exact argument-object match. An unmatched candidate call produces
+`unauthorized_tool_call` at `tool_calls[index]`. This is an Agent Trace boundary,
+not a replacement for authorization in the real Tool Gateway; use it with
+`tool_limits`, `path_rules`, `relations` and `side_effects`.
+
+```json
+{
+  "contract": {
+    "tool_allowlist": [
+      "get_order",
+      {"tool": "refund_order", "arguments": {"order_id": "123", "amount": 88}}
+    ]
+  }
+}
+```
+
 ### Stateful scenarios and side effects
 
 A normal Trace says which tools the Agent called. A stateful scenario also proves that those calls did not corrupt an order, inventory, or permission state. Give the tool executor a `snapshot()` method and the recorder automatically stores the state before and after the run:
@@ -578,7 +597,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.8.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.9.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

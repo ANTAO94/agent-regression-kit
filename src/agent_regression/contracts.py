@@ -141,6 +141,9 @@ class ContractPolicy:
     required_claims: List[str] = field(default_factory=list)
     relations: List[Dict[str, Any]] = field(default_factory=list)
     tool_limits: List[Dict[str, Any]] = field(default_factory=list)
+    # None means that the scenario does not constrain the tool catalog. An
+    # explicit empty list is intentionally different: it denies every tool.
+    tool_allowlist: List[Dict[str, Any]] | None = None
 
     def __post_init__(self) -> None:
         if self.max_steps is not None and (
@@ -200,6 +203,28 @@ class ContractPolicy:
                 and limit["min_calls"] > limit["max_calls"]
             ):
                 raise ValueError("tool limit min_calls cannot exceed max_calls")
+        if self.tool_allowlist is not None:
+            if not isinstance(self.tool_allowlist, list):
+                raise ValueError("contract.tool_allowlist must be an array")
+            for raw_rule in self.tool_allowlist:
+                rule = {"tool": raw_rule} if isinstance(raw_rule, str) else raw_rule
+                if (
+                    not isinstance(rule, dict)
+                    or not isinstance(rule.get("tool"), str)
+                    or not rule["tool"].strip()
+                ):
+                    raise ValueError(
+                        "contract tool allowlist must contain a non-empty tool"
+                    )
+                _reject_unknown_fields(
+                    rule,
+                    {"tool", "arguments"},
+                    "tool allowlist rule",
+                )
+                if "arguments" in rule and not isinstance(rule["arguments"], dict):
+                    raise ValueError(
+                        "tool allowlist rule arguments must be an object"
+                    )
         if not isinstance(self.path_rules, dict):
             raise ValueError("contract.path_rules must be an object")
         _reject_unknown_fields(
@@ -327,6 +352,7 @@ class ContractPolicy:
             "max_steps",
             "required_claims",
             "tool_limits",
+            "tool_allowlist",
         }
         unknown_fields = sorted(set(value) - allowed_fields)
         if unknown_fields:
@@ -369,6 +395,20 @@ class ContractPolicy:
             isinstance(item, dict) for item in tool_limits
         ):
             raise ValueError("contract.tool_limits must be an array of objects")
+        raw_allowlist = value.get("tool_allowlist")
+        if raw_allowlist is not None:
+            if not isinstance(raw_allowlist, list):
+                raise ValueError("contract.tool_allowlist must be an array")
+            if not all(isinstance(item, (str, dict)) for item in raw_allowlist):
+                raise ValueError(
+                    "contract.tool_allowlist entries must be strings or objects"
+                )
+            tool_allowlist = [
+                {"tool": item} if isinstance(item, str) else dict(item)
+                for item in raw_allowlist
+            ]
+        else:
+            tool_allowlist = None
         required_claims = value.get("required_claims", [])
         if not isinstance(required_claims, list) or not all(
             isinstance(item, str) and item.strip() for item in required_claims
@@ -386,6 +426,7 @@ class ContractPolicy:
             max_steps=value.get("max_steps"),
             required_claims=list(required_claims),
             tool_limits=[dict(item) for item in tool_limits],
+            tool_allowlist=tool_allowlist,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -395,7 +436,7 @@ class ContractPolicy:
                 for rule in rules
             ]
 
-        return {
+        result = {
             "assertions": deepcopy(self.assertions),
             "ignore_paths": list(self.ignore_paths),
             "normalizers": deepcopy(self.normalizers),
@@ -408,6 +449,9 @@ class ContractPolicy:
             "required_claims": list(self.required_claims),
             "tool_limits": deepcopy(self.tool_limits),
         }
+        if self.tool_allowlist is not None:
+            result["tool_allowlist"] = tool_rules(self.tool_allowlist)
+        return result
 
     @property
     def has_path_rules(self) -> bool:
@@ -578,6 +622,27 @@ class ContractPolicy:
                         ),
                     }
                 )
+        if self.tool_allowlist is not None:
+            allowlist_rules = [
+                {"tool": rule} if isinstance(rule, str) else rule
+                for rule in self.tool_allowlist
+            ]
+            for index, event in enumerate(candidate_calls):
+                if not any(
+                    self._tool_rule_matches(rule, event) for rule in allowlist_rules
+                ):
+                    differences.append(
+                        {
+                            "category": "unauthorized_tool_call",
+                            "path": f"tool_calls[{index}]",
+                            "baseline": deepcopy(self.tool_allowlist),
+                            "candidate": deepcopy(event),
+                            "message": (
+                                "tool call is not permitted by "
+                                "contract.tool_allowlist"
+                            ),
+                        }
+                    )
         path_details = self._path_match_details(candidate_calls, candidate_results)
         if self.has_path_rules and not path_details["passed"]:
             differences.append(

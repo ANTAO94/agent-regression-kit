@@ -506,7 +506,7 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
   `sort`), `must_call`, `must_not_call`, `path_rules.any_of`,
-  `path_rules.mode`, `path_rules.extra_calls`, `tool_limits`, `side_effects`,
+  `path_rules.mode`, `path_rules.extra_calls`, `tool_limits`, `tool_allowlist`, `side_effects`,
   `relations`, and `max_steps`. Path mode `exact` is the default; `ordered_subsequence` allows
   extra calls while preserving required order, and `unordered_subset` allows
   extra calls and reordering. In tolerant modes, omit `extra_calls` for v4.6
@@ -514,6 +514,10 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   use an empty list to reject all unmatched calls. Rejected calls produce an
   `extra_tool_call` difference. `tool_limits` accepts `min_calls`, `max_calls`
   and optional exact `arguments` matching; violations produce `tool_count`.
+  `tool_allowlist` is optional: omission preserves the unrestricted legacy
+  behavior, an empty list denies every tool call, strings match tool names and
+  object rules may require an exact `arguments` object. Every unmatched
+  candidate call produces `unauthorized_tool_call` at `tool_calls[index]`.
   A relation compares a candidate JSON path with
   another candidate path or a fixed value using a finite operator set; missing
   evidence and false comparisons block. Put it under the

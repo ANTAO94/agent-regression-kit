@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 4.9.0 - 2026-09-20
+
+- Add scenario-level `contract.tool_allowlist` with explicit omission versus deny-all semantics.
+- Support string rules, exact argument-scoped rules and `unauthorized_tool_call` diagnostics.
+- Keep older contracts compatible when the allowlist is absent; add migration detection, refund-case coverage and bilingual acceptance documentation.
+
 ## 4.8.0 - 2026-09-20
 
 - Add `contract.tool_limits` for per-tool minimum and maximum call counts.

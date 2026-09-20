@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v3.2 Configuration Center">
+  <meta name="description" content="Agent Regression Kit v4.9 Configuration Center">
   <title>Configuration Center · Agent Regression Kit</title>
   <style>
     :root {
@@ -280,7 +280,7 @@
         <div class="brand-mark" aria-hidden="true">AR</div>
         <div>
           <span class="brand-name">Agent Regression Kit <span style="color: var(--blue)">/</span> Configuration Center</span>
-          <span class="brand-sub">v3.4 · policy before execution</span>
+          <span class="brand-sub">v4.9 · policy before execution</span>
         </div>
       </div>
       <div class="top-actions">
@@ -417,6 +417,17 @@ tool_results[0].result.trace_id"></textarea>
           </div>
 
           <div class="subsection">
+            <div class="subsection-head"><h3>场景工具白名单</h3><span>tool_allowlist</span></div>
+            <div class="switch-row">
+              <div class="switch-copy"><strong>启用工具目录边界</strong><span>只允许候选 Agent 调用下面列出的工具</span></div>
+              <label class="switch"><input id="toolAllowlistEnabled" type="checkbox" checked><span class="slider"></span><span class="sr-only">启用场景工具白名单</span></label>
+            </div>
+            <div id="toolAllowlistRows" class="rows"></div>
+            <button class="add-row" type="button" data-add="tool-allowlist">＋ 添加允许工具</button>
+            <p class="help">关闭时省略 <code>tool_allowlist</code>，保持旧版本兼容；打开但不添加任何行会生成 <code>[]</code>，拒绝所有工具。参数填写 JSON 对象时要求工具名和参数完全匹配，失败类别为 <code>unauthorized_tool_call</code>。</p>
+          </div>
+
+          <div class="subsection">
             <div class="subsection-head"><h3>字段断言</h3><span>equals · contains · exists</span></div>
             <div id="assertionRows" class="rows"></div>
             <button class="add-row" type="button" data-add="assertion">＋ 添加字段断言</button>
@@ -510,6 +521,7 @@ get_order -&gt; get_shipping</textarea></div>
             <div class="rule-summary-item"><span>必须工具</span><strong id="summaryMustCall">0</strong></div>
             <div class="rule-summary-item"><span>禁止工具</span><strong id="summaryMustNotCall">0</strong></div>
             <div class="rule-summary-item"><span>字段断言</span><strong id="summaryAssertions">0</strong></div>
+            <div class="rule-summary-item"><span>工具白名单</span><strong id="summaryAllowlist">0</strong></div>
             <div class="rule-summary-item"><span>合法路径</span><strong id="summaryPaths">0</strong></div>
             <div class="rule-summary-item"><span>噪音路径</span><strong id="summaryIgnore">0</strong></div>
             <div class="rule-summary-item"><span>状态副作用</span><strong id="summaryEffects">0</strong></div>
@@ -541,6 +553,7 @@ get_order -&gt; get_shipping</textarea></div>
           ignore_paths: ["tool_results[*].result.request_id"],
           normalizers: [{ path: "tool_results[*].result.created_at", type: "timestamp" }],
           max_steps: 5,
+          tool_allowlist: ["get_order", "get_shipping"],
           path_rules: { ordered: true, any_of: [["get_order"], ["get_order", "get_shipping"]] },
           side_effects: []
         }
@@ -578,6 +591,9 @@ get_order -&gt; get_shipping</textarea></div>
         if (type === "must-not-call") {
           return `<div class="rule-row two" data-row="must-not-call"><input data-key="tool" type="text" value="${escapeHtml(item.tool || "delete_order")}" aria-label="禁止调用的工具名" placeholder="工具名，例如 delete_order"><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
         }
+        if (type === "tool-allowlist") {
+          return `<div class="rule-row" data-row="tool-allowlist"><input data-key="tool" type="text" value="${escapeHtml(item.tool || "get_order")}" aria-label="允许调用的工具名" placeholder="工具名，例如 get_order"><input data-key="arguments" type="text" value="${escapeHtml(item.arguments ? JSON.stringify(item.arguments) : "")}" aria-label="允许工具的精确参数 JSON" placeholder='可选精确参数，例如 {"order_id":"123"}'><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
+        }
         if (type === "assertion") {
           const operator = item.operator || (Object.prototype.hasOwnProperty.call(item, "exists") ? "exists" : Object.prototype.hasOwnProperty.call(item, "contains") ? "contains" : "equals");
           const value = Object.prototype.hasOwnProperty.call(item, "value") ? item.value : Object.prototype.hasOwnProperty.call(item, "equals") ? item.equals : Object.prototype.hasOwnProperty.call(item, "contains") ? item.contains : "true";
@@ -600,6 +616,8 @@ get_order -&gt; get_shipping</textarea></div>
       function initRows() {
         renderRows("mustCallRows", "must-call", example.contract.must_call);
         renderRows("mustNotCallRows", "must-not-call", example.contract.must_not_call.map((tool) => ({ tool })));
+        ids("toolAllowlistEnabled").checked = Object.prototype.hasOwnProperty.call(example.contract, "tool_allowlist");
+        renderRows("toolAllowlistRows", "tool-allowlist", example.contract.tool_allowlist || []);
         renderRows("assertionRows", "assertion", example.contract.assertions);
         renderRows("normalizerRows", "normalizer", example.contract.normalizers);
         renderRows("sideEffectRows", "side-effect", example.contract.side_effects);
@@ -621,6 +639,16 @@ get_order -&gt; get_shipping</textarea></div>
 
       function parseMustNotCall() {
         return readRows("mustNotCallRows", "must-not-call").map((row) => row.querySelector('[data-key="tool"]').value.trim()).filter(Boolean);
+      }
+
+      function parseToolAllowlist() {
+        return readRows("toolAllowlistRows", "tool-allowlist").map((row) => {
+          const tool = row.querySelector('[data-key="tool"]').value.trim();
+          const rawArguments = row.querySelector('[data-key="arguments"]').value.trim();
+          const item = { tool };
+          if (rawArguments) item.arguments = parseValue(rawArguments);
+          return item;
+        }).filter((item) => item.tool);
       }
 
       function parseAssertions() {
@@ -677,6 +705,7 @@ get_order -&gt; get_shipping</textarea></div>
             side_effects: parseSideEffects()
           }
         };
+        if (ids("toolAllowlistEnabled").checked) config.contract.tool_allowlist = parseToolAllowlist();
         return config;
       }
 
@@ -686,6 +715,7 @@ get_order -&gt; get_shipping</textarea></div>
         if (!Number.isInteger(config.contract.max_steps) && config.contract.max_steps !== null) errors.push("max_steps 必须是非负整数");
         if (Number.isInteger(config.contract.max_steps) && config.contract.max_steps < 0) errors.push("max_steps 必须是非负整数");
         config.contract.must_call.forEach((rule, index) => { if (!rule.tool) errors.push(`must_call 第 ${index + 1} 行缺少工具名`); if (rule.arguments !== undefined && (typeof rule.arguments !== "object" || rule.arguments === null || Array.isArray(rule.arguments))) errors.push(`must_call 第 ${index + 1} 行的 arguments 必须是 JSON 对象`); });
+        if (config.contract.tool_allowlist !== undefined) config.contract.tool_allowlist.forEach((rule, index) => { if (!rule.tool) errors.push(`tool_allowlist 第 ${index + 1} 行缺少工具名`); if (rule.arguments !== undefined && (typeof rule.arguments !== "object" || rule.arguments === null || Array.isArray(rule.arguments))) errors.push(`tool_allowlist 第 ${index + 1} 行的 arguments 必须是 JSON 对象`); });
         config.contract.assertions.forEach((rule, index) => { if (!rule.path) errors.push(`assertions 第 ${index + 1} 行缺少路径`); });
         config.contract.normalizers.forEach((rule, index) => { if (!rule.path) errors.push(`normalizers 第 ${index + 1} 行缺少路径`); if (!["timestamp", "sort"].includes(rule.type)) errors.push(`normalizers 第 ${index + 1} 行类型不支持`); });
         config.contract.side_effects.forEach((rule, index) => { if (!rule.path) errors.push(`side_effects 第 ${index + 1} 行缺少路径`); if (!rule.from && !rule.to) errors.push(`side_effects 第 ${index + 1} 行至少需要 from 或 to`); });
@@ -696,6 +726,7 @@ get_order -&gt; get_shipping</textarea></div>
         ids("summaryMustCall").textContent = String(config.contract.must_call.length);
         ids("summaryMustNotCall").textContent = String(config.contract.must_not_call.length);
         ids("summaryAssertions").textContent = String(config.contract.assertions.length);
+        ids("summaryAllowlist").textContent = config.contract.tool_allowlist === undefined ? "—" : String(config.contract.tool_allowlist.length);
         ids("summaryPaths").textContent = String(config.contract.path_rules.any_of ? config.contract.path_rules.any_of.length : 0);
         ids("summaryIgnore").textContent = String(config.contract.ignore_paths.length);
         ids("summaryEffects").textContent = String(config.contract.side_effects.length);
@@ -746,6 +777,9 @@ get_order -&gt; get_shipping</textarea></div>
         ids("orderedPaths").value = config.contract && config.contract.path_rules && config.contract.path_rules.ordered === false ? "false" : "true";
         ids("pathRules").value = config.contract && config.contract.path_rules && config.contract.path_rules.any_of ? config.contract.path_rules.any_of.map((path) => path.map((rule) => typeof rule === "string" ? rule : rule.tool).join(" -> ")).join("\n") : "";
         ids("ignorePaths").value = (config.contract && config.contract.ignore_paths || []).join("\n");
+        const configuredAllowlist = config.contract && Object.prototype.hasOwnProperty.call(config.contract, "tool_allowlist") ? config.contract.tool_allowlist : undefined;
+        ids("toolAllowlistEnabled").checked = configuredAllowlist !== undefined;
+        renderRows("toolAllowlistRows", "tool-allowlist", (configuredAllowlist || []).map((rule) => typeof rule === "string" ? { tool: rule } : rule));
         renderRows("mustCallRows", "must-call", (config.contract && config.contract.must_call) || []);
         renderRows("mustNotCallRows", "must-not-call", ((config.contract && config.contract.must_not_call) || []).map((tool) => typeof tool === "string" ? { tool } : tool));
         renderRows("assertionRows", "assertion", ((config.contract && config.contract.assertions) || []).map((item) => {
@@ -785,7 +819,7 @@ get_order -&gt; get_shipping</textarea></div>
         const add = event.target.closest("[data-add]");
         if (add) {
           const type = add.dataset.add;
-          const map = { "must-call": ["mustCallRows", "must-call"], "must-not-call": ["mustNotCallRows", "must-not-call"], assertion: ["assertionRows", "assertion"], normalizer: ["normalizerRows", "normalizer"], "side-effect": ["sideEffectRows", "side-effect"] };
+          const map = { "must-call": ["mustCallRows", "must-call"], "must-not-call": ["mustNotCallRows", "must-not-call"], "tool-allowlist": ["toolAllowlistRows", "tool-allowlist"], assertion: ["assertionRows", "assertion"], normalizer: ["normalizerRows", "normalizer"], "side-effect": ["sideEffectRows", "side-effect"] };
           const [containerId, rowType] = map[type];
           const container = ids(containerId);
           const empty = container.querySelector(".row-empty");
@@ -820,6 +854,7 @@ get_order -&gt; get_shipping</textarea></div>
         blank.secret_values = [];
         blank.contract.must_call = [];
         blank.contract.must_not_call = [];
+        blank.contract.tool_allowlist = undefined;
         blank.contract.assertions = [];
         blank.contract.ignore_paths = [];
         blank.contract.normalizers = [];

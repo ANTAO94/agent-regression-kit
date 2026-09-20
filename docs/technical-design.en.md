@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.8.0 source. Package version 4.8.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.9.0 source. Package version 4.9.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -100,6 +100,7 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | path_rules.mode | `exact`, `ordered_subsequence` or `unordered_subset`; omitted means strict complete-path matching |
 | path_rules.extra_calls | Explicit allowlist for unmatched calls in tolerant modes; omitted preserves v4.6, an empty list rejects all extras |
 | tool_limits | Per-tool, optionally argument-scoped minimum/maximum counts; failures produce `tool_count` |
+| tool_allowlist | Scenario-level permitted tool catalog with optional exact arguments; failures produce `unauthorized_tool_call` |
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | relations | Cross-step field constraints; missing or false relations block |
@@ -125,6 +126,15 @@ calls with an exact argument match. A violation produces `tool_count` at
 `tool_calls.count.<tool>` with the configured rule and observed count. This
 complements `max_steps`, `must_not_call` and side-effect checks; it is not
 authorization.
+
+`tool_allowlist` is the scenario-level tool catalog boundary. Omitting it keeps
+older behavior and imposes no catalog restriction; an explicit empty list
+denies every tool call. A string rule matches a tool name, while an object may
+also require an exact `arguments` object. Every candidate `tool_call` must
+match one rule or comparison emits `unauthorized_tool_call` at
+`tool_calls[index]`. This verifies observed Agent evidence against the declared
+boundary; it does not replace authorization in the real Tool Gateway. Keep it
+separate from call counts, path rules, relations and side-effect contracts.
 
 `relations` covers business constraints that a single-field assertion cannot
 express. It resolves JSON paths in the candidate `tool_calls`, `tool_results`,
@@ -216,6 +226,6 @@ compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.8.0) · [v4.8 acceptance](v4.8-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.9.0) · [v4.9 acceptance](v4.9-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

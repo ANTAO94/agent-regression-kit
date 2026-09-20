@@ -270,6 +270,23 @@ v4.8 增加 `tool_limits`，用于表达单个工具的调用次数边界。`min
 调用。违反规则会生成 `tool_count`，适合阻断重复退款、重复写操作和意外循环；它和
 `max_steps`、`must_not_call`、副作用契约互补，不提供权限本身。
 
+v4.9 增加 `tool_allowlist`，用于表达场景允许调用的完整工具目录。省略字段保持旧版
+行为；显式 `[]` 拒绝所有工具。字符串只匹配工具名，对象还可以用 `arguments` 要求
+完整参数相等。未命中规则的候选调用会生成 `unauthorized_tool_call`，路径为
+`tool_calls[index]`。它是 Agent Trace 的安全边界，不代替真实 Tool Gateway 的权限
+控制；推荐与 `tool_limits`、`path_rules`、`relations` 和 `side_effects` 一起使用。
+
+```json
+{
+  "contract": {
+    "tool_allowlist": [
+      "get_order",
+      {"tool": "refund_order", "arguments": {"order_id": "123", "amount": 88}}
+    ]
+  }
+}
+```
+
 ### 有状态场景和副作用检查
 
 普通 Trace 只能说明 Agent 调用了什么工具；有状态场景还要说明这些调用有没有把订单、库存或权限状态改坏。实现一个带 `snapshot()` 的工具执行器即可让录制器自动写入：
@@ -531,7 +548,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.8.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.9.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

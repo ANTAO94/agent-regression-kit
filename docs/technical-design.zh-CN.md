@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.8.0 源码整理；产品版本 4.8.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.9.0 源码整理；产品版本 4.9.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
 
 ## 1. 目标和适用场景
 
@@ -100,6 +100,7 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | path_rules.mode | `exact`、`ordered_subsequence` 或 `unordered_subset`；省略时保持严格完整路径 |
 | path_rules.extra_calls | 放宽模式下对未匹配额外调用的显式白名单；省略保持 v4.6，空数组拒绝全部额外调用 |
 | tool_limits | 按工具和可选参数约束最小/最大调用次数；失败生成 `tool_count` |
+| tool_allowlist | 约束场景允许调用的工具目录，可按参数精确匹配；失败生成 `unauthorized_tool_call` |
 | result_alignment | 默认按 call_id 关联工具结果；`order` 是旧的按事件位置对齐模式 |
 | side_effects | 约束已录制状态的 from/to 变化 |
 | required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
@@ -121,6 +122,13 @@ side_effects 单独声明。
 限制到参数完全匹配的工具调用；不满足时生成 `tool_count`，路径为
 `tool_calls.count.<tool>`，同时保留配置规则和实际次数。它能补充 `max_steps` 对单个
 工具的约束，但不能替代权限控制、`must_not_call` 或状态副作用验证。
+
+`tool_allowlist` 是场景级工具目录边界。省略字段时不限制工具目录，保持旧版本兼容；
+显式空数组拒绝所有工具调用；字符串规则只匹配工具名，对象规则还可以要求
+`arguments` 完全相等。每个 candidate `tool_call` 都必须命中一条规则，否则生成
+`unauthorized_tool_call`，路径为 `tool_calls[index]`。它验证的是 Agent 运行证据是否
+越过声明边界，不替代真实 Tool Gateway 的权限执行。白名单与 `tool_limits`、路径规则、
+关系和副作用契约是互补的，不应把它们合并成一个模糊的“回放通过”开关。
 
 `relations` 解决单字段断言无法表达的业务约束。它从 candidate 的
 `tool_calls`、`tool_results`、`final_answer` 和 `world_state` 投影视图解析
@@ -222,6 +230,6 @@ Core 事件接入检查、PydanticAI/OpenAI Agents/LangGraph 正反例、DeepSee
 manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等价于多年生产
 使用或任意 Agent 自动兼容。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.8.0) · [v4.8 验收](v4.8-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.9.0) · [v4.9 验收](v4.9-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

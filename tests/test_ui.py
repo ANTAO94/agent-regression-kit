@@ -24,6 +24,14 @@ class ViewerTests(unittest.TestCase):
         self.assertTrue((ROOT / "viewer" / "reports.html").is_file())
         self.assertTrue((ROOT / "viewer" / "workspace.html").is_file())
 
+    def test_config_viewer_can_generate_the_v4_9_tool_allowlist(self):
+        config = (ROOT / "viewer" / "config.html").read_text(encoding="utf-8")
+        self.assertIn('id="toolAllowlistEnabled"', config)
+        self.assertIn('id="toolAllowlistRows"', config)
+        self.assertIn('data-add="tool-allowlist"', config)
+        self.assertIn('tool_allowlist', config)
+        self.assertIn('unauthorized_tool_call', config)
+
     def test_missing_viewer_directory_has_actionable_error(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ViewerNotFoundError, "viewer assets were not found"):

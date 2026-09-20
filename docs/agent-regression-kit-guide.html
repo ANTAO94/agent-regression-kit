@@ -250,7 +250,7 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v4.8.0</span>
+            <span class="badge">v4.9.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
             <span class="badge orange">v4 compatibility gate</span>
@@ -266,6 +266,7 @@
             <a class="badge" href="v4.6-acceptance.md">v4.6 验收说明 →</a>
             <a class="badge" href="v4.7-acceptance.md">v4.7 验收说明 →</a>
             <a class="badge" href="v4.8-acceptance.md">v4.8 验收说明 →</a>
+            <a class="badge" href="v4.9-acceptance.md">v4.9 验收说明 →</a>
             <a class="badge" href="../examples/path-variation/README.md">路径变化案例 →</a>
           </div>
           <div class="summary-grid">
@@ -370,7 +371,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.8.0</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.9.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -527,6 +528,10 @@
     "tool_limits": [
       {"tool": "get_order", "min_calls": 1, "max_calls": 1}
     ],
+    "tool_allowlist": [
+      "get_order",
+      {"tool": "get_shipping", "arguments": {"order_id": "123"}}
+    ],
     "path_rules": {
       "mode": "ordered_subsequence",
       "any_of": [[
@@ -570,6 +575,7 @@
               <tr><td><code>path_rules.mode</code></td><td>选择严格、允许额外调用但保持顺序、允许额外调用且可乱序三种模式</td><td><code>exact</code> / <code>ordered_subsequence</code> / <code>unordered_subset</code></td><td>失败时是</td></tr>
               <tr><td><code>path_rules.extra_calls</code></td><td>为放宽模式配置额外调用白名单；省略保持 v4.6，空数组拒绝所有额外调用</td><td><code>get_shipping</code> + 可选参数/结果/错误状态</td><td>未知调用生成 <code>extra_tool_call</code></td></tr>
               <tr><td><code>tool_limits</code></td><td>按工具和可选参数限制最小/最大调用次数</td><td><code>refund_order</code> 恰好 1 次</td><td>失败生成 <code>tool_count</code></td></tr>
+              <tr><td><code>tool_allowlist</code></td><td>定义当前场景允许调用的完整工具目录，可按参数精确匹配</td><td><code>get_order</code>、<code>refund_order</code></td><td>未命中生成 <code>unauthorized_tool_call</code></td></tr>
               <tr><td><code>side_effects</code></td><td>检查状态从 from 到 to 的变化</td><td><code>paid → cancelled</code></td><td>失败时是</td></tr>
               <tr><td><code>max_steps</code></td><td>防止 Agent 无限调用工具</td><td><code>5</code></td><td>失败时是</td></tr>
             </tbody>
@@ -1007,11 +1013,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.8.0"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.9.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.8.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.9.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1235,6 +1241,7 @@ jobs:
               <tr><td><strong>v4.6</strong></td><td>合法的额外查询会被严格完整路径误报。</td><td>显式 path mode、路径变化案例、危险工具/步骤上限边界和 fail-closed CI。</td></tr>
               <tr><td><strong>v4.7</strong></td><td>放宽路径可能把未知额外行为一起放行，失败也难以定位。</td><td><code>extra_calls</code> 显式白名单、空白名单拒绝全部额外调用、<code>extra_tool_call</code> 局部诊断和双语验收。</td></tr>
               <tr><td><strong>v4.8</strong></td><td>全局步骤上限不能表达某个工具是否重复执行或漏执行。</td><td><code>tool_limits</code> 最小/最大/恰好次数、参数范围计数、<code>tool_count</code> 诊断和重复退款验收。</td></tr>
+              <tr><td><strong>v4.9</strong></td><td>调用次数规则不能表达一个场景是否调用了根本不在业务范围内的工具。</td><td><code>tool_allowlist</code> 场景工具目录、空白名单拒绝全部、参数精确匹配、<code>unauthorized_tool_call</code> 诊断和兼容验收。</td></tr>
             </tbody>
           </table>
           <div class="panel tint-blue">
@@ -1292,7 +1299,7 @@ agent-regression migrate trace \
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v4.8.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code> 和 <a href="v4.5-acceptance.md">v4.5 验收说明</a>、<a href="v4.6-acceptance.md">v4.6 验收说明</a>、<a href="v4.7-acceptance.md">v4.7 验收说明</a>、<a href="v4.8-acceptance.md">v4.8 验收说明</a>。</p>
+          <p>本文档面向 Agent Regression Kit v4.9.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code> 和 <a href="v4.5-acceptance.md">v4.5 验收说明</a>、<a href="v4.6-acceptance.md">v4.6 验收说明</a>、<a href="v4.7-acceptance.md">v4.7 验收说明</a>、<a href="v4.8-acceptance.md">v4.8 验收说明</a>、<a href="v4.9-acceptance.md">v4.9 验收说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

@@ -4,6 +4,43 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.8.0 → v4.9.0
+
+This feature release adds an optional scenario-level `contract.tool_allowlist`.
+It defines the complete set of tools a candidate Agent may call and can match
+exact arguments for a particular business object.
+
+本次功能版本增加可选的场景级 `contract.tool_allowlist`，用于定义候选 Agent 在一个
+业务场景中允许调用的完整工具集合，也可以进一步匹配具体参数。
+
+```json
+{
+  "contract": {
+    "tool_allowlist": [
+      "get_order",
+      {"tool": "refund_order", "arguments": {"order_id": "123", "amount": 88}}
+    ]
+  }
+}
+```
+
+If the field is omitted, behavior is unchanged and no migration is required.
+An explicit `[]` denies every tool call, so use it only for answer-only
+scenarios. A rejected call produces `unauthorized_tool_call` at its
+`tool_calls[index]` path. Keep `tool_limits`, `path_rules`, `relations` and
+`side_effects` for their separate responsibilities.
+
+省略字段时行为完全不变，不需要迁移。显式配置 `[]` 表示拒绝所有工具调用，只适合
+只允许直接回答的场景。被拒绝的调用会在 `tool_calls[index]` 路径生成
+`unauthorized_tool_call`。`tool_limits`、`path_rules`、`relations` 和 `side_effects`
+仍应分别负责调用次数、路径、业务值关系和状态变化。
+
+See the [v4.9 acceptance contract](docs/v4.9-acceptance.md) and the
+[refund business case](examples/refund-business-case/README.md).
+
+参见 [v4.9 验收说明](docs/v4.9-acceptance.md) 与
+[退款业务案例](examples/refund-business-case/README.md)。
+
 ## v4.7.0 → v4.8.0
 
 This feature release adds optional `contract.tool_limits` rules. Existing
