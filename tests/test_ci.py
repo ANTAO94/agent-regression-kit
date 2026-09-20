@@ -164,7 +164,8 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("agentdojo-independent-source-matrix", workflow)
         self.assertIn("agentdojo-cross-model-attack-matrix", workflow)
         self.assertIn("examples/agentdojo/matrix.json", workflow)
-        self.assertIn("examples/agentdojo/matrix-v4.23.json", workflow)
+        self.assertIn("examples/agentdojo/matrix-v4.24.json", workflow)
+        self.assertIn("contract_provenance", (ROOT / "examples/agentdojo/matrix-v4.24.json").read_text(encoding="utf-8"))
         self.assertIn("Expected contract blocks", workflow)
         self.assertIn("gpt-4o-mini", (ROOT / "examples/agentdojo/matrix-v4.23.json").read_text(encoding="utf-8"))
         self.assertIn(

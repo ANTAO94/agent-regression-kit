@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.24.0 - 2026-09-21
+
+- Add Contract pre-registration to the independent matrix validator through
+  canonical-JSON SHA-256 bindings and a `frozen_before_oracle` manifest claim.
+- Fail closed when a pre-registered Contract is missing or modified, and emit
+  Contract provenance checks in per-case and aggregate reports.
+- Add the v4.24 cross-model matrix manifest and CI validation, preserving the
+  four positive controls and four expected attack blocks from v4.23.
+- Add bilingual acceptance documentation and focused tamper-detection tests;
+  keep external utility/security labels separate from Contract evaluation.
+
 ## 4.23.0 - 2026-09-21
 
 - Add an eight-case AgentDojo cross-model attack matrix covering four

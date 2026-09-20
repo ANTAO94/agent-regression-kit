@@ -123,6 +123,18 @@ def run(args: argparse.Namespace) -> int:
     revision = _immutable_revision(manifest.get("revision"))
     repository = _string(manifest.get("repository"), "manifest.repository")
     manifest_cases = _cases(manifest)
+    contract_provenance = manifest.get("contract_provenance")
+    contract_hash_required = contract_provenance is not None
+    if contract_hash_required:
+        provenance = _object(contract_provenance, "manifest.contract_provenance")
+        if provenance.get("scheme") != "sha256-canonical-json":
+            raise ValueError(
+                "manifest.contract_provenance.scheme must be 'sha256-canonical-json'"
+            )
+        if provenance.get("frozen_before_oracle") is not True:
+            raise ValueError(
+                "manifest.contract_provenance.frozen_before_oracle must be true"
+            )
     manifest_sha = sha256_file(args.manifest)
     summaries: list[Dict[str, Any]] = []
 
@@ -161,9 +173,29 @@ def run(args: argparse.Namespace) -> int:
             "result_sha256": actual_sha,
             "case_id": case_id,
         }
+        contract = _object(case.get("contract"), f"case {case_id}.contract")
+        declared_contract_sha = case.get("contract_sha256")
+        if contract_hash_required and declared_contract_sha is None:
+            raise ValueError(f"case {case_id}.contract_sha256 is required by manifest")
+        contract_hash_check = True
+        if declared_contract_sha is not None:
+            declared_contract_sha = _string(
+                declared_contract_sha, f"case {case_id}.contract_sha256"
+            ).lower()
+            if len(declared_contract_sha) != 64:
+                raise ValueError(
+                    f"case {case_id}.contract_sha256 must be a 64-character SHA-256 value"
+                )
+            actual_contract_sha = _sha256_value(contract)
+            contract_hash_check = actual_contract_sha == declared_contract_sha
+            if not contract_hash_check:
+                raise ValueError(
+                    f"Contract SHA-256 mismatch for {case_id}: "
+                    f"expected {declared_contract_sha}, observed {actual_contract_sha}"
+                )
         report = evaluate_agentdojo_run(
             run_data,
-            _object(case.get("contract"), f"case {case_id}.contract"),
+            contract,
             source=source,
         )
         trace = trace_from_agentdojo_run(run_data, source=source)
@@ -180,12 +212,15 @@ def run(args: argparse.Namespace) -> int:
             "result_sha256": True,
             "metadata": True,
             "contract_expectation": report["contract_passed"] == expected_contract_passed,
+            "contract_provenance": contract_hash_check,
             "external_oracle": all(label_checks.values()),
             **boundary_checks,
         }
         report["matrix_case_id"] = case_id
         report["expected_contract_passed"] = expected_contract_passed
         report["contract_outcome_match"] = report["contract_passed"] == expected_contract_passed
+        report["contract_sha256"] = declared_contract_sha
+        report["contract_provenance"] = contract_provenance
         report["provenance"] = {
             **report["provenance"],
             "matrix_manifest": str(args.manifest),
@@ -215,6 +250,7 @@ def run(args: argparse.Namespace) -> int:
                 "contract_passed": report["contract_passed"],
                 "expected_contract_passed": expected_contract_passed,
                 "contract_outcome_match": safe_report["contract_outcome_match"],
+                "contract_sha256": safe_report["contract_sha256"],
                 "gate_passed": safe_report["gate"]["passed"],
                 "checks": safe_report["gate"]["checks"],
                 "result_sha256": actual_sha,
@@ -228,6 +264,9 @@ def run(args: argparse.Namespace) -> int:
         "all_cases_passed": all(item["gate_passed"] for item in summaries),
         "all_contract_expectations_match": all(
             item["contract_outcome_match"] for item in summaries
+        ),
+        "all_contract_provenance_bound": all(
+            item["checks"]["contract_provenance"] for item in summaries
         ),
         "all_source_hashes_checked": all(item["checks"]["result_sha256"] for item in summaries),
         "all_external_oracles_match": all(item["checks"]["external_oracle"] for item in summaries),

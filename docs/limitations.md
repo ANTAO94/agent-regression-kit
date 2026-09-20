@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.23 deliberately stays small. The local Viewer
+Agent Regression Kit v4.24 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -126,3 +126,7 @@ is a read-only presentation layer, not a hosted management service.
   explicit expected Contract block can be audited across two model pipelines;
   it is still a small pinned exported-run sample, not a security rate,
   universal cross-model generalization result or a full upstream rerun.
+- The v4.24 matrix binds each reviewed Contract to a canonical-JSON SHA-256
+  and fails closed on tampering. This proves rule provenance for the checked-in
+  manifest, not Contract completeness, semantic correctness or the absence of
+  post-registration bias in how cases were selected.

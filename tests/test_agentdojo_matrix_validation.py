@@ -147,6 +147,57 @@ class AgentDojoMatrixValidationTests(unittest.TestCase):
             self.assertFalse(value["cases"][0]["contract_passed"])
             self.assertTrue(value["cases"][0]["contract_outcome_match"])
 
+    def test_matrix_validates_a_pre_registered_contract_hash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = self._write_case(root)
+            manifest_value = self._manifest(root, result)
+            contract = manifest_value["cases"][0]["contract"]
+            manifest_value["contract_provenance"] = {
+                "scheme": "sha256-canonical-json",
+                "frozen_before_oracle": True,
+            }
+            manifest_value["cases"][0]["contract_sha256"] = hashlib.sha256(
+                json.dumps(contract, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            manifest = root / "matrix.json"
+            manifest.write_text(json.dumps(manifest_value), encoding="utf-8")
+            args = MODULE.argparse.Namespace(
+                manifest=manifest,
+                results_dir=result.parent,
+                out=root / "report.json",
+                trace_dir=root / "traces",
+            )
+            self.assertEqual(0, MODULE.run(args))
+            value = json.loads((root / "report.json").read_text(encoding="utf-8"))
+            self.assertTrue(value["gate"]["checks"]["all_contract_provenance_bound"])
+            self.assertTrue(value["cases"][0]["checks"]["contract_provenance"])
+
+    def test_matrix_rejects_a_modified_pre_registered_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = self._write_case(root)
+            manifest_value = self._manifest(root, result)
+            contract = manifest_value["cases"][0]["contract"]
+            manifest_value["contract_provenance"] = {
+                "scheme": "sha256-canonical-json",
+                "frozen_before_oracle": True,
+            }
+            manifest_value["cases"][0]["contract_sha256"] = hashlib.sha256(
+                json.dumps(contract, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            manifest_value["cases"][0]["contract"]["max_steps"] = 2
+            manifest = root / "matrix.json"
+            manifest.write_text(json.dumps(manifest_value), encoding="utf-8")
+            args = MODULE.argparse.Namespace(
+                manifest=manifest,
+                results_dir=result.parent,
+                out=root / "report.json",
+                trace_dir=root / "traces",
+            )
+            with self.assertRaisesRegex(ValueError, "Contract SHA-256 mismatch"):
+                MODULE.run(args)
+
 
 if __name__ == "__main__":
     unittest.main()

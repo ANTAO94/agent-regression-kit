@@ -2,10 +2,12 @@
 
 The supported imports are exported from `agent_regression`.
 
-The independent-source matrix validator also supports an explicit
+The independent-source matrix validator supports an explicit
 `expected_contract_passed` per case. Use `false` for a reviewed attack
 trajectory that should be blocked: the case passes only when the Contract
-actually fails and the observed outcome matches the expectation. This field is
+actually fails and the observed outcome matches the expectation. v4.24 also
+supports `contract_provenance` and per-case `contract_sha256`, binding a
+canonical Contract to the manifest before oracle processing. These fields are
 separate from upstream oracle labels such as `utility` and `security`.
 
 ## Framework bridge and parallel recording

@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.23 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.24 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -66,6 +66,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 独立来源接入 | v4.21 | AgentDojo 外部消息导入、两种工具调用格式、oracle 隔离、固定来源 hash 和 CI artifact；已由 v4.22 矩阵扩展 |
 | 独立来源矩阵 | v4.22 | 四个 AgentDojo suite、五条固定样本、逐样本 Contract/哈希/Trace、汇总 gate；仍不是完整上游重跑或通用泛化 |
 | 跨模型攻击矩阵 | v4.23 | 两个模型 pipeline、四条正向对照、四条预期阻断攻击、显式 expected outcome 和 CI artifact；仍不是安全率或通用泛化 |
+| Contract 预注册 | v4.24 | 每条 Contract 绑定 canonical JSON SHA-256，manifest 声明先冻结再读 oracle，篡改 fail closed；仍不证明规则完整 |
 
 ## 迭代顺序
 
@@ -368,6 +369,18 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] 本地验收达到 261 项测试，矩阵 8/8 通过，其中 4 条预期 Contract 阻断。
 - [ ] 当前仍是四条攻击样本和两个模型 pipeline 的固定导出结果；下一阶段需要更多独立攻击族、
   预注册 Contract、重复运行方差和未参与实现用户的可用性研究。
+
+### v4.24：Contract 预注册
+
+- [x] 增加 `contract_provenance.frozen_before_oracle=true` manifest 声明和每条 case 的
+  `contract_sha256`，摘要排序、紧凑化后的 Contract JSON。
+- [x] 在逐样本与 aggregate gate 中记录 Contract provenance；缺失或篡改 Contract 时
+  fail closed，并增加对应负向单测。
+- [x] 将跨模型攻击矩阵 CI 切换到 v4.24 manifest；本地结果为 8/8 gate、4 条预期阻断、
+  8/8 Contract hash 匹配。
+- [x] 本地测试达到 263 项，文档、wheel 资源清单和 release 检查同步更新。
+- [ ] 预注册证明规则来源可审计，但不替代规则质量审查；仍需更多独立攻击族、重复运行方差
+  和未参与实现用户的 30/60/90 分钟可用性研究。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

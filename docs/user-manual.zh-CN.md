@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.23.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.24.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.23.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.24.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.23.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.24.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.23.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.24.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -645,6 +645,23 @@ PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
 与各自的 `expected_contract_passed` 一致。完整样本、哈希、报告字段和边界见
 [v4.23 验收](v4.23-acceptance.md)。这仍然是固定导出结果的证据接入，不是完整上游重跑、
 安全率或跨模型泛化证明。
+
+### v4.24：Contract 预注册
+
+v4.24 为每条矩阵样本增加 `contract_sha256`，对排序、紧凑化后的 Contract JSON 做摘要，
+并在 manifest 中声明 `contract_provenance.frozen_before_oracle=true`。验证器会在读取结果和
+外部 oracle 后续处理前校验 Contract hash；缺失或修改都会 fail closed。
+
+```bash
+PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
+  --manifest examples/agentdojo/matrix-v4.24.json \
+  --results-dir work/agentdojo-pre-registered/results \
+  --out work/agentdojo-pre-registered/report.json \
+  --trace-dir work/agentdojo-pre-registered/traces
+```
+
+完整字段、manifest 摘要和篡改负向测试见[v4.24 验收](v4.24-acceptance.md)。它证明规则来源
+可追溯，不证明 Contract 完整，也不把外部 `utility/security` 标签变成规则。
 
 ### v4.21：独立来源 AgentDojo 接入
 

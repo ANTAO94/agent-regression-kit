@@ -615,7 +615,7 @@ jobs:
           from pathlib import Path
           from urllib.request import urlopen
 
-          manifest = json.loads(Path("examples/agentdojo/matrix-v4.23.json").read_text())
+          manifest = json.loads(Path("examples/agentdojo/matrix-v4.24.json").read_text())
           result_dir = Path("work/agentdojo-cross-model/results")
           for case in manifest["cases"]:
               with urlopen(case["download_url"]) as response:
@@ -624,7 +624,7 @@ jobs:
       - name: Convert and gate the cross-model attack matrix
         run: |
           python examples/agentdojo_matrix_validation.py \
-            --manifest examples/agentdojo/matrix-v4.23.json \
+            --manifest examples/agentdojo/matrix-v4.24.json \
             --results-dir work/agentdojo-cross-model/results \
             --out work/agentdojo-cross-model/report.json \
             --trace-dir work/agentdojo-cross-model/traces
