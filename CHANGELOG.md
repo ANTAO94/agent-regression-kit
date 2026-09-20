@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.25.0 - 2026-09-21
+
+- Add a repeatability validator for the pinned AgentDojo matrix that runs the
+  decision pipeline three times and compares aggregate, per-case and Trace
+  SHA-256 artifacts.
+- Add an independent-source repeatability CI job and focused tests, while
+  keeping the boundary explicit: deterministic exported-input reproducibility
+  is not online model sampling-variance evidence.
+- Add bilingual v4.25 acceptance documentation and retain the v4.24 Contract
+  pre-registration and consumer evidence.
+
 ## 4.24.0 - 2026-09-21
 
 - Add Contract pre-registration to the independent matrix validator through

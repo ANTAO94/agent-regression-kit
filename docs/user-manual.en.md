@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.24.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.25.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.24.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.25.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.24.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.25.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.24.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.25.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -678,6 +678,24 @@ PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
 See the [v4.24 acceptance](v4.24-acceptance.md) for fields, the manifest
 digest and tamper-detection evidence. This proves rule provenance, not Contract
 completeness, and never turns upstream `utility/security` labels into rules.
+
+### v4.25: repeatable decisions over pinned inputs
+
+v4.25 repeats the fixed v4.24 AgentDojo matrix three times and compares the
+SHA-256 hashes of the aggregate report, every case report and every Trace. This
+checks deterministic decision and artifact generation; it is not an online
+model-sampling variance study.
+
+```bash
+PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
+  --manifest examples/agentdojo/matrix-v4.24.json \
+  --results-dir work/agentdojo-repeatability/results \
+  --out work/agentdojo-repeatability/report.json \
+  --repeats 3
+```
+
+Expect `run_count=3`, `stable=true` and `gate_passed=true`. See the
+[v4.25 acceptance](v4.25-acceptance.md) for the evidence and boundaries.
 
 ### v4.21: independent AgentDojo source intake
 

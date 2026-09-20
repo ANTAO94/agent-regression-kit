@@ -8,7 +8,7 @@
 
 [中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥3.9 · Release v4.24.0 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.25.0 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.24.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.25.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.24.0`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.25.0`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -278,7 +278,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.24.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.25.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -329,7 +329,7 @@ time regression on like-for-like environments.
 
 ## 8. Evidence and current limits
 
-Suitable for local development and team CI pilots. The v4.24 release records **263 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, multiple task-domain validations and an independent AgentDojo source matrix.
+Suitable for local development and team CI pilots. The v4.25 release records **265 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, multiple task-domain validations and an independent AgentDojo source matrix.
 
 | Evidence | Result and scope |
 | --- | --- |
@@ -346,6 +346,7 @@ Suitable for local development and team CI pilots. The v4.24 release records **2
 | Independent source matrix | [AgentDojo v4.22 acceptance](docs/v4.22-acceptance.md): pinned commit/manifest SHA-256, five cases across workspace, banking, slack and travel, 5/5 passed | Proves cross-suite intake, per-case Contracts and oracle isolation; not full security or generalization |
 | Cross-model attack matrix | [AgentDojo v4.23 acceptance](docs/v4.23-acceptance.md): pinned commit/manifest SHA-256, eight cases across two model pipelines; four positive paths passed and four attack paths were blocked as expected | Proves auditable expected-block semantics without turning upstream security labels into rules; not a security rate or generalization claim |
 | Contract pre-registration | [AgentDojo v4.24 acceptance](docs/v4.24-acceptance.md): all eight Contracts are bound to canonical-JSON SHA-256 and tampering fails closed | Proves rule provenance is auditable; not that a Contract is complete or semantically correct |
+| Decision repeatability | [AgentDojo v4.25 acceptance](docs/v4.25-acceptance.md): the pinned matrix is repeated three times with stable aggregate, case-report and Trace hashes | Proves deterministic artifact reproducibility over fixed inputs; not online model sampling variance or reliability |
 
 τ² equivalence rules were adjusted using errors from this dataset, then retested on the same data. **These are not held-out generalization results.** This integration imports published trajectories; it does not run the upstream simulator or imply upstream adoption.
 
@@ -362,4 +363,4 @@ The kit checks recorded evidence and configured rules. You supply state snapshot
 | Wording changes fail | Extract actual claims and use `claims-only` with business assertions |
 | A valid new path fails | Review its safety, then explicitly configure allowed paths and extra calls |
 
-[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Performance baseline](docs/performance.md) · [Independent consumer pilot](docs/consumer-pilot.md) · [τ² independent validation](docs/tau2-independent-validation.md) · [Airline reproduction](examples/tau2-airline/README.md) · [Telecom reproduction](examples/tau2-telecom/README.md) · [Telecom holdout acceptance](docs/v4.20-acceptance.md) · [AgentDojo v4.24 acceptance](docs/v4.24-acceptance.md) · [AgentDojo v4.23 acceptance](docs/v4.23-acceptance.md) · [AgentDojo v4.22 acceptance](docs/v4.22-acceptance.md) · [AgentDojo v4.21 acceptance](docs/v4.21-acceptance.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.20 acceptance](docs/v4.20-acceptance.md) · [v4.19 acceptance](docs/v4.19-acceptance.md) · [v4.18 acceptance](docs/v4.18-acceptance.md) · [v4.17 acceptance](docs/v4.17-acceptance.md) · [v4.16 acceptance](docs/v4.16-acceptance.md) · [v4.15 acceptance](docs/v4.15-acceptance.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Performance baseline](docs/performance.md) · [Independent consumer pilot](docs/consumer-pilot.md) · [τ² independent validation](docs/tau2-independent-validation.md) · [Airline reproduction](examples/tau2-airline/README.md) · [Telecom reproduction](examples/tau2-telecom/README.md) · [Telecom holdout acceptance](docs/v4.20-acceptance.md) · [AgentDojo v4.25 acceptance](docs/v4.25-acceptance.md) · [AgentDojo v4.24 acceptance](docs/v4.24-acceptance.md) · [AgentDojo v4.23 acceptance](docs/v4.23-acceptance.md) · [AgentDojo v4.22 acceptance](docs/v4.22-acceptance.md) · [AgentDojo v4.21 acceptance](docs/v4.21-acceptance.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.20 acceptance](docs/v4.20-acceptance.md) · [v4.19 acceptance](docs/v4.19-acceptance.md) · [v4.18 acceptance](docs/v4.18-acceptance.md) · [v4.17 acceptance](docs/v4.17-acceptance.md) · [v4.16 acceptance](docs/v4.16-acceptance.md) · [v4.15 acceptance](docs/v4.15-acceptance.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)

@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.24 deliberately stays small. The local Viewer
+Agent Regression Kit v4.25 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -130,3 +130,7 @@ is a read-only presentation layer, not a hosted management service.
   and fails closed on tampering. This proves rule provenance for the checked-in
   manifest, not Contract completeness, semantic correctness or the absence of
   post-registration bias in how cases were selected.
+- The v4.25 repeatability validator compares aggregate, per-case and Trace
+  hashes across three runs of the same pinned exported matrix. It proves
+  deterministic artifact generation over fixed inputs, not online model
+  sampling variance, broader security coverage or universal reliability.

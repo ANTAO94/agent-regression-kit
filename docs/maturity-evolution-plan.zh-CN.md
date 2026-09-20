@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.24）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.25）
 
-> 状态：v4.24 已落地，继续扩展独立攻击族、重复运行和真实用户验证
-> 当前基线版本：v4.24.0
+> 状态：v4.25 已落地，继续扩展独立攻击族、在线随机性和真实用户验证
+> 当前基线版本：v4.25.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,7 +27,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.24 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.25 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
@@ -581,6 +581,21 @@ oracle 之前校验规则摘要，并把 per-case/aggregate 绑定状态写入�
 - [ ] 规则 provenance 仍不等于规则质量；下一阶段要加入更多独立攻击族、重复运行方差和
   未参与实现用户的接入研究。
 
+### 7.13 v4.25：固定输入下的决策重复性（已落地）
+
+v4.25 解决的是“同一份固定证据是否每次生成同一份决策产物”的可复现性问题。它不把固定
+导出结果的重复执行包装成在线模型随机性研究，而是先把报告和 Trace 的字节级稳定性做成
+独立的 CI 门禁。
+
+- [x] 新增 `agentdojo_repeatability_validation.py`，对 v4.24 的八条矩阵样本重复运行三次。
+- [x] 每次重复都执行原有 matrix validator，并比较 aggregate report、逐 case report 和 Trace
+  的 SHA-256；任一内部 gate 或 hash 变化都会 fail closed。
+- [x] 新增独立 `agentdojo-repeatability` CI job，上传三次运行目录和汇总报告。
+- [x] 本地验收为 265 项测试、三次均 8/8 gate、`stable=true`；v4.25 验收文档明确在线
+  模型采样方差和真实用户研究仍未完成。
+- [ ] 下一阶段仍需引入更多独立攻击族、真正的在线/重复采样研究和未参与实现用户的 30/60/90
+  分钟接入研究，不能用固定输入重复性替代这些证据。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -607,6 +622,7 @@ oracle 之前校验规则摘要，并把 per-case/aggregate 绑定状态写入�
 | `examples/agentdojo/matrix.json` | 五条 v4.22 样本的路径、哈希、任务身份、预期 oracle 和人工 Contract |
 | `examples/agentdojo/matrix-v4.23.json` | 八条跨模型/攻击样本的路径、pipeline、哈希、预期 outcome、oracle 和人工 Contract |
 | `examples/agentdojo/matrix-v4.24.json` | 八条样本的预注册 Contract SHA-256、frozen-before-oracle 声明和同一外部结果边界 |
+| `examples/agentdojo_repeatability_validation.py` | 固定矩阵的三次决策、aggregate/case/Trace hash 重复性 gate |
 
 ## 9. CI 结构
 
@@ -625,6 +641,7 @@ oracle 之前校验规则摘要，并把 per-case/aggregate 绑定状态写入�
 | agentdojo-independent-source-smoke | AgentDojo importer、Contract 或 source manifest 改动时 | 固定结果 hash、Contract 和 oracle 预期必须通过 |
 | agentdojo-independent-source-matrix | AgentDojo matrix validator 或 matrix manifest 改动时 | 五条样本逐项 hash/Contract/oracle/Trace 边界和 aggregate gate 必须通过 |
 | agentdojo-cross-model-attack-matrix | v4.24 AgentDojo matrix validator 或 cross-model manifest 改动时 | 八条样本的 expected outcome、pipeline、Contract provenance、hash/oracle/Trace 边界和 aggregate gate 必须通过 |
+| agentdojo-repeatability | matrix validator、重复性脚本或 v4.24 manifest 改动时 | 三次固定输入决策的 aggregate/case/Trace hash 必须稳定 |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
 | release | tag 推送时 | 是 |
 
@@ -633,7 +650,7 @@ oracle 之前校验规则摘要，并把 per-case/aggregate 绑定状态写入�
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.24 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.25 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -661,7 +678,7 @@ oracle 之前校验规则摘要，并把 per-case/aggregate 绑定状态写入�
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.24 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型攻击证据、规则 provenance 和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.25 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型攻击证据、规则 provenance、重复性和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -679,6 +696,7 @@ oracle 之前校验规则摘要，并把 per-case/aggregate 绑定状态写入�
 10. **v4.22**：AgentDojo 四 suite 五样本矩阵、逐样本 Contract/哈希/Trace 和 aggregate gate。
 11. **v4.23**：AgentDojo 双模型八样本跨模型攻击矩阵、显式 expected outcome 和 CI artifact。
 12. **v4.24**：Contract canonical JSON SHA-256 预注册、frozen-before-oracle gate 和篡改负向验收。
+13. **v4.25**：固定 AgentDojo 矩阵三次决策重复性、aggregate/case/Trace hash 稳定性和 CI artifact。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布
