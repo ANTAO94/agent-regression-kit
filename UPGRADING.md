@@ -4,6 +4,37 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.5.0 → v4.6.0
+
+This feature release adds the optional `contract.path_rules.mode` field. Existing
+path contracts keep the strict `exact` behavior when the field is omitted, so no
+Trace or configuration migration is required.
+
+Use `ordered_subsequence` when a required sequence must remain ordered but a
+new read-only query may appear before, between or after the required steps. Use
+`unordered_subset` only when the business contract explicitly says that the
+required calls may occur in any order. The tolerant modes do not remove the
+need for `must_not_call`, `max_steps`, assertions, relations or side-effect
+checks. See the [path variation example](examples/path-variation/README.md)
+and [v4.6 acceptance contract](docs/v4.6-acceptance.md).
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "mode": "ordered_subsequence",
+      "any_of": [["get_order", "get_payment_status"]]
+    },
+    "must_not_call": ["delete_order"],
+    "max_steps": 3
+  }
+}
+```
+
+`mode` values are `exact` (default), `ordered_subsequence` and
+`unordered_subset`. `path_rules.ordered` remains available only for legacy
+exact matching; it cannot be combined with a tolerant mode.
+
 ## v4.4.1 → v4.5.0
 
 This feature release adds the `contract.relations` field. It is additive and

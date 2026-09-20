@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.6.0 - 2026-09-20
+
+- Add explicit `path_rules.mode` values for exact paths, ordered subsequences and unordered subsets.
+- Allow safe extra observational queries without weakening required tools, forbidden tools, step limits or business Contracts.
+- Add a bilingual path-variation example, negative cases and a dedicated GitHub Actions evidence workflow.
+- Add v4.6 acceptance, upgrade guidance and documentation for choosing strict versus tolerant path matching.
+
 ## 4.5.0 - 2026-09-20
 
 - Add deterministic cross-step Contract relations for comparing values between Agent tool calls, tool results and business state.

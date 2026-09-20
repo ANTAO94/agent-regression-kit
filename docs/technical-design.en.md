@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.5.0 source. Package version 4.5.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.6.0 source. Package version 4.6.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -97,10 +97,20 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | must_call / must_not_call | Required or forbidden tools and optional arguments |
 | max_steps | Maximum number of tool calls |
 | path_rules.any_of | Explicit accepted tool paths, optionally constraining result and is_error |
+| path_rules.mode | `exact`, `ordered_subsequence` or `unordered_subset`; omitted means strict complete-path matching |
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | relations | Cross-step field constraints; missing or false relations block |
 | timestamp / sort | Fixed marker or repr-based list ordering, no user code execution |
+
+Path modes are explicit candidate-path constraints, not fuzzy string matching.
+`exact` requires the complete path length and every rule to match;
+`ordered_subsequence` scans forward so extra calls may appear around the
+required rules; `unordered_subset` consumes one distinct candidate event per
+rule and permits extra calls and reordering. When a candidate has extra calls,
+the comparator does not force those events into baseline result positions, so
+business-significant extra results must be declared with path-rule
+`result`/`is_error`, assertions, relations or side effects.
 
 `relations` covers business constraints that a single-field assertion cannot
 express. It resolves JSON paths in the candidate `tool_calls`, `tool_results`,
@@ -192,6 +202,6 @@ compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.5.0) · [v4.5 acceptance](v4.5-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.6.0) · [v4.6 acceptance](v4.6-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

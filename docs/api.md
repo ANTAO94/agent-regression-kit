@@ -505,8 +505,11 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `ComparisonPolicy(allowed_categories=..., allowed_paths=..., final_answer_mode=..., contract=...)` changes which differences block while retaining all differences in the report. `final_answer_mode="exact"` compares final prose; `final_answer_mode="claims-only"` ignores only `final_answer.text` while continuing to require matching structured claims.
 - `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
-  `sort`), `must_call`, `must_not_call`, `path_rules.any_of`, `side_effects`,
-  `relations`, and `max_steps`. A relation compares a candidate JSON path with
+  `sort`), `must_call`, `must_not_call`, `path_rules.any_of`,
+  `path_rules.mode`, `side_effects`, `relations`, and `max_steps`. Path mode
+  `exact` is the default; `ordered_subsequence` allows extra calls while
+  preserving required order, and `unordered_subset` allows extra calls and
+  reordering. A relation compares a candidate JSON path with
   another candidate path or a fixed value using a finite operator set; missing
   evidence and false comparisons block. Put it under the
   config file's `contract` object and pass it through `ComparisonPolicy`.

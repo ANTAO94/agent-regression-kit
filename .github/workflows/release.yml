@@ -74,6 +74,7 @@ jobs:
           test -f "$DOC_ROOT/v4.3-acceptance.md"
           test -f "$DOC_ROOT/v4.4-acceptance.md"
           test -f "$DOC_ROOT/v4.5-acceptance.md"
+          test -f "$DOC_ROOT/v4.6-acceptance.md"
           test -f "$DOC_ROOT/framework-integrations.md"
           test -f "$DOC_ROOT/deepseek-live.md"
           test -f "$DOC_ROOT/supply-chain.md"

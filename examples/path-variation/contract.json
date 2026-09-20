@@ -1,0 +1,16 @@
+{
+  "required_claims": [
+    "final_answer.claims.order_id",
+    "final_answer.claims.status"
+  ],
+  "must_call": [{"tool": "get_order"}, {"tool": "get_payment_status"}],
+  "must_not_call": ["delete_order"],
+  "path_rules": {
+    "mode": "ordered_subsequence",
+    "any_of": [[
+      {"tool": "get_order", "is_error": false},
+      {"tool": "get_payment_status", "is_error": false}
+    ]]
+  },
+  "max_steps": 3
+}

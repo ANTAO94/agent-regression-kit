@@ -13,6 +13,7 @@ from .model import AgentTrace
 _PATH_TOKEN = re.compile(r"([^.[\]]+)|\[([^\]]+)\]")
 _MISSING = object()
 _IGNORED = object()
+_PATH_RULE_MODES = {"exact", "ordered_subsequence", "unordered_subset"}
 
 
 def _reject_unknown_fields(
@@ -177,7 +178,11 @@ class ContractPolicy:
                 raise ValueError("contract tool rule arguments must be an object")
         if not isinstance(self.path_rules, dict):
             raise ValueError("contract.path_rules must be an object")
-        _reject_unknown_fields(self.path_rules, {"any_of", "ordered"}, "path_rules")
+        _reject_unknown_fields(
+            self.path_rules,
+            {"any_of", "ordered", "mode"},
+            "path_rules",
+        )
         alternatives = self.path_rules.get("any_of", [])
         if not isinstance(alternatives, list) or not alternatives:
             if self.path_rules:
@@ -204,6 +209,16 @@ class ContractPolicy:
                     raise ValueError("path rule is_error must be a boolean")
         if "ordered" in self.path_rules and not isinstance(self.path_rules["ordered"], bool):
             raise ValueError("contract.path_rules.ordered must be a boolean")
+        mode = self.path_rules.get("mode", "exact")
+        if not isinstance(mode, str) or mode not in _PATH_RULE_MODES:
+            raise ValueError(
+                "contract.path_rules.mode must be one of: "
+                + ", ".join(sorted(_PATH_RULE_MODES))
+            )
+        if mode != "exact" and "ordered" in self.path_rules:
+            raise ValueError(
+                "contract.path_rules.ordered is only valid when mode is 'exact'"
+            )
         for effect in self.side_effects:
             if not isinstance(effect, dict) or not isinstance(effect.get("path"), str):
                 raise ValueError("contract.side_effects must contain path objects")
@@ -561,6 +576,7 @@ class ContractPolicy:
                 observed_event["result"] = result.get("result")
                 observed_event["is_error"] = result.get("is_error", False)
             observed.append(observed_event)
+        mode = self.path_rules.get("mode", "exact")
         ordered = self.path_rules.get("ordered", True)
         for alternative in self.path_rules.get("any_of", []):
             expected = [
@@ -569,27 +585,71 @@ class ContractPolicy:
                 else rule
                 for rule in alternative
             ]
-            if ordered:
+            if mode == "ordered_subsequence":
+                observed_index = 0
+                for rule in expected:
+                    match_index = next(
+                        (
+                            index
+                            for index, event in enumerate(observed[observed_index:], observed_index)
+                            if self._path_rule_matches(rule, event)
+                        ),
+                        None,
+                    )
+                    if match_index is None:
+                        break
+                    observed_index = match_index + 1
+                else:
+                    return True
+            elif mode == "unordered_subset":
+                if self._unordered_path_rules_match(expected, observed):
+                    return True
+            elif ordered:
                 if len(expected) == len(observed) and all(
                     self._path_rule_matches(rule, event)
                     for rule, event in zip(expected, observed)
                 ):
                     return True
             else:
-                remaining = list(observed)
-                if len(expected) == len(remaining):
-                    for rule in expected:
-                        match_index = next(
-                            (index for index, event in enumerate(remaining)
-                             if self._path_rule_matches(rule, event)),
-                            None,
-                        )
-                        if match_index is None:
-                            break
-                        remaining.pop(match_index)
-                    else:
-                        return not remaining
+                if len(expected) == len(observed):
+                    if self._unordered_path_rules_match(expected, observed):
+                        return True
         return False
+
+    def _unordered_path_rules_match(
+        self,
+        expected: Sequence[Mapping[str, Any]],
+        observed: Sequence[Mapping[str, Any]],
+    ) -> bool:
+        """Match each rule to a distinct event without greedy false negatives."""
+        if len(expected) > len(observed):
+            return False
+        candidates = [
+            [
+                index
+                for index, event in enumerate(observed)
+                if self._path_rule_matches(rule, event)
+            ]
+            for rule in expected
+        ]
+        if any(not matches for matches in candidates):
+            return False
+        order = sorted(range(len(expected)), key=lambda index: len(candidates[index]))
+
+        matched_events: Dict[int, int] = {}
+
+        def assign(rule_index: int, visited: set[int]) -> bool:
+            for event_index in candidates[rule_index]:
+                if event_index in visited:
+                    continue
+                visited.add(event_index)
+                previous_rule = matched_events.get(event_index)
+                if previous_rule is None or assign(previous_rule, visited):
+                    matched_events[event_index] = rule_index
+                    return True
+            return False
+
+        return all(assign(rule_index, set()) for rule_index in order)
 
     @staticmethod
     def _tool_rule_matches(rule: Mapping[str, Any], event: Mapping[str, Any]) -> bool:

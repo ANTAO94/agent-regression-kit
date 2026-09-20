@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1",
+  "run_id": "path-variation-normal",
+  "agent": {
+    "name": "path-variation-agent",
+    "version": "1.0.0",
+    "behavior": "normal"
+  },
+  "events": [
+    {
+      "type": "tool_call",
+      "call_id": "call-1",
+      "tool": "get_order",
+      "arguments": {"order_id": "123"},
+      "sequence": 1
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-1",
+      "result": {"order_id": "123", "status": "paid"},
+      "is_error": false,
+      "sequence": 2
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-2",
+      "tool": "get_payment_status",
+      "arguments": {"order_id": "123"},
+      "sequence": 3
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-2",
+      "result": {"order_id": "123", "payment_status": "paid"},
+      "is_error": false,
+      "sequence": 4
+    },
+    {
+      "type": "final_answer",
+      "text": "订单 123 已支付。",
+      "claims": {"order_id": "123", "status": "paid"},
+      "sequence": 5
+    }
+  ],
+  "metadata": {
+    "input": {"order_id": "123", "request": "查询订单 123"},
+    "world_state": {"initial": {}, "final": {}}
+  }
+}

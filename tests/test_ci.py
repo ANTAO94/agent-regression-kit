@@ -67,6 +67,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("agent-regression workspace manifest", workflow)
         self.assertIn("v4-acceptance.md", workflow)
         self.assertIn("v4.5-acceptance.md", workflow)
+        self.assertIn("v4.6-acceptance.md", workflow)
         self.assertIn("generate_release_metadata.py", workflow)
         self.assertIn("dist/SHA256SUMS", workflow)
         self.assertIn("actions/attest@v4", workflow)
@@ -105,6 +106,17 @@ class CiIntegrationTests(unittest.TestCase):
             self.assertIn(behavior, workflow)
         self.assertIn('test "$exit_code" -eq 1', workflow)
         self.assertIn("refund-business-case-evidence", workflow)
+
+    def test_path_variation_workflow_proves_tolerant_and_strict_paths(self):
+        workflow = (ROOT / ".github/workflows/path-variation.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("path_variation_case.py", workflow)
+        self.assertIn("extra-query", workflow)
+        self.assertIn("reordered", workflow)
+        self.assertIn("forbidden", workflow)
+        self.assertIn('test "$exit_code" -eq 1', workflow)
+        self.assertIn("path-variation-evidence", workflow)
 
 
 if __name__ == "__main__":

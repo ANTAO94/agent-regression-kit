@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.5.0 源码整理；产品版本 4.5.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.6.0 源码整理；产品版本 4.6.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
 
 ## 1. 目标和适用场景
 
@@ -97,11 +97,19 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | must_call / must_not_call | 限定工具调用及可选参数 |
 | max_steps | 限定工具调用总数 |
 | path_rules.any_of | 接受显式列举的多条工具路径，可同时约束结果和 is_error |
+| path_rules.mode | `exact`、`ordered_subsequence` 或 `unordered_subset`；省略时保持严格完整路径 |
 | result_alignment | 默认按 call_id 关联工具结果；`order` 是旧的按事件位置对齐模式 |
 | side_effects | 约束已录制状态的 from/to 变化 |
 | required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
 | relations | 约束跨步骤字段关系；路径缺失或比较失败都会阻断 |
 | timestamp / sort | 固定时间标记或按 repr 排序列表，不执行用户脚本 |
+
+路径模式是显式的候选路径约束，而不是模糊字符串匹配。`exact` 要求完整路径长度
+和每一条规则都匹配；`ordered_subsequence` 用单向扫描匹配规则，允许候选在规则之间
+出现额外调用；`unordered_subset` 为每条规则消耗一个不同的候选事件，允许额外调用
+和乱序。候选如果有额外调用，比较器不会把它们强行按 baseline 位置对齐；因此有
+业务意义的额外结果必须通过 path rule 的 result/is_error、assertions、relations 或
+side_effects 单独声明。
 
 `relations` 解决单字段断言无法表达的业务约束。它从 candidate 的
 `tool_calls`、`tool_results`、`final_answer` 和 `world_state` 投影视图解析
@@ -203,6 +211,6 @@ Core 事件接入检查、PydanticAI/OpenAI Agents/LangGraph 正反例、DeepSee
 manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等价于多年生产
 使用或任意 Agent 自动兼容。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.5.0) · [v4.5 验收](v4.5-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.6.0) · [v4.6 验收](v4.6-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

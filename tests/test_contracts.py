@@ -89,6 +89,46 @@ def make_refund_trace(*, amount=88, order_id="123"):
     )
 
 
+def make_path_trace(tools, *, run_id="path-mode-test"):
+    events = []
+    for index, tool in enumerate(tools, start=1):
+        call_id = f"call-{index}"
+        events.extend(
+            [
+                {
+                    "sequence": len(events) + 1,
+                    "type": "tool_call",
+                    "call_id": call_id,
+                    "tool": tool,
+                    "arguments": {"order_id": "123"},
+                },
+                {
+                    "sequence": len(events) + 2,
+                    "type": "tool_result",
+                    "call_id": call_id,
+                    "result": {"tool": tool, "ok": True},
+                    "is_error": False,
+                },
+            ]
+        )
+    events.append(
+        {
+            "sequence": len(events) + 1,
+            "type": "final_answer",
+            "text": "订单已处理。",
+            "claims": {"order_id": "123", "status": "paid"},
+        }
+    )
+    return AgentTrace.from_dict(
+        {
+            "schema_version": "0.1",
+            "run_id": run_id,
+            "agent": {"name": "path-mode-test"},
+            "events": events,
+        }
+    )
+
+
 class ContractTests(unittest.TestCase):
     def test_ignore_paths_and_timestamp_normalizer_remove_known_noise(self):
         baseline = make_trace(
@@ -231,6 +271,123 @@ class ContractTests(unittest.TestCase):
             with self.subTest(label=label):
                 with self.assertRaisesRegex(ValueError, f"unsupported {label} fields"):
                     ContractPolicy.from_dict(value)
+
+    def test_path_mode_is_backward_compatible_and_serialized(self):
+        exact = ContractPolicy.from_dict(
+            {"path_rules": {"any_of": [["get_order"]]}}
+        )
+        self.assertNotIn("mode", exact.to_dict()["path_rules"])
+        tolerant = ContractPolicy.from_dict(
+            {
+                "path_rules": {
+                    "mode": "ordered_subsequence",
+                    "any_of": [["get_order", "get_payment_status"]],
+                }
+            }
+        )
+        self.assertEqual(
+            "ordered_subsequence", tolerant.to_dict()["path_rules"]["mode"]
+        )
+        with self.assertRaisesRegex(ValueError, "path_rules.mode"):
+            ContractPolicy.from_dict(
+                {"path_rules": {"mode": "fuzzy", "any_of": [["get_order"]]}}
+            )
+        with self.assertRaisesRegex(ValueError, "path_rules.mode"):
+            ContractPolicy.from_dict(
+                {"path_rules": {"mode": [], "any_of": [["get_order"]]}}
+            )
+        with self.assertRaisesRegex(ValueError, "only valid"):
+            ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "unordered_subset",
+                        "ordered": False,
+                        "any_of": [["get_order"]],
+                    }
+                }
+            )
+
+    def test_ordered_subsequence_allows_extra_observational_queries(self):
+        baseline = make_path_trace(["get_order", "get_payment_status"])
+        candidate = make_path_trace(
+            ["get_order", "get_shipping", "get_payment_status"],
+            run_id="path-mode-candidate",
+        )
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "ordered_subsequence",
+                        "any_of": [["get_order", "get_payment_status"]],
+                    },
+                    "must_not_call": ["delete_order"],
+                    "max_steps": 3,
+                }
+            ),
+        )
+        report = compare_traces(baseline, candidate, policy)
+        self.assertTrue(report["passed"], report["differences"])
+
+        reordered = make_path_trace(
+            ["get_payment_status", "get_order"], run_id="path-mode-reordered"
+        )
+        report = compare_traces(baseline, reordered, policy)
+        self.assertFalse(report["passed"])
+        self.assertIn("behavior_path", {item["category"] for item in report["differences"]})
+
+    def test_unordered_subset_allows_extra_calls_and_reordering(self):
+        baseline = make_path_trace(["get_order", "get_payment_status"])
+        candidate = make_path_trace(
+            ["get_shipping", "get_payment_status", "get_order"],
+            run_id="unordered-path-candidate",
+        )
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "unordered_subset",
+                        "any_of": [["get_order", "get_payment_status"]],
+                    },
+                    "max_steps": 3,
+                }
+            ),
+        )
+        report = compare_traces(baseline, candidate, policy)
+        self.assertTrue(report["passed"], report["differences"])
+
+    def test_unordered_subset_handles_overlapping_rules_without_greedy_false_negative(self):
+        candidate = make_path_trace(["get_order", "get_order"])
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "unordered_subset",
+                        "any_of": [[
+                            "get_order",
+                            {"tool": "get_order", "arguments": {"order_id": "123"}},
+                        ]],
+                    }
+                }
+            ),
+        )
+        report = compare_traces(candidate, candidate, policy)
+        self.assertTrue(report["passed"], report["differences"])
+
+    def test_exact_path_mode_still_blocks_extra_calls(self):
+        baseline = make_path_trace(["get_order"])
+        candidate = make_path_trace(["get_order", "get_shipping"], run_id="exact-extra")
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {"path_rules": {"any_of": [["get_order"]]}}
+            ),
+        )
+        report = compare_traces(baseline, candidate, policy)
+        self.assertFalse(report["passed"])
+        self.assertIn("behavior_path", {item["category"] for item in report["differences"]})
 
 
 if __name__ == "__main__":

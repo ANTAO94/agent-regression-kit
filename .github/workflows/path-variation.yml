@@ -1,0 +1,60 @@
+name: Path variation contract
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "examples/path_variation_case.py"
+      - "examples/path-variation/**"
+      - "tests/test_path_variation_case.py"
+      - ".github/workflows/path-variation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "examples/path_variation_case.py"
+      - "examples/path-variation/**"
+      - "tests/test_path_variation_case.py"
+      - ".github/workflows/path-variation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  path-variation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install the kit
+        run: python -m pip install .
+      - name: Allow a safe extra query
+        run: |
+          python examples/path_variation_case.py \
+            --behavior extra-query \
+            --out work/path-variation/candidate.trace.json
+          agent-regression compare \
+            --config examples/path-variation/compare.config.json
+      - name: Block reordered and forbidden paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          for behavior in reordered forbidden; do
+            set +e
+            python examples/path_variation_case.py \
+              --behavior "$behavior" \
+              --out "work/path-variation/$behavior.trace.json" \
+              --compare-to examples/path-variation/baseline.trace.json \
+              --report "work/path-variation/$behavior.report.json"
+            exit_code=$?
+            set -e
+            test "$exit_code" -eq 1
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: path-variation-evidence
+          path: work/path-variation/
