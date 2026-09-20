@@ -4,6 +4,49 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.28.0 → v4.29.0
+
+v4.29 is additive for existing Trace, Contract, baseline and stability files.
+No migration is required. It adds `agent-regression study` and the
+`evaluate_sampling_study` API for recorded provider/model sampling evidence.
+The manifest is a new `schema_version=0.1` file; it is opt-in and does not
+change existing `stability` behavior.
+
+Create the bundle outside the repository's tracked evidence directory, review
+the redacted Traces and Contract, then run:
+
+```bash
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --format markdown \
+  --out work/order-123-study/report.md
+```
+
+The new report records public provider/model provenance and hashes, rejects
+secret-like metadata and path escapes, and returns a non-zero exit code when
+the Contract or sample policy blocks. It does not call a provider or store an
+API key/raw prompt. See the [v4.29 acceptance record](docs/v4.29-acceptance.md).
+
+## v4.28.0 → v4.29.0（中文）
+
+v4.29 对已有 Trace、Contract、baseline 和 stability 文件保持增量兼容，不需要迁移。新增
+`agent-regression study` 和 `evaluate_sampling_study` API，用于评估接入方录制的
+provider/model 重复采样证据。manifest 是新的 `schema_version=0.1` 文件，默认不启用，不改变
+原有 `stability` 行为。
+
+先在未纳入版本控制的目录生成并审核脱敏 Trace 和 Contract，再执行：
+
+```bash
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --format markdown \
+  --out work/order-123-study/report.md
+```
+
+新报告记录公开 provider/model provenance 和哈希，拒绝敏感字段与越界路径；Contract 或样本策略
+失败时返回非零退出码。它不会调用供应商，也不会保存 API Key/原始 Prompt。完整说明见
+[v4.29 验收记录](docs/v4.29-acceptance.md)。
+
 ## v4.27.0 → v4.28.0
 
 v4.28 is additive for existing Trace, Contract and baseline files. No data

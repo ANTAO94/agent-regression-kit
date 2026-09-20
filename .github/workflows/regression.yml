@@ -73,6 +73,16 @@ jobs:
           --workers 4
           --min-runs 30
           --out work/ci-reports/order-123.sampling.json
+      - name: Evaluate recorded provider study boundary
+        if: always() && steps.install.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python examples/sampling-study/create_demo_study.py \
+            --out-dir work/order-123-study
+          agent-regression study \
+            --manifest work/order-123-study/study.json \
+            --out work/ci-reports/order-123.study.json
       - name: Record coverage evidence
         if: always() && steps.install.outcome == 'success'
         shell: bash
@@ -100,7 +110,7 @@ jobs:
           json-report: work/ci-reports/report-index.json
           markdown-report: work/ci-reports/report-index.md
           fail-on-regression: 'true'
-          required-reports: order-123.compare.json,order-123.stability.json,order-123.sampling.json,order-123.coverage.json,history.json
+          required-reports: order-123.compare.json,order-123.stability.json,order-123.sampling.json,order-123.study.json,order-123.coverage.json,history.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:

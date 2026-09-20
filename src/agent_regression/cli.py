@@ -48,6 +48,7 @@ from .reports import (
     render_markdown,
     render_scenario_batch_junit,
     render_scenario_batch_markdown,
+    render_sampling_study_markdown,
     render_stability_junit,
     render_stability_markdown,
     render_session_junit,
@@ -59,6 +60,7 @@ from .replay import replay_trace
 from .scaffold import initialize_project
 from .session import AgentSession, compare_sessions
 from .stability import StabilityPolicy, record_stability
+from .study import evaluate_sampling_study
 from .templates import initialize_adapter_template
 from .ui import serve_viewer
 from .version import __version__
@@ -516,6 +518,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
     )
 
+    study = subparsers.add_parser(
+        "study", help="evaluate recorded provider/model sampling evidence"
+    )
+    study.add_argument("--manifest", required=True)
+    study.add_argument("--out")
+    study.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
+    study.add_argument(
+        "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
+    )
+
     session_record = subparsers.add_parser(
         "session-record", help="record a deterministic multi-turn session"
     )
@@ -905,6 +917,20 @@ def main(argv: list[str] | None = None) -> int:
                 _write_text(render_stability_junit(report_value), args.out)
             elif args.format == "markdown":
                 _write_text(render_stability_markdown(report_value), args.out)
+            else:
+                _write_output(report_value, args.out)
+            return 0 if report.passed else 1
+
+        if args.command == "study":
+            report = evaluate_sampling_study(
+                args.manifest,
+                redaction_policy=redaction_policy,
+            )
+            report_value = report.to_dict()
+            if args.format == "junit":
+                _write_text(render_stability_junit(report_value), args.out)
+            elif args.format == "markdown":
+                _write_text(render_sampling_study_markdown(report_value), args.out)
             else:
                 _write_output(report_value, args.out)
             return 0 if report.passed else 1

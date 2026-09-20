@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.28）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.29）
 
-> 状态：v4.27 已落地，继续扩展在线随机性和真实用户验证
-> 当前基线版本：v4.28.0
+> 状态：v4.29 已落地，继续扩展在线随机性和真实用户验证
+> 当前基线版本：v4.29.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.28 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.29 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.28 目标 |
+| 维度 | v4.12 现状 | v4.29 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -46,6 +46,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
 | 任务级留出 | 没有任务级分区 | 只按 task ID 哈希生成互斥 holdout，记录集合摘要并在 CI 独立验收 |
 | 独立来源接入 | 只有 tau² 任务族 | 外部 AgentDojo 四 suite、五条样本可导入，来源/任务身份/Contract/oracle 与 Trace 隔离；模型级泛化仍待补齐 |
 | 重复运行不确定性 | 只有通过率和固定重复性 | stability 报告输出 Wilson 95% 区间，`min_runs` 可阻断样本不足；仍不等于在线模型质量 |
+| 外部采样 provenance | 真实供应商结果缺少统一文件边界 | `study` 固定 provider/model、输入和工具 schema 哈希、run ID、Contract 与样本策略；仍不替供应商执行 |
 
 ### 最终通过条件
 
@@ -645,6 +646,22 @@ v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本�
   的 CI（run `35541931223`）再次通过。
 - [ ] 这仍然不是在线模型采样方差、总体可靠性、更多模型族安全率或未参与实现用户研究。
 
+### 7.17 v4.29：记录式采样研究边界（已落地）
+
+v4.29 不直接调用在线供应商，而是把真实 Agent 的外部运行整理成可审核的 study bundle：
+manifest 记录非敏感 provenance，Trace 记录实际行为，框架只对冻结的 Contract 和重复运行证据
+做确定性决策。
+
+- [x] 新增 `SamplingProvenance`、`SamplingStudyReport`、`canonical_sha256` 和
+  `evaluate_sampling_study` 公共 API。
+- [x] 新增 `agent-regression study` CLI，校验 manifest schema、provider/model、输入与 tool
+  schema SHA-256、敏感字段、路径 containment、run ID/Trace 绑定和最低样本策略。
+- [x] 报告复用 Stability 的逐次运行结果、Wilson 区间和退出码，不嵌入原始 Trace、Prompt 或 API Key。
+- [x] 增加确定性 study 示例、`agent_sampling_study` history 类型和核心 CI required report。
+- [x] 本地测试达到 275 项。
+- [ ] 这仍不是在线供应商采样实验、总体可靠性、安全率或未参与实现用户研究；这些需要独立的
+  provider 运行、抽样设计和真实接入者。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -676,6 +693,9 @@ v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本�
 | `examples/agentdojo/matrix-v4.27.json` | 四条 Claude 模型族 important_instructions 样本的来源、Contract hash、oracle 和 expected outcome |
 | `statistics.py` | Wilson 区间计算，供 benchmark 和稳定性报告复用 |
 | `docs/v4.28-acceptance.md` | 重复运行采样证据、30 次 CI 门禁和边界 |
+| `study.py` | 记录式采样 provenance、manifest 校验和 study report |
+| `examples/sampling-study/` | 脱敏 Trace study bundle 生成器和双语接入说明 |
+| `docs/v4.29-acceptance.md` | 记录式采样研究格式、退出码、隐私边界和验收 |
 
 ## 9. CI 结构
 
@@ -698,6 +718,7 @@ v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本�
 | agentdojo-attack-family | v4.26 attack-family manifest、matrix validator 或 adapter 改动时 | 四条 ignore_previous 样本的 Contract/oracle/Trace 边界、expected outcome 和三次重复性必须通过 |
 | agentdojo-claude-model | v4.27 model-family manifest、matrix validator 或 adapter 改动时 | 四条 Claude pipeline 样本的模型身份、Contract/oracle/Trace 边界、expected outcome 和三次重复性必须通过 |
 | core-regression sampling | stability、statistics 或报告格式改动时 | 30 次重复、`--min-runs 30`、Wilson 区间和 required sampling report 必须通过 |
+| core-regression study | study、provenance、manifest 或报告格式改动时 | study bundle、敏感字段/路径/ID 校验、逐次证据和 required study report 必须通过 |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
 | release | tag 推送时 | 是 |
 
@@ -706,12 +727,12 @@ v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本�
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.28 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.29 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
 - AgentTrace schema 只有在数据结构无法向后表示时才升级，不随产品版本递增；
-- benchmark manifest 和 report 使用独立 schema version，避免绑定 Trace schema。
+- benchmark manifest、study manifest 和 report 使用独立 schema version，避免绑定 Trace schema。
 
 ## 11. 数据、安全与隐私
 
@@ -734,7 +755,7 @@ v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本�
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.28 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.29 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性、记录式采样证据和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -756,6 +777,7 @@ v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本�
 14. **v4.26**：四 suite `ignore_previous` 攻击族矩阵、显式 expected outcome、Contract provenance 和重复性 CI。
 15. **v4.27**：Claude 3.5 Sonnet 四 suite `important_instructions` 模型族矩阵、显式 expected outcome、Contract provenance 和重复性 CI。
 16. **v4.28**：重复运行稳定性 Wilson 95% 区间、有限样本提醒、`min_runs` 门禁和 30 次核心 CI sampling evidence。
+17. **v4.29**：记录式 sampling study、provider/model 与输入/工具 schema provenance、敏感字段和路径边界、逐次 Trace 绑定及核心 CI required study evidence。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布

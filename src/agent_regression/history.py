@@ -27,7 +27,13 @@ def _number(value: Any) -> float | int | None:
 
 def _classify(report: Mapping[str, Any]) -> str | None:
     explicit = report.get("report_type")
-    if explicit in {"agent_stability", "agent_compare", "agent_batch", "agent_coverage"}:
+    if explicit in {
+        "agent_stability",
+        "agent_sampling_study",
+        "agent_compare",
+        "agent_batch",
+        "agent_coverage",
+    }:
         return str(explicit)
     # Shape inference keeps older reports without report_type readable. An
     # explicit but unknown type must not be relabelled as a trusted report.
@@ -57,7 +63,7 @@ def _label(report: Mapping[str, Any], source: Path) -> str:
 
 def _metrics(report: Mapping[str, Any], report_type: str) -> Dict[str, float | int]:
     result: Dict[str, float | int] = {}
-    if report_type == "agent_stability":
+    if report_type in {"agent_stability", "agent_sampling_study"}:
         keys = (
             "pass_rate",
             "claims_match_rate",

@@ -273,6 +273,41 @@ finite observed repeats; they are not a population reliability guarantee.
 small dependency-free helper for consumers that need the same bounded interval
 calculation in their own evidence summaries.
 
+## Recorded sampling studies
+
+v4.29 adds a provider-neutral boundary for repeated runs recorded by an
+integrator rather than executed by the framework:
+
+- `canonical_sha256(value)` hashes a JSON-compatible input or tool schema with
+  sorted keys and compact separators. Store the digest, not the raw prompt, in
+  the study manifest.
+- `SamplingProvenance(provider, model, input_sha256, ...)` validates public
+  provider/model identity, optional tool-schema and dataset hashes, and JSON
+  sampling parameters. Keys that look like API keys, tokens, credentials,
+  passwords or secrets are rejected.
+- `evaluate_sampling_study(manifest_path, redaction_policy=None)` loads a
+  `schema_version=0.1` manifest, keeps referenced files inside its directory,
+  binds each declared run ID to its Trace `run_id`, and delegates comparison
+  and thresholds to the existing stability evaluator.
+- `SamplingStudyReport.to_dict()` emits `report_type=agent_sampling_study`, a
+  manifest SHA-256, public provenance, the existing per-run stability evidence
+  and Wilson intervals. Trace bodies are not embedded in the report.
+
+Minimal usage:
+
+```python
+from agent_regression import evaluate_sampling_study
+
+study = evaluate_sampling_study("work/order-123-study/study.json")
+if not study.passed:
+    raise SystemExit("sampling study blocked")
+```
+
+The CLI equivalent is `agent-regression study --manifest study.json`. This is
+an evidence-import boundary: it does not call an online provider, infer the
+correctness of hidden inputs from their hashes, or turn finite observations
+into a universal reliability claim.
+
 ## Async and parallel events
 
 Use the async boundary when one Agent run awaits multiple tools concurrently:

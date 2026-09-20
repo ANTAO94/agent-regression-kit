@@ -97,6 +97,29 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(-0.1, report.metric_trends["pass_rate"]["delta"])
         self.assertEqual([{"source": "notes.json", "reason": "unrecognized regression report"}], report.skipped)
 
+    def test_history_accepts_sampling_study_reports_as_stability_points(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_report(
+                root,
+                "001-study.json",
+                {
+                    "report_type": "agent_sampling_study",
+                    "label": "provider-study",
+                    "passed": True,
+                    "pass_rate": 0.8,
+                    "claims_match_rate": 0.9,
+                    "tool_error_rate": 0.1,
+                    "path_variant_count": 1,
+                },
+            )
+            report = build_history_report(root)
+
+        self.assertTrue(report.passed)
+        self.assertEqual("agent_sampling_study", report.points[0].report_type)
+        self.assertEqual("provider-study", report.points[0].label)
+        self.assertEqual(0.8, report.points[0].metrics["pass_rate"])
+
     def test_history_normalizes_compare_batch_and_coverage_reports(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

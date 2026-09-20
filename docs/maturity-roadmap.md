@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.28 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.29 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -71,6 +71,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 独立攻击族 | v4.26 | `ignore_previous` 四 suite 样本、2 条通过和 2 条预期阻断进入独立 CI；仍不是安全率或通用泛化 |
 | 模型族矩阵 | v4.27 | Claude 3.5 Sonnet 的 `important_instructions` 四 suite 样本、3 条通过和 1 条预期阻断进入独立 CI；仍不是在线方差或通用泛化 |
 | 重复运行采样证据 | v4.28 | Stability 输出 Wilson 95% 区间，支持 `--min-runs`，核心 CI 执行 30 次重复；仍不是在线模型质量或总体可靠性 |
+| 记录式采样研究 | v4.29 | `study` 导入脱敏 Trace，绑定 provider/model、输入/工具 schema 哈希、run ID 和 Contract；仍不负责供应商执行或总体可靠性 |
 
 ## 迭代顺序
 
@@ -417,6 +418,13 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] 核心 CI 用 30 次重复、`--min-runs 30` 和 required sampling report 验证样本门槛。
 - [x] 本地测试达到 271 项，并增加无第三方依赖的统计 helper 测试。
 - [ ] 有限重复运行仍不等于在线模型质量、总体可靠性或未见任务泛化；真实用户研究和更广模型族仍待补齐。
+
+### v4.29：记录式采样研究
+
+- [x] 增加 provider-neutral `study` manifest 和 `evaluate_sampling_study` API。
+- [x] 校验 provider/model provenance、输入/工具 schema SHA-256、敏感字段、路径 containment 和 run ID/Trace 绑定。
+- [x] 复用 Stability 的 Contract、Wilson 区间、逐次运行证据和退出码；新增确定性示例与核心 CI required report。
+- [ ] study 仍描述观察样本，不替代在线供应商实验、抽样设计、Contract 审核或真实用户研究。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

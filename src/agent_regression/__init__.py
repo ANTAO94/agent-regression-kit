@@ -79,6 +79,7 @@ from .reports import (
     render_session_junit,
     render_session_markdown,
     render_report_index_markdown,
+    render_sampling_study_markdown,
 )
 from .report_index import build_report_index
 from .scenario import StatefulFixtureTools, WorldState
@@ -92,6 +93,13 @@ from .stability import (
     record_stability,
 )
 from .statistics import wilson_interval
+from .study import (
+    STUDY_SCHEMA_VERSION,
+    SamplingProvenance,
+    SamplingStudyReport,
+    canonical_sha256,
+    evaluate_sampling_study,
+)
 from .sdk import AdapterSpec
 from .adapter_contract import check_adapter_contract, check_async_adapter_contract
 from .public_api import (
@@ -206,6 +214,11 @@ __all__ = [
     "evaluate_stability",
     "record_stability",
     "wilson_interval",
+    "STUDY_SCHEMA_VERSION",
+    "SamplingProvenance",
+    "SamplingStudyReport",
+    "canonical_sha256",
+    "evaluate_sampling_study",
     "AdapterSpec",
     "check_adapter_contract",
     "check_async_adapter_contract",
@@ -263,6 +276,7 @@ __all__ = [
     "render_scenario_batch_markdown",
     "render_stability_junit",
     "render_stability_markdown",
+    "render_sampling_study_markdown",
     "render_coverage_junit",
     "render_coverage_markdown",
     "render_session_junit",

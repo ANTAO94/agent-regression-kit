@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.28.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.29.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.28.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.29.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.29.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.28.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.29.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -748,6 +748,24 @@ agent-regression stability \
 报告中的 `uncertainty.pass_rate`、`claims_match_rate` 和 `tool_error_rate` 是观察到的有限重复
 运行的 95% 区间；`sample_size.small_sample_warning` 会在少于 30 次时提醒。它量化的是已执行
 运行的不确定性，不是在线模型质量、总体可靠性或通用泛化证明。完整边界见[v4.28 验收](v4.28-acceptance.md)。
+
+### v4.29：记录式采样研究
+
+v4.29 增加 `study` 命令和 `evaluate_sampling_study` API。真实 Agent 由接入方运行并保存脱敏
+Trace；manifest 只记录 provider、model、采样参数、输入/工具 schema 的 SHA-256、baseline、
+Contract 和每次运行的 Trace 路径。框架不接收 API Key，也不把原始 Prompt 写进报告。
+
+```bash
+python examples/sampling-study/create_demo_study.py \
+  --out-dir work/order-123-study
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --format markdown \
+  --out work/order-123-study/report.md
+```
+
+报告会同时输出每次运行的通过结果、Wilson 区间、样本门槛和 provenance。`study` 只描述观察到
+的样本，不宣称在线模型质量、总体可靠率或 Contract 完整性。完整格式和边界见[v4.29 验收](v4.29-acceptance.md)。
 
 ### v4.21：独立来源 AgentDojo 接入
 

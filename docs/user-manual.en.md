@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.28.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.29.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.28.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.29.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.29.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.28.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.29.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -769,6 +769,28 @@ intervals over the finite observed repeats; `sample_size.small_sample_warning`
 is true below 30 runs. This quantifies uncertainty in observed runs, not online
 model quality, population reliability or universal generalization. See the
 [v4.28 acceptance](v4.28-acceptance.md) for the full boundary.
+
+### v4.29: recorded sampling studies
+
+v4.29 adds the `study` command and `evaluate_sampling_study` API. The caller
+runs the real Agent and stores redacted Traces; the manifest records only the
+provider, model, sampling parameters, input/tool-schema SHA-256 values,
+baseline, Contract and per-run Trace paths. The framework does not receive an
+API key or put the raw prompt into the report.
+
+```bash
+python examples/sampling-study/create_demo_study.py \
+  --out-dir work/order-123-study
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --format markdown \
+  --out work/order-123-study/report.md
+```
+
+The report includes each run, Wilson intervals, the sample-size gate and
+provenance. `study` describes observed evidence; it does not claim online
+model quality, population reliability or Contract completeness. See the
+[v4.29 acceptance](v4.29-acceptance.md) for the manifest and boundaries.
 
 ### v4.21: independent AgentDojo source intake
 

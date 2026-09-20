@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.28.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.29.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.28.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.28.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.29.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.28.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.29.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.29.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -342,7 +342,7 @@ agent-regression performance gate \
 
 ## 8. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.28 发布记录 **271 项测试通过**，并验证构建、干净环境安装、
+当前适合本地开发与团队 CI 试点。v4.29 发布记录 **275 项测试通过**，并验证构建、干净环境安装、
 首用模板、性能 smoke、独立消费仓库升级和多个任务域的公开/前瞻评测。
 
 | 验证类型 | 已有证据 | 能说明什么 |
@@ -364,6 +364,7 @@ agent-regression performance gate \
 | 独立攻击族 | [AgentDojo v4.26 验收](docs/v4.26-acceptance.md)：新增 ignore_previous 四条样本，覆盖四个 suite，2 条通过、2 条按预期阻断 | 证明不同攻击类型可进入同一审计 gate；仍不是安全率或通用泛化 |
 | 模型族矩阵 | [AgentDojo v4.27 验收](docs/v4.27-acceptance.md)：Claude 3.5 Sonnet pipeline 的四 suite important_instructions 样本，3 条通过、1 条按预期阻断 | 补充独立模型族证据；仍不是在线方差研究或通用泛化 |
 | 重复运行采样证据 | [v4.28 验收](docs/v4.28-acceptance.md)：稳定性报告输出 Wilson 95% 区间，CI 用 30 次重复和 `--min-runs 30` 验证样本门槛 | 量化有限重复运行的不确定性；仍不是在线模型质量或总体可靠性结论 |
+| 记录式采样研究 | [v4.29 验收](docs/v4.29-acceptance.md)：`study` 读取脱敏 Trace、provider/model provenance、输入/工具 schema 哈希和逐次运行证据 | 让真实 Agent 的外部采样可审计接入；仍不负责供应商执行或总体可靠性结论 |
 
 τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
@@ -371,7 +372,7 @@ agent-regression performance gate \
 
 ## 9. 常见问题与文档
 
-当前版本的采样证据：[v4.28 验收记录](docs/v4.28-acceptance.md)。
+当前版本的采样证据：[v4.29 验收记录](docs/v4.29-acceptance.md)。
 
 | 问题 | 先检查 |
 | --- | --- |

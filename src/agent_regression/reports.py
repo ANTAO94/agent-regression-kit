@@ -319,6 +319,31 @@ def render_stability_markdown(report: Dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_sampling_study_markdown(report: Dict[str, Any]) -> str:
+    """Render stability evidence with provider/model provenance at the top."""
+    rendered = render_stability_markdown(report).splitlines()
+    rendered[0] = "# Agent Sampling Study"
+    provenance = report.get("provenance") or {}
+    metadata = [
+        f"- Study: `{report.get('study_id', '')}`",
+        f"- Provider: `{provenance.get('provider', '')}`",
+        f"- Model: `{provenance.get('model', '')}`",
+        f"- Input SHA-256: `{provenance.get('input_sha256', '')}`",
+        f"- Manifest SHA-256: `{report.get('manifest_sha256', '')}`",
+    ]
+    if provenance.get("adapter"):
+        metadata.append(f"- Adapter: `{provenance['adapter']}`")
+    if provenance.get("dataset_revision"):
+        metadata.append(f"- Dataset revision: `{provenance['dataset_revision']}`")
+    parameters = provenance.get("parameters")
+    if parameters:
+        metadata.append(
+            "- Sampling parameters: "
+            f"`{json.dumps(parameters, ensure_ascii=False, sort_keys=True)}`"
+        )
+    return "\n".join(rendered[:4] + metadata + [""] + rendered[4:]) + "\n"
+
+
 def render_stability_junit(report: Dict[str, Any]) -> str:
     """Render one JUnit testcase per repeated stability run."""
     runs = report.get("runs", [])

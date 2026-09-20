@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.28 deliberately stays small. The local Viewer
+Agent Regression Kit v4.29 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -145,3 +145,9 @@ is a read-only presentation layer, not a hosted management service.
 - v4.28 adds Wilson 95% intervals and `min_runs` to stability reports. These
   quantify uncertainty over the finite repeats that actually ran; they do not
   establish online model quality, population reliability or generalization.
+- v4.29 `study` evaluates recorded provider/model sampling evidence and keeps
+  provenance hashes separate from the Trace body. It does not call providers,
+  validate the hidden input represented by a hash, design a representative
+  sample, or prove that a Contract captures every business invariant. Secret
+  fields are rejected in the manifest, but integrators still own Trace
+  redaction and credential handling at the recording boundary.

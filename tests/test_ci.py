@@ -87,6 +87,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("v4.26-acceptance.md", workflow)
         self.assertIn("v4.27-acceptance.md", workflow)
         self.assertIn("v4.28-acceptance.md", workflow)
+        self.assertIn("v4.29-acceptance.md", workflow)
         self.assertIn("performance.md", workflow)
         self.assertIn("consumer-pilot.md", workflow)
         self.assertIn("state-equivalence.md", workflow)

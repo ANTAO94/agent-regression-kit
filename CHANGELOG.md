@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.29.0 - 2026-09-21
+
+- Add a provider-neutral `study` command and `evaluate_sampling_study` API for
+  evaluating recorded repeated runs with explicit provider/model, input hash,
+  tool-schema hash and sampling-parameter provenance.
+- Reject secret-like provenance fields and path escapes, bind each manifest run
+  ID to its Trace, and keep raw prompts/API keys outside the report boundary.
+- Add a deterministic recorded-study example and a required core CI report;
+  keep the evidence boundary explicit: observed samples are not a population
+  reliability or online-model-quality claim.
+
 ## 4.28.0 - 2026-09-21
 
 - Add Wilson 95% intervals and explicit finite-sample warnings to repeated-run
