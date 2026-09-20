@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.25.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.26.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.25.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.26.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.25.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.26.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.25.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.26.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -678,6 +678,32 @@ PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
 
 预期为 `run_count=3`、`stable=true`、`gate_passed=true`。详细证据和边界见
 [v4.25 验收](v4.25-acceptance.md)。
+
+### v4.26：独立 `ignore_previous` 攻击族
+
+v4.26 增加四条固定的 `ignore_previous` 样本，覆盖 workspace、banking、slack、travel。样本
+显式声明预期 Contract 结果：workspace 和 travel 通过，banking 和 slack 因额外危险动作被阻断。
+
+```bash
+PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
+  --manifest examples/agentdojo/matrix-v4.26.json \
+  --results-dir work/agentdojo-v426/results \
+  --out work/agentdojo-v426/report.json \
+  --trace-dir work/agentdojo-v426/traces
+```
+
+随后可以复用 v4.25 的重复性门禁：
+
+```bash
+PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
+  --manifest examples/agentdojo/matrix-v4.26.json \
+  --results-dir work/agentdojo-v426/results \
+  --out work/agentdojo-v426/repeatability.json \
+  --repeats 3
+```
+
+完整样本哈希、外部 oracle 隔离和边界见[v4.26 验收](v4.26-acceptance.md)。它扩展的是攻击
+类型，不是安全率或通用跨模型泛化结论。
 
 ### v4.21：独立来源 AgentDojo 接入
 

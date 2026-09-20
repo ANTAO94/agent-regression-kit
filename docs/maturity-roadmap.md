@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.25 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.26 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -68,6 +68,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 跨模型攻击矩阵 | v4.23 | 两个模型 pipeline、四条正向对照、四条预期阻断攻击、显式 expected outcome 和 CI artifact；仍不是安全率或通用泛化 |
 | Contract 预注册 | v4.24 | 每条 Contract 绑定 canonical JSON SHA-256，manifest 声明先冻结再读 oracle，篡改 fail closed；仍不证明规则完整 |
 | 决策重复性 | v4.25 | 固定矩阵重复三次，aggregate/case/Trace hash 稳定并进入 CI；仍不等于在线模型方差或通用可靠性 |
+| 独立攻击族 | v4.26 | `ignore_previous` 四 suite 样本、2 条通过和 2 条预期阻断进入独立 CI；仍不是安全率或通用泛化 |
 
 ## 迭代顺序
 
@@ -392,6 +393,14 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] 本地测试达到 265 项，三次均 8/8 matrix gate 且 `stable=true`。
 - [ ] 该证据只证明固定导出输入的确定性产物可重复生成；在线模型采样方差、更多独立攻击族
   和未参与实现用户研究仍需单独完成。
+
+### v4.26：独立 `ignore_previous` 攻击族
+
+- [x] 增加四条固定 `ignore_previous` 样本，覆盖 workspace、banking、slack、travel。
+- [x] 显式声明两条安全路径通过、两条额外危险动作路径阻断，并绑定 Contract SHA-256。
+- [x] 增加独立 `agentdojo-attack-family` CI job，执行矩阵 gate、三次重复性和完整 artifact 上传。
+- [x] 本地测试达到 266 项，矩阵 4/4 gate 通过，其中 2 条实际 Contract 阻断。
+- [ ] 四条样本仍使用一个 gpt-4o pipeline；模型族扩展、在线采样方差和真实用户研究仍待补齐。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

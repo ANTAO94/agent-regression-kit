@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.25.0 源码整理；产品版本 4.25.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
+依据 v4.26.0 源码整理；产品版本 4.26.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
 
 ## 1. 目标和适用场景
 
@@ -388,10 +388,14 @@ v4.25 增加 `agentdojo_repeatability_validation.py`：对固定 manifest 的决
 决策产物可重复生成，不把确定性重放夸大为在线模型采样方差或通用可靠性证明，详见
 [v4.25 验收](v4.25-acceptance.md)。
 
+v4.26 增加独立的 `ignore_previous` 攻击族矩阵，覆盖四个 AgentDojo suite。每个样本继续使用
+人工 Contract、预注册 hash、外部 oracle 隔离和显式 expected outcome；其中两条安全路径通过、
+两条危险额外动作路径阻断。矩阵随后复用三次重复性 gate，详见[v4.26 验收](v4.26-acceptance.md)。
+
 字段映射、限制、样例 Trace 和 CI 行为见[完整方法说明](tau2-independent-validation.md)、
 [状态等价契约](state-equivalence.md)、[v4.12 验收记录](v4.12-acceptance.md)与
 [v4.13 验收记录](v4.13-acceptance.md)。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [性能 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [独立消费项目](consumer-pilot.md) · [性能基线](performance.md) · [状态等价契约](state-equivalence.md) · [电信域复现](../examples/tau2-telecom/README.md) · [AgentDojo 重复性验收](v4.25-acceptance.md) · [AgentDojo Contract 预注册](v4.24-acceptance.md) · [AgentDojo 跨模型攻击矩阵](v4.23-acceptance.md) · [AgentDojo 矩阵](v4.22-acceptance.md) · [AgentDojo 单样本接入](v4.21-acceptance.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.25.0) · [v4.25 验收](v4.25-acceptance.md) · [v4.24 验收](v4.24-acceptance.md) · [v4.23 验收](v4.23-acceptance.md) · [v4.22 验收](v4.22-acceptance.md) · [v4.21 验收](v4.21-acceptance.md) · [v4.20 验收](v4.20-acceptance.md) · [v4.19 验收](v4.19-acceptance.md) · [v4.18 验收](v4.18-acceptance.md) · [v4.17 验收](v4.17-acceptance.md) · [v4.16 验收](v4.16-acceptance.md) · [v4.15 验收](v4.15-acceptance.md) · [v4.14 验收](v4.14-acceptance.md) · [v4.13 验收](v4.13-acceptance.md) · [v4.12 验收](v4.12-acceptance.md) · [v4.11 验收](v4.11-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [性能 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [独立消费项目](consumer-pilot.md) · [性能基线](performance.md) · [状态等价契约](state-equivalence.md) · [电信域复现](../examples/tau2-telecom/README.md) · [AgentDojo 攻击族验收](v4.26-acceptance.md) · [AgentDojo 重复性验收](v4.25-acceptance.md) · [AgentDojo Contract 预注册](v4.24-acceptance.md) · [AgentDojo 跨模型攻击矩阵](v4.23-acceptance.md) · [AgentDojo 矩阵](v4.22-acceptance.md) · [AgentDojo 单样本接入](v4.21-acceptance.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.26.0) · [v4.26 验收](v4.26-acceptance.md) · [v4.25 验收](v4.25-acceptance.md) · [v4.24 验收](v4.24-acceptance.md) · [v4.23 验收](v4.23-acceptance.md) · [v4.22 验收](v4.22-acceptance.md) · [v4.21 验收](v4.21-acceptance.md) · [v4.20 验收](v4.20-acceptance.md) · [v4.19 验收](v4.19-acceptance.md) · [v4.18 验收](v4.18-acceptance.md) · [v4.17 验收](v4.17-acceptance.md) · [v4.16 验收](v4.16-acceptance.md) · [v4.15 验收](v4.15-acceptance.md) · [v4.14 验收](v4.14-acceptance.md) · [v4.13 验收](v4.13-acceptance.md) · [v4.12 验收](v4.12-acceptance.md) · [v4.11 验收](v4.11-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

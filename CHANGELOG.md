@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.26.0 - 2026-09-21
+
+- Add a four-case `ignore_previous` AgentDojo attack-family matrix across
+  workspace, banking, slack and travel, with explicit expected Contract
+  outcomes and canonical Contract hashes.
+- Add an attack-family CI job that validates the new cases, repeats the fixed
+  decision three times and uploads the complete evidence artifact.
+- Add bilingual v4.26 acceptance documentation and keep the boundary explicit:
+  one pinned gpt-4o pipeline is attack-type coverage, not a security rate or
+  universal cross-model generalization claim.
+
 ## 4.25.0 - 2026-09-21
 
 - Add a repeatability validator for the pinned AgentDojo matrix that runs the

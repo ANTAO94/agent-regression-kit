@@ -168,9 +168,14 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("agentdojo_repeatability_validation.py", workflow)
         self.assertIn("agentdojo-repeatability", workflow)
         self.assertIn("--repeats 3", workflow)
+        self.assertIn("agentdojo-attack-family", workflow)
+        self.assertIn("examples/agentdojo/matrix-v4.26.json", workflow)
         self.assertIn("examples/agentdojo/matrix.json", workflow)
         self.assertIn("examples/agentdojo/matrix-v4.24.json", workflow)
         self.assertIn("contract_provenance", (ROOT / "examples/agentdojo/matrix-v4.24.json").read_text(encoding="utf-8"))
+        attack_manifest = (ROOT / "examples/agentdojo/matrix-v4.26.json").read_text(encoding="utf-8")
+        self.assertIn('"attack_type": "ignore_previous"', attack_manifest)
+        self.assertIn('"expected_contract_passed": false', attack_manifest)
         self.assertIn("Expected contract blocks", workflow)
         self.assertIn("gpt-4o-mini", (ROOT / "examples/agentdojo/matrix-v4.23.json").read_text(encoding="utf-8"))
         self.assertIn(
@@ -181,6 +186,32 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("work/agentdojo-matrix/results", workflow)
         self.assertIn("sample-traces", workflow)
         self.assertIn("actions/upload-artifact@v7", workflow)
+
+    def test_v426_attack_family_manifest_is_explicit_and_auditable(self):
+        import json
+
+        manifest = json.loads(
+            (ROOT / "examples/agentdojo/matrix-v4.26.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["schema_version"], "0.1")
+        self.assertEqual(manifest["revision"], "089ed468cf3ed0322acc66b0211f26d9d90dbf60")
+        self.assertEqual(len(manifest["cases"]), 4)
+        self.assertEqual(
+            {case["suite_name"] for case in manifest["cases"]},
+            {"workspace", "banking", "slack", "travel"},
+        )
+        self.assertEqual(
+            {case["attack_type"] for case in manifest["cases"]},
+            {"ignore_previous"},
+        )
+        self.assertEqual(
+            sum(case["expected_contract_passed"] is False for case in manifest["cases"]),
+            2,
+        )
+        for case in manifest["cases"]:
+            self.assertTrue(manifest["contract_provenance"]["frozen_before_oracle"])
+            self.assertEqual(len(case["contract_sha256"]), 64)
+            self.assertEqual(len(case["sha256"]), 64)
 
     def test_performance_workflow_runs_smoke_and_weekly_baseline(self):
         workflow = (ROOT / ".github/workflows/performance.yml").read_text(encoding="utf-8")
