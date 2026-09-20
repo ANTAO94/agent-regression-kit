@@ -66,6 +66,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("agent-regression migrate trace", workflow)
         self.assertIn("agent-regression workspace manifest", workflow)
         self.assertIn("v4-acceptance.md", workflow)
+        self.assertIn("v4.5-acceptance.md", workflow)
         self.assertIn("generate_release_metadata.py", workflow)
         self.assertIn("dist/SHA256SUMS", workflow)
         self.assertIn("actions/attest@v4", workflow)
@@ -93,6 +94,17 @@ class CiIntegrationTests(unittest.TestCase):
             ".github/ISSUE_TEMPLATE/config.yml",
         ):
             self.assertTrue((ROOT / path).is_file(), path)
+
+    def test_refund_business_case_workflow_proves_positive_and_negative_paths(self):
+        workflow = (ROOT / ".github/workflows/refund-business-case.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("refund_business_case.py", workflow)
+        self.assertIn("--behavior normal", workflow)
+        for behavior in ("wrong-order", "wrong-amount", "skip-eligibility", "duplicate-refund"):
+            self.assertIn(behavior, workflow)
+        self.assertIn('test "$exit_code" -eq 1', workflow)
+        self.assertIn("refund-business-case-evidence", workflow)
 
 
 if __name__ == "__main__":

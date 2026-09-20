@@ -1,0 +1,65 @@
+{
+  "required_claims": [
+    "final_answer.claims.order_id",
+    "final_answer.claims.refund_status",
+    "final_answer.claims.refund_amount",
+    "final_answer.claims.refund_eligible"
+  ],
+  "assertions": [
+    {"path": "final_answer.claims.order_id", "equals": "123"},
+    {"path": "final_answer.claims.refund_status", "equals": "refunded"},
+    {"path": "final_answer.claims.refund_amount", "equals": 88},
+    {"path": "final_answer.claims.refund_eligible", "equals": true}
+  ],
+  "must_call": [
+    {"tool": "get_order"},
+    {"tool": "check_refund_eligibility"},
+    {"tool": "refund_order"}
+  ],
+  "must_not_call": ["delete_order"],
+  "path_rules": {
+    "any_of": [[
+      {"tool": "get_order", "is_error": false},
+      {"tool": "check_refund_eligibility", "is_error": false},
+      {"tool": "refund_order", "is_error": false}
+    ]]
+  },
+  "side_effects": [
+    {"path": "orders.123.refund_count", "from": 0, "to": 1},
+    {"path": "orders.123.refunded_amount", "from": 0, "to": 88},
+    {"path": "orders.123.status", "from": "not_shipped", "to": "refunded"}
+  ],
+  "relations": [
+    {
+      "left": "tool_calls[0].arguments.order_id",
+      "operator": "equals",
+      "value": "123",
+      "message": "退款必须先查询用户请求中的订单"
+    },
+    {
+      "left": "tool_calls[1].arguments.order_id",
+      "operator": "equals_path",
+      "right_path": "tool_results[0].result.order_id",
+      "message": "资格检查必须使用订单查询返回的订单号"
+    },
+    {
+      "left": "tool_calls[2].arguments.order_id",
+      "operator": "equals_path",
+      "right_path": "tool_results[0].result.order_id",
+      "message": "退款必须使用订单查询返回的订单号"
+    },
+    {
+      "left": "tool_calls[2].arguments.amount",
+      "operator": "less_or_equal_path",
+      "right_path": "tool_results[0].result.paid_amount",
+      "message": "退款金额不得超过订单实付金额"
+    },
+    {
+      "left": "tool_calls[2].arguments.amount",
+      "operator": "equals_path",
+      "right_path": "tool_results[1].result.max_refund_amount",
+      "message": "退款金额必须遵守资格检查给出的上限"
+    }
+  ],
+  "max_steps": 3
+}

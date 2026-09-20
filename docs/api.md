@@ -506,7 +506,9 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
 - `ContractPolicy` adds deterministic Agent behavior rules: `assertions` with
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
   `sort`), `must_call`, `must_not_call`, `path_rules.any_of`, `side_effects`,
-  and `max_steps`. Put it under the
+  `relations`, and `max_steps`. A relation compares a candidate JSON path with
+  another candidate path or a fixed value using a finite operator set; missing
+  evidence and false comparisons block. Put it under the
   config file's `contract` object and pass it through `ComparisonPolicy`.
 - `replay_trace(trace)` validates and renders recorded evidence without executing tools.
 - `render_junit(report)` renders one comparison as JUnit XML.

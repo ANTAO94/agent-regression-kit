@@ -1,0 +1,60 @@
+name: Refund business case
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "examples/refund_business_case.py"
+      - "examples/refund-business-case/**"
+      - "tests/test_refund_business_case.py"
+      - ".github/workflows/refund-business-case.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "examples/refund_business_case.py"
+      - "examples/refund-business-case/**"
+      - "tests/test_refund_business_case.py"
+      - ".github/workflows/refund-business-case.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  business-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install the kit
+        run: python -m pip install .
+      - name: Pass the normal refund case
+        run: |
+          python examples/refund_business_case.py \
+            --behavior normal \
+            --out work/refund-business-case/candidate.trace.json
+          agent-regression compare \
+            --config examples/refund-business-case/compare.config.json
+      - name: Block known business defects
+        shell: bash
+        run: |
+          set -euo pipefail
+          for behavior in wrong-order wrong-amount skip-eligibility duplicate-refund; do
+            set +e
+            python examples/refund_business_case.py \
+              --behavior "$behavior" \
+              --out "work/refund-business-case/$behavior.trace.json" \
+              --compare-to examples/refund-business-case/baseline.trace.json \
+              --report "work/refund-business-case/$behavior.report.json"
+            exit_code=$?
+            set -e
+            test "$exit_code" -eq 1
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: refund-business-case-evidence
+          path: work/refund-business-case/

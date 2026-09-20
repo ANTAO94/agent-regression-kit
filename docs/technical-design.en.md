@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.4.1 source. Package version 4.4.1, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.5.0 source. Package version 4.5.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -99,7 +99,19 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | path_rules.any_of | Explicit accepted tool paths, optionally constraining result and is_error |
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
+| relations | Cross-step field constraints; missing or false relations block |
 | timestamp / sort | Fixed marker or repr-based list ordering, no user code execution |
+
+`relations` covers business constraints that a single-field assertion cannot
+express. It resolves JSON paths in the candidate `tool_calls`, `tool_results`,
+`final_answer` and `world_state` projections. For example, it can require
+`tool_calls[2].arguments.amount` to be less than or equal to
+`tool_results[0].result.paid_amount`, or require a later `order_id` to equal
+the ID returned by an earlier call. Relation checks are deterministic: missing
+paths, incomparable types and false comparisons produce a
+`contract_relation` difference, preserving the configured `message` as the
+diagnostic. Relations cannot infer whether prose truly expresses a claim and
+do not replace tool authorization.
 
 When a real framework already owns tool execution, use `FrameworkTraceRecorder`:
 call `on_tool_start` from the framework's tool-start callback, `on_tool_end`
@@ -172,7 +184,7 @@ agent-regression migrate trace \
   --out work/order-123.v4.trace.json
 ```
 
-The v4.4 release gate includes the repository test suite, Python 3.9/3.11/3.13
+The v4.5 release gate includes the repository test suite, Python 3.9/3.11/3.13
 core CI, LangChain Core event checks, positive and negative PydanticAI/OpenAI
 Agents/LangGraph checks, the single- and multi-tool DeepSeek live gate,
 wheel/source builds, SHA-256/SPDX/signed provenance, clean installation,
@@ -180,6 +192,6 @@ compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.1) · [v4.4 acceptance](v4.4-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.5.0) · [v4.5 acceptance](v4.5-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

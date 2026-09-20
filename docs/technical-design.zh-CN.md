@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.4.1 源码整理；产品版本 4.4.1、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.5.0 源码整理；产品版本 4.5.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
 
 ## 1. 目标和适用场景
 
@@ -100,7 +100,16 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | result_alignment | 默认按 call_id 关联工具结果；`order` 是旧的按事件位置对齐模式 |
 | side_effects | 约束已录制状态的 from/to 变化 |
 | required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
+| relations | 约束跨步骤字段关系；路径缺失或比较失败都会阻断 |
 | timestamp / sort | 固定时间标记或按 repr 排序列表，不执行用户脚本 |
+
+`relations` 解决单字段断言无法表达的业务约束。它从 candidate 的
+`tool_calls`、`tool_results`、`final_answer` 和 `world_state` 投影视图解析
+JSON 路径，例如让 `tool_calls[2].arguments.amount` 小于等于
+`tool_results[0].result.paid_amount`，或要求后续调用的 `order_id` 等于前一步
+返回的订单号。关系检查是确定性的，空路径、类型不兼容和不满足关系均生成
+`contract_relation` 差异；`message` 会作为失败解释保留下来。它不能自动判断
+自然语言是否真实表达了 claims，也不能代替工具权限控制。
 
 真实框架如果已经拥有工具执行生命周期，可以使用 `FrameworkTraceRecorder`：
 在框架的 tool-start 回调调用 `on_tool_start`，在 tool-end 回调调用
@@ -194,6 +203,6 @@ Core 事件接入检查、PydanticAI/OpenAI Agents/LangGraph 正反例、DeepSee
 manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等价于多年生产
 使用或任意 Agent 自动兼容。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.1) · [v4.4 验收](v4.4-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.5.0) · [v4.5 验收](v4.5-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

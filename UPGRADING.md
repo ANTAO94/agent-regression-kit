@@ -4,6 +4,20 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.4.1 → v4.5.0
+
+This feature release adds the `contract.relations` field. It is additive and
+does not change the Trace schema or existing Contract fields. Existing
+configurations continue to work without migration.
+
+Relations make cross-step business rules explicit. For example, a project can
+require a later refund amount to be less than or equal to the paid amount
+returned by an earlier lookup. See the [user manual](docs/user-manual.en.md)
+and the [refund business case](examples/refund-business-case/README.md).
+
+The release also adds a complete offline case with a reviewed baseline and
+four negative behaviors. Run the case before adapting it to a real framework.
+
 ## v4.3.0 → v4.4.1
 
 This release changes packaging and repository governance, not Trace or public

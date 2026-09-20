@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 4.5.0 - 2026-09-20
+
+- Add deterministic cross-step Contract relations for comparing values between Agent tool calls, tool results and business state.
+- Add a complete offline refund business case with a reviewed baseline, reusable contract, four injected defects and a dedicated CI workflow.
+- Add bilingual guidance for business contracts, relation operators, evidence boundaries and the first external-user acceptance path.
+
 ## 4.4.1 - 2026-09-20
 
 - Pass the generated SPDX filename to `actions/attest` as an exact step output; the v4.4.0 tag failed closed before release creation because `sbom-path` does not expand globs.

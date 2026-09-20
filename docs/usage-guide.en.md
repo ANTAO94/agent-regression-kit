@@ -267,7 +267,7 @@ In v2.8, a complete AgentTrace can be combined with an executable Agent Contract
 }
 ```
 
-`allow_categories` and `allow_paths` **relax baseline blocking rules**; every detected difference remains in the report. `contract` constrains candidate behavior: it can require or forbid tool calls, assert Trace fields, ignore dynamic fields, normalize timestamps/lists, and cap tool-call steps. `path_rules.any_of` declares multiple valid complete tool paths; the candidate must match one of them. A string tool rule checks only the tool name. `side_effects` checks a business-state transition such as an order changing from `paid` to `cancelled`. `secret_values` only provides redaction.
+`allow_categories` and `allow_paths` **relax baseline blocking rules**; every detected difference remains in the report. `contract` constrains candidate behavior: it can require or forbid tool calls, assert Trace fields, ignore dynamic fields, normalize timestamps/lists, and cap tool-call steps. `path_rules.any_of` declares multiple valid complete tool paths; the candidate must match one of them. A string tool rule checks only the tool name. `side_effects` checks a business-state transition such as an order changing from `paid` to `cancelled`. `relations` checks cross-step fields, such as requiring a later refund amount to stay within the paid amount returned by an earlier lookup. `secret_values` only provides redaction.
 
 `allow-path` matches a complete difference path already produced by the comparator. `contract.ignore_paths` is the nested JSON filter and supports `[*]`; for example, `tool_results[*].result.request_id` ignores each result's request ID without allowing the entire tool result to change.
 
@@ -571,7 +571,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.4.1
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.5.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

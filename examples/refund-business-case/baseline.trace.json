@@ -1,0 +1,138 @@
+{
+  "schema_version": "0.1",
+  "run_id": "refund-normal",
+  "agent": {
+    "name": "refund-business-agent",
+    "version": "1.0.0",
+    "behavior": "normal"
+  },
+  "events": [
+    {
+      "type": "tool_call",
+      "call_id": "call-1",
+      "tool": "get_order",
+      "arguments": {
+        "order_id": "123"
+      },
+      "sequence": 1
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-1",
+      "result": {
+        "order_id": "123",
+        "found": true,
+        "customer_id": "customer-7",
+        "status": "not_shipped",
+        "paid_amount": 88,
+        "refund_eligible": true,
+        "refund_count": 0,
+        "refunded_amount": 0
+      },
+      "is_error": false,
+      "sequence": 2
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-2",
+      "tool": "check_refund_eligibility",
+      "arguments": {
+        "order_id": "123"
+      },
+      "sequence": 3
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-2",
+      "result": {
+        "order_id": "123",
+        "eligible": true,
+        "max_refund_amount": 88
+      },
+      "is_error": false,
+      "sequence": 4
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-3",
+      "tool": "refund_order",
+      "arguments": {
+        "order_id": "123",
+        "amount": 88
+      },
+      "sequence": 5
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-3",
+      "result": {
+        "order_id": "123",
+        "refunded": true,
+        "refunded_amount": 88
+      },
+      "is_error": false,
+      "sequence": 6
+    },
+    {
+      "type": "final_answer",
+      "text": "订单 123退款完成。",
+      "claims": {
+        "order_id": "123",
+        "refund_status": "refunded",
+        "refund_amount": 88,
+        "refund_eligible": true
+      },
+      "sequence": 7
+    }
+  ],
+  "metadata": {
+    "input": {
+      "order_id": "123",
+      "request": "请退掉订单 123"
+    },
+    "case": "order-refund",
+    "behavior": "normal",
+    "world_state": {
+      "initial": {
+        "orders": {
+          "123": {
+            "customer_id": "customer-7",
+            "status": "not_shipped",
+            "paid_amount": 88,
+            "refund_eligible": true,
+            "refund_count": 0,
+            "refunded_amount": 0
+          },
+          "456": {
+            "customer_id": "customer-9",
+            "status": "shipped",
+            "paid_amount": 40,
+            "refund_eligible": false,
+            "refund_count": 0,
+            "refunded_amount": 0
+          }
+        }
+      },
+      "final": {
+        "orders": {
+          "123": {
+            "customer_id": "customer-7",
+            "status": "refunded",
+            "paid_amount": 88,
+            "refund_eligible": true,
+            "refund_count": 1,
+            "refunded_amount": 88
+          },
+          "456": {
+            "customer_id": "customer-9",
+            "status": "shipped",
+            "paid_amount": 40,
+            "refund_eligible": false,
+            "refund_count": 0,
+            "refunded_amount": 0
+          }
+        }
+      }
+    }
+  }
+}

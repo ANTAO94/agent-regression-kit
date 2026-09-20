@@ -138,6 +138,7 @@ class ContractPolicy:
     side_effects: List[Dict[str, Any]] = field(default_factory=list)
     max_steps: int | None = None
     required_claims: List[str] = field(default_factory=list)
+    relations: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.max_steps is not None and (
@@ -210,6 +211,50 @@ class ContractPolicy:
             _tokens(effect["path"])
             if "from" not in effect and "to" not in effect:
                 raise ValueError("a side effect needs at least one of from or to")
+        for relation in self.relations:
+            if not isinstance(relation, dict):
+                raise ValueError("contract.relations must contain objects")
+            _reject_unknown_fields(
+                relation,
+                {"left", "operator", "right_path", "value", "message"},
+                "relation",
+            )
+            if not isinstance(relation.get("left"), str) or not relation["left"].strip():
+                raise ValueError("contract relation left must be a non-empty path")
+            _tokens(relation["left"])
+            operator = relation.get("operator")
+            if operator not in {
+                "equals_path",
+                "not_equals_path",
+                "less_than_path",
+                "less_or_equal_path",
+                "greater_than_path",
+                "greater_or_equal_path",
+                "equals",
+                "not_equals",
+                "less_than",
+                "less_or_equal",
+                "greater_than",
+                "greater_or_equal",
+                "in",
+            }:
+                raise ValueError("unsupported contract relation operator")
+            needs_path = operator.endswith("_path")
+            if needs_path:
+                if not isinstance(relation.get("right_path"), str) or not relation["right_path"].strip():
+                    raise ValueError(f"relation operator {operator} requires right_path")
+                _tokens(relation["right_path"])
+                if "value" in relation:
+                    raise ValueError(f"relation operator {operator} cannot use value")
+            else:
+                if "value" not in relation:
+                    raise ValueError(f"relation operator {operator} requires value")
+                if "right_path" in relation:
+                    raise ValueError(f"relation operator {operator} cannot use right_path")
+            if "message" in relation and (
+                not isinstance(relation["message"], str) or not relation["message"].strip()
+            ):
+                raise ValueError("relation.message must be a non-empty string")
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any] | None) -> "ContractPolicy":
@@ -225,6 +270,7 @@ class ContractPolicy:
             "must_not_call",
             "path_rules",
             "side_effects",
+            "relations",
             "max_steps",
             "required_claims",
         }
@@ -261,6 +307,9 @@ class ContractPolicy:
         side_effects = value.get("side_effects", [])
         if not isinstance(side_effects, list) or not all(isinstance(item, dict) for item in side_effects):
             raise ValueError("contract.side_effects must be an array of objects")
+        relations = value.get("relations", [])
+        if not isinstance(relations, list) or not all(isinstance(item, dict) for item in relations):
+            raise ValueError("contract.relations must be an array of objects")
         required_claims = value.get("required_claims", [])
         if not isinstance(required_claims, list) or not all(
             isinstance(item, str) and item.strip() for item in required_claims
@@ -274,6 +323,7 @@ class ContractPolicy:
             must_not_call=forbidden_rules,
             path_rules=deepcopy(path_rules),
             side_effects=[dict(item) for item in side_effects],
+            relations=[dict(item) for item in relations],
             max_steps=value.get("max_steps"),
             required_claims=list(required_claims),
         )
@@ -293,6 +343,7 @@ class ContractPolicy:
             "must_not_call": tool_rules(self.must_not_call),
             "path_rules": deepcopy(self.path_rules),
             "side_effects": deepcopy(self.side_effects),
+            "relations": deepcopy(self.relations),
             "max_steps": self.max_steps,
             "required_claims": list(self.required_claims),
         }
@@ -369,6 +420,39 @@ class ContractPolicy:
                         "baseline": "present",
                         "candidate": None,
                         "message": "required claim was not observed",
+                    }
+                )
+
+        for relation in self.relations:
+            left_values = _lookup(candidate_data, _tokens(relation["left"]))
+            if relation["operator"].endswith("_path"):
+                right_values = _lookup(candidate_data, _tokens(relation["right_path"]))
+            else:
+                right_values = [relation["value"]]
+            passed = self._relation_matches(
+                relation["operator"], left_values, right_values
+            )
+            if not passed:
+                right_label = (
+                    relation.get("right_path")
+                    if relation["operator"].endswith("_path")
+                    else relation.get("value")
+                )
+                differences.append(
+                    {
+                        "category": "contract_relation",
+                        "path": relation["left"],
+                        "baseline": {
+                            "operator": relation["operator"],
+                            "right": right_label,
+                        },
+                        "candidate": {
+                            "left_values": left_values or None,
+                            "right_values": right_values or None,
+                        },
+                        "message": relation.get(
+                            "message", "contract relation failed"
+                        ),
                     }
                 )
 
@@ -511,6 +595,44 @@ class ContractPolicy:
     def _tool_rule_matches(rule: Mapping[str, Any], event: Mapping[str, Any]) -> bool:
         return event.get("tool") == rule.get("tool") and (
             "arguments" not in rule or event.get("arguments") == rule["arguments"]
+        )
+
+    @staticmethod
+    def _relation_matches(
+        operator: str, left_values: Sequence[Any], right_values: Sequence[Any]
+    ) -> bool:
+        """Evaluate a relation over JSON paths without executing user code.
+
+        A relation succeeds when every resolved left value has a matching right
+        value. Empty paths fail, which turns missing evidence into a visible
+        contract failure instead of silently passing it.
+        """
+        if not left_values or not right_values:
+            return False
+
+        def compare(left: Any, right: Any, op: str) -> bool:
+            try:
+                if op in {"equals_path", "equals"}:
+                    return left == right
+                if op in {"not_equals_path", "not_equals"}:
+                    return left != right
+                if op in {"less_than_path", "less_than"}:
+                    return left < right
+                if op in {"less_or_equal_path", "less_or_equal"}:
+                    return left <= right
+                if op in {"greater_than_path", "greater_than"}:
+                    return left > right
+                if op in {"greater_or_equal_path", "greater_or_equal"}:
+                    return left >= right
+                if op == "in":
+                    return left in right if isinstance(right, (list, str, dict)) else False
+            except (TypeError, ValueError):
+                return False
+            return False
+
+        return all(
+            any(compare(left, right, operator) for right in right_values)
+            for left in left_values
         )
 
     @staticmethod

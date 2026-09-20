@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.4.1. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.5.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.4.1 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.5.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -168,12 +168,49 @@ Store expected evidence in baseline files and policy in a separate config. Examp
 | allow_paths | Permit exact reported difference paths; not wildcard filtering |
 | path_rules.any_of | Explicit alternatives for allowed tool sequences |
 | side_effects | Constraints on recorded initial/final world snapshots |
+| relations | Cross-step field rules such as refund amount <= the paid amount returned by lookup |
 
 tool_calls, tool_results and final_answer are comparison projections of events. Do not rewrite Trace events to use them. Assertions use the raw candidate projection, not the ignored/normalized comparison value. All values matched by a wildcard assertion must satisfy it.
 
+### Cross-step business relations
+
+Fixed assertions check one field against one value. Business Agents also need to carry facts from one tool result into the next call. `relations` expresses these constraints with JSON paths and a finite operator set; it never executes user code:
+
+```json
+{
+  "relations": [
+    {
+      "left": "tool_calls[1].arguments.order_id",
+      "operator": "equals_path",
+      "right_path": "tool_results[0].result.order_id",
+      "message": "eligibility must use the order returned by lookup"
+    },
+    {
+      "left": "tool_calls[2].arguments.amount",
+      "operator": "less_or_equal_path",
+      "right_path": "tool_results[0].result.paid_amount",
+      "message": "refund amount must not exceed the paid amount"
+    }
+  ]
+}
+```
+
+Missing paths, incomparable types or a false relation all fail. Supported path operators are `equals_path`, `not_equals_path`, `less_than_path`, `less_or_equal_path`, `greater_than_path` and `greater_or_equal_path`. Fixed-value operators are `equals`, `not_equals`, `less_than`, `less_or_equal`, `greater_than`, `greater_or_equal` and `in`. A failure reports the left path, the right path or value, and the configured `message`.
+
+Run the complete refund case:
+
+```bash
+python examples/refund_business_case.py \
+  --behavior normal \
+  --out work/refund-business-case/candidate.trace.json
+agent-regression compare --config examples/refund-business-case/compare.config.json
+```
+
+The case also includes four controlled defects: `wrong-order`, `wrong-amount`, `skip-eligibility` and `duplicate-refund`. Use them to prove that the gate catches business regressions. See the [refund business case](../examples/refund-business-case/README.md).
+
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v4.4.1. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.5.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -262,7 +299,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.4.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.5.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -285,7 +322,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.4.1
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.5.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -355,7 +392,7 @@ agent-regression validate --trace work/order-123.v4.trace.json
 ```
 
 The migration report contains status and schema versions only; it does not copy
-Trace events. See the [v4.4 acceptance contract](v4.4-acceptance.md) for the
+Trace events. See the [v4.5 acceptance contract](v4.5-acceptance.md) for the
 complete release checklist.
 
 ## 9. Troubleshooting and maintenance

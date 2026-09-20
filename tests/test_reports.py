@@ -37,6 +37,30 @@ class ReportTests(unittest.TestCase):
         self.assertIn("**Status:** `PASS`", markdown)
         self.assertIn("No differences detected.", markdown)
 
+    def test_markdown_report_exposes_diagnostic_expected_and_actual_values(self):
+        markdown = render_markdown(
+            {
+                "passed": False,
+                "baseline_run_id": "base",
+                "candidate_run_id": "candidate",
+                "difference_count": 1,
+                "blocking_difference_count": 1,
+                "differences": [
+                    {
+                        "category": "contract_relation",
+                        "path": "tool_calls[2].arguments.amount",
+                        "message": "refund amount must not exceed paid amount",
+                        "baseline": {"operator": "less_or_equal_path"},
+                        "candidate": {"left_values": [880], "right_values": [88]},
+                        "allowed": False,
+                    }
+                ],
+            }
+        )
+        self.assertIn("refund amount must not exceed paid amount", markdown)
+        self.assertIn('`{"operator":"less_or_equal_path"}`', markdown)
+        self.assertIn('`{"left_values":[880],"right_values":[88]}`', markdown)
+
     def test_failed_comparison_renders_junit_failure(self):
         xml = render_junit(
             {

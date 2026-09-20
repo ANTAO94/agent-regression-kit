@@ -7,6 +7,21 @@ from typing import Any, Dict
 from .coverage import path_to_string
 
 
+def _markdown_value(value: Any) -> str:
+    """Render a compact, escaped value for a human-readable report."""
+    if value is None:
+        rendered = "null"
+    else:
+        try:
+            rendered = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        except TypeError:
+            rendered = str(value)
+    rendered = rendered.replace("|", "\\|").replace("\n", " ")
+    if len(rendered) > 320:
+        rendered = rendered[:317] + "..."
+    return f"`{rendered}`"
+
+
 def render_junit(report: Dict[str, Any]) -> str:
     """Render one comparison report as a portable JUnit XML suite."""
     passed = bool(report.get("passed"))
@@ -76,12 +91,24 @@ def render_markdown(report: Dict[str, Any]) -> str:
     if not differences:
         lines.append("No differences detected.")
         return "\n".join(lines) + "\n"
-    lines.extend(["| Status | Category | Path |", "| --- | --- | --- |"])
+    lines.extend(
+        [
+            "| Status | Category | Path | Diagnostic | Expected | Actual |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+    )
     for difference in differences:
         difference_status = "allowed" if difference.get("allowed") else "blocking"
         category = str(difference.get("category", "")).replace("|", "\\|")
         path = str(difference.get("path", "")).replace("|", "\\|")
-        lines.append(f"| {difference_status} | `{category}` | `{path}` |")
+        diagnostic = str(
+            difference.get("message", "observed difference")
+        ).replace("|", "\\|").replace("\n", " ")
+        lines.append(
+            f"| {difference_status} | `{category}` | `{path}` | {diagnostic} | "
+            f"{_markdown_value(difference.get('baseline'))} | "
+            f"{_markdown_value(difference.get('candidate'))} |"
+        )
     lines.append("")
     return "\n".join(lines) + "\n"
 
