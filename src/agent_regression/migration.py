@@ -91,6 +91,7 @@ def _detect_kind(value: Mapping[str, Any]) -> str:
             "side_effects",
             "relations",
             "required_claims",
+            "tool_limits",
         )
     ):
         return "contract"

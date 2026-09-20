@@ -45,6 +45,18 @@ class MigrationTests(unittest.TestCase):
         self.assertFalse(result["migration_required"])
         self.assertEqual("agent_compatibility", result["report_type"])
 
+    def test_compatibility_detects_a_tool_limits_only_contract(self):
+        result = build_compatibility_report(
+            config={
+                "tool_limits": [
+                    {"tool": "get_order", "min_calls": 1, "max_calls": 1}
+                ]
+            },
+            public_api_version="4",
+        )
+        self.assertTrue(result["ok"], result)
+        self.assertEqual("agent_compatibility", result["report_type"])
+
     def test_compatibility_rejects_unsupported_schema_and_accepts_session(self):
         trace = self._trace()
         session = {

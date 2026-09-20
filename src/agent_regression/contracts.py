@@ -140,6 +140,7 @@ class ContractPolicy:
     max_steps: int | None = None
     required_claims: List[str] = field(default_factory=list)
     relations: List[Dict[str, Any]] = field(default_factory=list)
+    tool_limits: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.max_steps is not None and (
@@ -176,6 +177,29 @@ class ContractPolicy:
             _reject_unknown_fields(rule, {"tool", "arguments"}, "tool rule")
             if "arguments" in rule and not isinstance(rule["arguments"], dict):
                 raise ValueError("contract tool rule arguments must be an object")
+        for limit in self.tool_limits:
+            if not isinstance(limit, dict) or not isinstance(limit.get("tool"), str) or not limit["tool"]:
+                raise ValueError("contract tool limits must contain a non-empty tool")
+            _reject_unknown_fields(
+                limit,
+                {"tool", "arguments", "min_calls", "max_calls"},
+                "tool limit",
+            )
+            if "arguments" in limit and not isinstance(limit["arguments"], dict):
+                raise ValueError("tool limit arguments must be an object")
+            if "min_calls" not in limit and "max_calls" not in limit:
+                raise ValueError("a tool limit needs min_calls or max_calls")
+            for bound in ("min_calls", "max_calls"):
+                if bound in limit and (
+                    not isinstance(limit[bound], int) or isinstance(limit[bound], bool) or limit[bound] < 0
+                ):
+                    raise ValueError(f"tool limit {bound} must be a non-negative integer")
+            if (
+                "min_calls" in limit
+                and "max_calls" in limit
+                and limit["min_calls"] > limit["max_calls"]
+            ):
+                raise ValueError("tool limit min_calls cannot exceed max_calls")
         if not isinstance(self.path_rules, dict):
             raise ValueError("contract.path_rules must be an object")
         _reject_unknown_fields(
@@ -302,6 +326,7 @@ class ContractPolicy:
             "relations",
             "max_steps",
             "required_claims",
+            "tool_limits",
         }
         unknown_fields = sorted(set(value) - allowed_fields)
         if unknown_fields:
@@ -339,6 +364,11 @@ class ContractPolicy:
         relations = value.get("relations", [])
         if not isinstance(relations, list) or not all(isinstance(item, dict) for item in relations):
             raise ValueError("contract.relations must be an array of objects")
+        tool_limits = value.get("tool_limits", [])
+        if not isinstance(tool_limits, list) or not all(
+            isinstance(item, dict) for item in tool_limits
+        ):
+            raise ValueError("contract.tool_limits must be an array of objects")
         required_claims = value.get("required_claims", [])
         if not isinstance(required_claims, list) or not all(
             isinstance(item, str) and item.strip() for item in required_claims
@@ -355,6 +385,7 @@ class ContractPolicy:
             relations=[dict(item) for item in relations],
             max_steps=value.get("max_steps"),
             required_claims=list(required_claims),
+            tool_limits=[dict(item) for item in tool_limits],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -375,6 +406,7 @@ class ContractPolicy:
             "relations": deepcopy(self.relations),
             "max_steps": self.max_steps,
             "required_claims": list(self.required_claims),
+            "tool_limits": deepcopy(self.tool_limits),
         }
 
     @property
@@ -514,6 +546,36 @@ class ContractPolicy:
                         "baseline": None,
                         "candidate": rule,
                         "message": "forbidden tool call was observed",
+                    }
+                )
+        for limit in self.tool_limits:
+            matches = [
+                event
+                for event in candidate_calls
+                if self._tool_rule_matches(limit, event)
+            ]
+            count = len(matches)
+            minimum = limit.get("min_calls")
+            maximum = limit.get("max_calls")
+            below_minimum = minimum is not None and count < minimum
+            above_maximum = maximum is not None and count > maximum
+            if below_minimum or above_maximum:
+                if minimum is not None and maximum is not None:
+                    expected = f"between {minimum} and {maximum}"
+                elif minimum is not None:
+                    expected = f"at least {minimum}"
+                else:
+                    expected = f"at most {maximum}"
+                differences.append(
+                    {
+                        "category": "tool_count",
+                        "path": f"tool_calls.count.{limit['tool']}",
+                        "baseline": deepcopy(limit),
+                        "candidate": count,
+                        "message": (
+                            f"tool call count for {limit['tool']!r} must be {expected}; "
+                            f"observed {count}"
+                        ),
                     }
                 )
         path_details = self._path_match_details(candidate_calls, candidate_results)

@@ -4,6 +4,30 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.7.0 → v4.8.0
+
+This feature release adds optional `contract.tool_limits` rules. Existing
+Contracts continue to work unchanged when the field is absent. Use `min_calls`
+for a lower bound, `max_calls` for an upper bound, or both for an exact count;
+the optional `arguments` object scopes which calls are counted.
+
+```json
+{
+  "contract": {
+    "tool_limits": [
+      {"tool": "get_order", "min_calls": 1, "max_calls": 1},
+      {"tool": "refund_order", "max_calls": 1}
+    ]
+  }
+}
+```
+
+Violations produce a `tool_count` difference with the configured rule and
+observed count. The feature does not change Trace schema or public API version,
+and it does not replace `must_not_call`, path rules or side-effect checks. See
+the [v4.8 acceptance contract](docs/v4.8-acceptance.md) and the [refund
+business case](examples/refund-business-case/README.md).
+
 ## v4.6.1 → v4.7.0
 
 This feature release adds the optional `contract.path_rules.extra_calls`

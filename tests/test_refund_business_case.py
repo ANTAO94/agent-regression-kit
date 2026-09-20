@@ -34,7 +34,7 @@ class RefundBusinessCaseTests(unittest.TestCase):
             "wrong-order": {"contract_relation", "behavior_path"},
             "wrong-amount": {"contract_relation", "tool_error_state"},
             "skip-eligibility": {"required_tool", "behavior_path"},
-            "duplicate-refund": {"behavior_path", "step_limit"},
+            "duplicate-refund": {"behavior_path", "step_limit", "tool_count"},
         }
         policy = ComparisonPolicy(final_answer_mode="claims-only", contract=build_contract())
         for behavior, categories in expected_categories.items():

@@ -271,6 +271,13 @@ In v2.8, a complete AgentTrace can be combined with an executable Agent Contract
 
 `allow-path` matches a complete difference path already produced by the comparator. `contract.ignore_paths` is the nested JSON filter and supports `[*]`; for example, `tool_results[*].result.request_id` ignores each result's request ID without allowing the entire tool result to change.
 
+v4.8 adds `tool_limits` for per-tool call-count boundaries. `min_calls` is a
+lower bound, `max_calls` is an upper bound, and equal values express an exact
+count; optional `arguments` counts only exact argument matches. Violations
+produce `tool_count`, which is useful for blocking duplicate refunds, repeated
+writes and accidental loops. It complements `max_steps`, `must_not_call` and
+side-effect Contracts; it is not authorization.
+
 ### Stateful scenarios and side effects
 
 A normal Trace says which tools the Agent called. A stateful scenario also proves that those calls did not corrupt an order, inventory, or permission state. Give the tool executor a `snapshot()` method and the recorder automatically stores the state before and after the run:
@@ -571,7 +578,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.7.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.8.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

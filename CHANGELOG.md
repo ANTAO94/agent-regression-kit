@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.8.0 - 2026-09-20
+
+- Add `contract.tool_limits` for per-tool minimum and maximum call counts.
+- Support exact counts, argument-scoped counting and `tool_count` diagnostics.
+- Strengthen the refund business case so duplicate refunds fail on count, path and step-limit evidence.
+- Add bilingual v4.8 acceptance documentation and package/release checks.
+
 ## 4.7.0 - 2026-09-20
 
 - Add optional `contract.path_rules.extra_calls` allowlists for tolerant path modes.

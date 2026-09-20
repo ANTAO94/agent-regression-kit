@@ -254,6 +254,118 @@ class ContractTests(unittest.TestCase):
                 {"relations": [{"left": "a", "operator": "regex", "value": "x"}]}
             )
 
+    def test_tool_limits_enforce_call_counts_and_optional_arguments(self):
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "tool_limits": [
+                        {"tool": "get_order", "min_calls": 1, "max_calls": 1},
+                        {"tool": "get_payment_status", "min_calls": 1},
+                    ]
+                }
+            ),
+        )
+        passed = compare_traces(
+            make_path_trace(["get_order", "get_payment_status"]),
+            make_path_trace(["get_order", "get_payment_status"]),
+            policy,
+        )
+        self.assertTrue(passed["passed"], passed["differences"])
+
+        repeated = compare_traces(
+            make_path_trace(["get_order", "get_order"]),
+            make_path_trace(["get_order", "get_order"]),
+            ComparisonPolicy(
+                final_answer_mode="claims-only",
+                contract=ContractPolicy.from_dict(
+                    {"tool_limits": [{"tool": "get_order", "max_calls": 1}]}
+                ),
+            ),
+        )
+        self.assertFalse(repeated["passed"])
+        repeated_difference = next(
+            item for item in repeated["differences"] if item["category"] == "tool_count"
+        )
+        self.assertEqual("tool_calls.count.get_order", repeated_difference["path"])
+        self.assertEqual(2, repeated_difference["candidate"])
+
+        missing = compare_traces(
+            make_path_trace(["get_order"]),
+            make_path_trace(["get_order"]),
+            policy,
+        )
+        self.assertFalse(missing["passed"])
+        self.assertTrue(
+            any(
+                item["category"] == "tool_count"
+                and item["path"] == "tool_calls.count.get_payment_status"
+                for item in missing["differences"]
+            )
+        )
+
+        argument_scoped = compare_traces(
+            make_path_trace(["get_order"]),
+            make_path_trace(["get_order"]),
+            ComparisonPolicy(
+                final_answer_mode="claims-only",
+                contract=ContractPolicy.from_dict(
+                    {
+                        "tool_limits": [
+                            {
+                                "tool": "get_order",
+                                "arguments": {"order_id": "999"},
+                                "min_calls": 1,
+                            }
+                        ]
+                    }
+                ),
+            ),
+        )
+        self.assertFalse(argument_scoped["passed"])
+        self.assertIn(
+            "tool_count",
+            {item["category"] for item in argument_scoped["differences"]},
+        )
+
+    def test_tool_limits_are_validated_and_serialized(self):
+        policy = ContractPolicy.from_dict(
+            {
+                "tool_limits": [
+                    {"tool": "get_order", "min_calls": 1, "max_calls": 2}
+                ]
+            }
+        )
+        self.assertEqual(
+            [{"tool": "get_order", "min_calls": 1, "max_calls": 2}],
+            policy.to_dict()["tool_limits"],
+        )
+        cases = [
+            (
+                {"tool_limits": [{"tool": "get_order", "limit": 1}]},
+                "unsupported tool limit fields",
+            ),
+            ({"tool_limits": [{"tool": "get_order"}]}, "needs min_calls or max_calls"),
+            (
+                {"tool_limits": [{"tool": "get_order", "min_calls": -1}]},
+                "min_calls must be a non-negative integer",
+            ),
+            (
+                {"tool_limits": [{"tool": "get_order", "min_calls": 2, "max_calls": 1}]},
+                "min_calls cannot exceed max_calls",
+            ),
+            (
+                {"tool_limits": [{"tool": "get_order", "max_calls": True}]},
+                "max_calls must be a non-negative integer",
+            ),
+        ]
+        for value, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    ContractPolicy.from_dict(value)
+        with self.assertRaisesRegex(ValueError, "tool_limits must be an array"):
+            ContractPolicy.from_dict({"tool_limits": {"tool": "get_order"}})
+
     def test_contract_rejects_unknown_fields_instead_of_ignoring_typos(self):
         with self.assertRaisesRegex(ValueError, "unsupported contract fields"):
             ContractPolicy.from_dict({"must_not_cal": ["delete_order"]})

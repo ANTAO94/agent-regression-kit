@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.7.0 source. Package version 4.7.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.8.0 source. Package version 4.8.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -99,6 +99,7 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | path_rules.any_of | Explicit accepted tool paths, optionally constraining result and is_error |
 | path_rules.mode | `exact`, `ordered_subsequence` or `unordered_subset`; omitted means strict complete-path matching |
 | path_rules.extra_calls | Explicit allowlist for unmatched calls in tolerant modes; omitted preserves v4.6, an empty list rejects all extras |
+| tool_limits | Per-tool, optionally argument-scoped minimum/maximum counts; failures produce `tool_count` |
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | relations | Cross-step field constraints; missing or false relations block |
@@ -116,6 +117,14 @@ an `extra_tool_call` diagnostic in addition to the overall `behavior_path`
 failure. The comparator does not force extra events into baseline result
 positions, so business-significant extra results should still be declared with
 path-rule `result`/`is_error`, assertions, relations or side effects.
+
+`tool_limits` controls call counts rather than the global step total: only
+`min_calls` checks a lower bound, only `max_calls` checks an upper bound, and
+equal values express an exact count. Optional `arguments` scopes the count to
+calls with an exact argument match. A violation produces `tool_count` at
+`tool_calls.count.<tool>` with the configured rule and observed count. This
+complements `max_steps`, `must_not_call` and side-effect checks; it is not
+authorization.
 
 `relations` covers business constraints that a single-field assertion cannot
 express. It resolves JSON paths in the candidate `tool_calls`, `tool_results`,
@@ -207,6 +216,6 @@ compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.7.0) · [v4.7 acceptance](v4.7-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.8.0) · [v4.8 acceptance](v4.8-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

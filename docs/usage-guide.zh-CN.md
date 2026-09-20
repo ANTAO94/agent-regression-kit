@@ -265,6 +265,11 @@ v2.8 在完整 AgentTrace 之上提供了可执行的 Agent Contract。你可以
 
 `allow-path` 匹配比较器已经产生的完整差异路径；`contract.ignore_paths` 才支持深入嵌套 JSON，并支持 `[*]` 通配。例如 `tool_results[*].result.request_id` 可以忽略每个工具结果里的 request ID，而不会放宽整个工具结果。
 
+v4.8 增加 `tool_limits`，用于表达单个工具的调用次数边界。`min_calls` 是下限，
+`max_calls` 是上限，两个值相同表示恰好次数；可选 `arguments` 只统计参数完全匹配的
+调用。违反规则会生成 `tool_count`，适合阻断重复退款、重复写操作和意外循环；它和
+`max_steps`、`must_not_call`、副作用契约互补，不提供权限本身。
+
 ### 有状态场景和副作用检查
 
 普通 Trace 只能说明 Agent 调用了什么工具；有状态场景还要说明这些调用有没有把订单、库存或权限状态改坏。实现一个带 `snapshot()` 的工具执行器即可让录制器自动写入：
@@ -526,7 +531,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.7.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.8.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
