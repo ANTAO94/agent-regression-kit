@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.1.0 source. Package version 4.1.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.2.0 source. Package version 4.2.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -172,13 +172,13 @@ agent-regression migrate trace \
   --out work/order-123.v4.trace.json
 ```
 
-The v4.1 release gate includes the repository test suite, Python 3.9/3.11/3.13
+The v4.2 release gate includes the repository test suite, Python 3.9/3.11/3.13
 core CI, LangChain Core event checks, positive and negative PydanticAI/OpenAI
 Agents/LangGraph checks, wheel/source builds, clean installation,
 compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.1.0) · [v4.1 acceptance](v4.1-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [DeepSeek live check](deepseek-live.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.2.0) · [v4.2 acceptance](v4.2-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

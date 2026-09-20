@@ -16,9 +16,11 @@ automatically captured.
 | Reports | schema `0.1` with explicit `report_type` | renderer/index tests + compatibility command | Consumers should reject unsupported report schemas. |
 | MCP stdio | protocol `2025-11-25`; newline and Content-Length framing | offline fixture + official Everything Server smoke | The client is synchronous at lifecycle level. |
 | MCP Streamable HTTP | JSON/SSE responses, session GET SSE, headers, pagination, cancellation, reconnect | HTTP fixture + official Everything Server smoke | OAuth negotiation and every optional capability are not promised. |
-| Framework callback | sync and async `CallableAgentAdapter` / `AdapterSpec` | 132 core tests | Framework lifecycle and model provider remain integration-owned. |
+| Framework callback | sync and async `CallableAgentAdapter` / `AdapterSpec` | 177 core tests | Framework lifecycle and model provider remain integration-owned. |
 | Framework events | `FrameworkTraceRecorder` / `record_framework_run` lifecycle bridge | Core tests + LangChain Core optional workflow | Framework must emit tool-start/end and final-answer callbacks with stable call IDs. |
 | LangChain Core | `RunnableLambda` reference example; `langchain-core>=0.3,<2` | separate Python 3.9/3.11/3.13 workflow | Optional; no model key or provider is required by the example. |
+| PydanticAI / OpenAI Agents / LangGraph | completed-run adapters and deterministic real-runtime examples | Python 3.11 framework workflow with positive and negative comparisons | Optional extras require Python 3.10 or newer. |
+| DeepSeek provider | `deepseek-flash` non-thinking tool loop | offline response-shape tests + weekly credential-gated live workflow | Paid external check; no automatic retry and no credential in evidence. |
 | Viewer | local read-only Trace/Diff, Report Index, configuration and Workspace review pages | HTML script/link check + wheel smoke | Python CLI remains the comparison source of truth; workspace files require explicit selection. |
 | Workspace review | `workspace manifest` and `baseline review` | core tests + Viewer asset check | Manifest stores relative paths, sizes and SHA-256 only; review never mutates a baseline. |
 | CI | GitHub composite Actions and package workflows | workflow structure checks + GitHub execution | External official-server workflow is scheduled and manually runnable. |

@@ -34,6 +34,7 @@ from .framework_integrations import (
     trace_from_openai_agents_result,
     trace_from_pydantic_ai_result,
 )
+from .deepseek import DeepSeekAPIError, record_deepseek_tool_run
 from .mcp import (
     McpProtocolError,
     McpEventStream,
@@ -141,6 +142,8 @@ __all__ = [
     "trace_from_langgraph_result",
     "trace_from_openai_agents_result",
     "trace_from_pydantic_ai_result",
+    "DeepSeekAPIError",
+    "record_deepseek_tool_run",
     "McpProtocolError",
     "McpEventStream",
     "McpToolExecutor",

@@ -300,6 +300,29 @@ comparison suite and any framework-specific integration checks before changing
 a baseline. See `docs/v4.1-acceptance.md` for the positive and negative release
 evidence.
 
+## v4.1.0 → v4.2.0
+
+v4.2 adds `record_deepseek_tool_run`, a dependency-free, credential-gated
+DeepSeek tool-Agent loop. The core still supports Python 3.9 and installs no
+provider SDK. Existing v4 traces, contracts, reports and baselines remain
+compatible and require no migration.
+
+Run the live example only with isolated test data:
+
+```bash
+python -m pip install --upgrade agent-regression-kit==4.2.0
+export DEEPSEEK_API_KEY='set this in your shell or secret store'
+python examples/deepseek_live_agent_example.py
+agent-regression compare --config examples/deepseek-live/compare.config.json
+```
+
+The API key must never be committed or copied into a Trace. GitHub users should
+store it as the encrypted repository secret `DEEPSEEK_API_KEY`. The scheduled
+workflow uses `deepseek-flash`, disables thinking, caps output and runs weekly.
+Rotate any credential that has been exposed in chat, logs or shell history.
+See `docs/deepseek-live.md` and `docs/v4.2-acceptance.md` for the complete
+operating and release boundaries.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

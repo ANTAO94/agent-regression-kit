@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 4.2.0 - 2026-09-20
+
+- Add a dependency-free `deepseek-flash` tool-Agent runner with strict Trace evidence.
+- Add offline provider-shape tests and a credential-gated weekly live regression workflow.
+- Document low-cost local and GitHub Secret setup without persisting provider credentials.
+
 ## 4.1.0 - 2026-09-20
 
 - Rewrite the bilingual README around installation, policy configuration, Agent integration and CI.

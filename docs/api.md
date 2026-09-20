@@ -309,6 +309,34 @@ policy, and returns a validated `AgentTrace`. `record_framework_run` is a
 convenience wrapper for a callback runner that receives the recorder. The
 framework and model provider remain integration-owned.
 
+## DeepSeek live tool Agent
+
+`record_deepseek_tool_run` provides one small, dependency-free OpenAI-compatible
+DeepSeek loop for live provider regression evidence. It reads
+`DEEPSEEK_API_KEY` when `api_key` is omitted, disables thinking, executes only
+the supplied tool handlers, and never stores the credential in the Trace:
+
+```python
+from agent_regression import record_deepseek_tool_run
+
+trace = record_deepseek_tool_run(
+    "Look up order 123",
+    run_id="deepseek-order-123",
+    system_prompt="Call get_order, then return the result as JSON.",
+    tools=tool_definitions,
+    tool_handlers={"get_order": get_order_fixture},
+    claims_extractor=parse_business_claims,
+    force_first_tool="get_order",
+    max_tokens=64,
+)
+```
+
+The default model is `deepseek-flash`. `DeepSeekAPIError` separates provider,
+transport and response-shape failures from local policy failures. No automatic
+network retry is performed. Pass a `transport` callable for offline tests; a
+custom transport marks the generated Trace as non-live. See
+`docs/deepseek-live.md` for credential, cost and CI boundaries.
+
 ## Controlled cassette replay
 
 `CassetteToolExecutor.from_trace(baseline)` converts a reviewed Trace into a

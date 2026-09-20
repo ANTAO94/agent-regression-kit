@@ -1,0 +1,40 @@
+{
+  "baseline": "../../baselines/order-123.trace.json",
+  "candidate": "../../work/deepseek-live.trace.json",
+  "report": "../../work/deepseek-live.report.json",
+  "format": "json",
+  "final_answer_mode": "claims-only",
+  "contract": {
+    "required_claims": [
+      "final_answer.claims.order_id",
+      "final_answer.claims.order_status"
+    ],
+    "assertions": [
+      {
+        "path": "final_answer.claims.order_id",
+        "equals": "123"
+      },
+      {
+        "path": "final_answer.claims.order_status",
+        "equals": "not_shipped"
+      },
+      {
+        "path": "tool_results[*].is_error",
+        "equals": false
+      }
+    ],
+    "must_call": [
+      {
+        "tool": "get_order",
+        "arguments": {
+          "order_id": "123"
+        }
+      }
+    ],
+    "must_not_call": [
+      "cancel_order",
+      "refund"
+    ],
+    "max_steps": 1
+  }
+}

@@ -12,7 +12,7 @@
 
 改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
-当前版本：[v4.1.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.1.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+当前版本：[v4.2.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.2.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
 
 ### 从这里开始
 
@@ -22,10 +22,11 @@
 | 配置检查项、断言和噪声过滤 | [策略配置](docs/user-manual.zh-CN.md#4-配置断言噪声过滤与比较范围) |
 | 接入自己的 Agent | [接入步骤](docs/user-manual.zh-CN.md#5-接入自己的-agent) |
 | 接入 PydanticAI / OpenAI Agents / LangGraph | [真实框架集成](docs/framework-integrations.md) |
+| 用最低成本 DeepSeek 做真实供应商检查 | [DeepSeek 真实检查](docs/deepseek-live.md) |
 | 同一策略集成 CI | [完整 CI 工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁) |
 | 理解架构、实现和边界 | [技术方案](docs/technical-design.zh-CN.md) |
 | 查 API 与高级场景 | [API](docs/api.md) · [高级指南](docs/usage-guide.zh-CN.md) |
-| 了解 v4.1 验收与升级 | [v4.1 验收](docs/v4.1-acceptance.md) · [升级说明](UPGRADING.md) |
+| 了解 v4.2 验收与升级 | [v4.2 验收](docs/v4.2-acceptance.md) · [升级说明](UPGRADING.md) |
 | 阅读 HTML 讲解 | [HTML 文档](docs/agent-regression-kit-guide.html)，下载后本地打开 |
 
 ### 工作方式
@@ -47,7 +48,7 @@ Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际�
 macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
 
 ```bash
-git clone --branch v4.1.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.2.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -107,15 +108,15 @@ agent-regression ui
 
 ### 验证与维护
 
-v4.1.0 的发布验收：
+v4.2.0 的发布验收：
 
 | 检查 | 证据 |
 | --- | --- |
 | 核心测试 | 本地完整测试 + [Python 3.9/3.11/3.13 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml) |
 | 框架兼容 | [PydanticAI、OpenAI Agents、LangGraph 与 LangChain Core](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
 | 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/release.yml) |
-| 兼容与迁移 | [v4.1 验收契约](docs/v4.1-acceptance.md) |
-| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.1.0) |
+| 兼容与迁移 | [v4.2 验收契约](docs/v4.2-acceptance.md) |
+| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.2.0) |
 
 这些验证覆盖已实现路径，生产接入仍需要自己的业务用例。官方 MCP 检查是独立的[可选工作流](.github/workflows/mcp-compatibility.yml)，不等于完整协议认证。文档更新以 main 为准，发布 tag 内容固定。
 
@@ -127,7 +128,7 @@ v4.1.0 的发布验收：
 
 After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
 
-Release: [v4.1.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.1.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+Release: [v4.2.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.2.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
 
 ### Documentation
 
@@ -137,17 +138,18 @@ Release: [v4.1.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v
 | Configure assertions and noise filtering | [Comparison policy](docs/user-manual.en.md#4-configure-assertions-and-noise-filtering) |
 | Connect your own Agent | [Integration](docs/user-manual.en.md#5-integrate-your-own-agent) |
 | Connect PydanticAI / OpenAI Agents / LangGraph | [Real framework integrations](docs/framework-integrations.md) |
+| Run a low-cost live DeepSeek provider check | [DeepSeek live check](docs/deepseek-live.md) |
 | Use the same policy in CI | [Complete workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) |
 | Understand architecture and boundaries | [Technical design](docs/technical-design.en.md) |
 | Explore advanced APIs | [API reference](docs/api.md) · [Advanced guide](docs/usage-guide.en.md) |
-| Read the v4.1 acceptance and upgrade contract | [v4.1 acceptance](docs/v4.1-acceptance.md) · [Upgrade guide](UPGRADING.md) |
+| Read the v4.2 acceptance and upgrade contract | [v4.2 acceptance](docs/v4.2-acceptance.md) · [Upgrade guide](UPGRADING.md) |
 
 ### Quick start
 
 Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
 
 ```bash
-git clone --branch v4.1.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.2.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -200,7 +202,7 @@ Use **compare --config** for custom contracts in CI, or pass `config` to the v3.
 
 ### Verification and maintenance
 
-Recorded v4.1.0 evidence is maintained by the main regression, framework compatibility and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
+Recorded v4.2.0 evidence is maintained by the main regression, framework compatibility, live-provider and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
 
 These checks cover implemented paths; production integrations need their own scenarios. The [optional MCP workflow](.github/workflows/mcp-compatibility.yml) is separate and does not certify every protocol behavior. Main contains documentation updates; published tags are fixed snapshots.
 
