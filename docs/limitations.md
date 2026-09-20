@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.13 deliberately stays small. The local Viewer
+Agent Regression Kit v4.16 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -69,3 +69,14 @@ is a read-only presentation layer, not a hosted management service.
   they do not parse label meaning. A real held-out claim requires that the
   Contract bundle be frozen before labels are accessed and that the process be
   independently reviewable.
+- `performance run` measures deterministic Trace validation/comparison only.
+  Its throughput and RSS values depend on Python, operating system and
+  hardware; it is not a model-quality, tool-latency or production-capacity
+  SLA. `performance gate` is meaningful only against a like-for-like baseline.
+- `agent-regression init` provides a reproducible clean-room onboarding proxy,
+  not a substitute for an uninvolved human usability study. The scaffold's
+  baseline is generated from the bundled fixture and must still be reviewed
+  before a real project commits it.
+- The independent consumer pilot proves one released-wheel integration and its
+  three injected regressions. It does not prove automatic compatibility with
+  every Agent framework or programming language.

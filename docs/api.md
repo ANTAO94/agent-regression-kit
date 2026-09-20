@@ -90,6 +90,21 @@ The shipped example pins the upstream tag and SHA-256 in
 [`docs/tau2-independent-validation.md`](tau2-independent-validation.md) for
 the mapping, false-alarm boundary and reproduction command.
 
+## Performance baseline
+
+v4.16 adds two dependency-free helpers for framework-level performance checks:
+
+- `run_performance_benchmark(small_count=10000, medium_count=1000, medium_tool_calls=10)`
+  generates deterministic small and medium workloads, validates and compares
+  them, and returns elapsed time, throughput and environment evidence;
+- `evaluate_performance_gate(current, baseline, warn_ratio=0.20, block_ratio=0.40)`
+  compares like-for-like reports and returns `passed`, warning/block status and
+  per-workload deltas. It does not measure model latency or provide a
+  production SLA.
+
+The equivalent CLI is `agent-regression performance run` and
+`agent-regression performance gate`; see [`performance.md`](performance.md).
+
 ## Recording
 
 - `record_run(adapter, request, tools, *, run_id, metadata=None, redaction_policy=None, state_backend=None)` records any `AgentAdapter` with any `ToolExecutor`. When supplied, `state_backend.snapshot()` is used for the recorded initial/final world state instead of the tool executor.

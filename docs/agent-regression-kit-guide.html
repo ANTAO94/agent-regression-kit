@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v4.14 · Usage &amp; Technical Guide</small>
+          <small>v4.16 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -251,7 +251,7 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v4.14.0</span>
+            <span class="badge">v4.16.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
             <span class="badge orange">v4 compatibility gate</span>
@@ -271,6 +271,7 @@
             <a class="badge" href="v4.10-acceptance.md">v4.10 验收说明 →</a>
             <a class="badge" href="v4.11-acceptance.md">v4.11 独立项目验证 →</a>
             <a class="badge" href="v4.14-acceptance.md">v4.14 Benchmark 治理验收 →</a>
+            <a class="badge" href="v4.16-acceptance.md">v4.16 首用与性能验收 →</a>
             <a class="badge" href="state-equivalence.md">状态等价契约说明 →</a>
             <a class="badge" href="tau2-independent-validation.md">tau2-bench 方法说明 →</a>
             <a class="badge" href="../examples/path-variation/README.md">路径变化案例 →</a>
@@ -377,7 +378,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.14.0</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.16.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -1059,11 +1060,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.14.0"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.16.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.14.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.16.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1238,7 +1239,7 @@ jobs:
           <table>
             <thead><tr><th>命令</th><th>用途</th><th>最常见参数</th></tr></thead>
             <tbody>
-              <tr><td><code>init</code></td><td>生成项目接入骨架、配置、示例脚本和 GitHub Actions。</td><td><code>--directory</code>、<code>--force</code></td></tr>
+              <tr><td><code>init</code></td><td>生成项目接入骨架、配置、示例脚本和 GitHub Actions，并自动创建可直接运行的 baseline/candidate。</td><td><code>--directory</code>、<code>--force</code></td></tr>
               <tr><td><code>ui</code></td><td>启动本地 Trace 查看器和配置中心。</td><td><code>--directory</code>、<code>--host</code>、<code>--port</code>、<code>--open-browser</code></td></tr>
               <tr><td><code>adapter-init</code></td><td>生成同步、异步或双模式 Adapter 模板和契约测试。</td><td><code>--directory</code>、<code>--name</code>、<code>--mode</code></td></tr>
               <tr><td><code>record</code></td><td>从确定性 Scenario 录制 AgentTrace。</td><td><code>--scenario</code>、<code>--out</code></td></tr>
@@ -1259,6 +1260,8 @@ jobs:
               <tr><td><code>report-index</code></td><td>为 CI 输出目录生成报告索引并交给批量 Viewer。</td><td><code>--report-dir</code>、<code>--pattern</code>、<code>--format</code>、<code>--fail-on-regression</code></td></tr>
               <tr><td><code>config validate</code></td><td>在 CI 运行前校验单用例或批量配置。</td><td><code>--config</code>、<code>--kind single|batch</code></td></tr>
               <tr><td><code>check</code></td><td>在比较前读取并校验配置引用的 Trace 和批量文件集合，不执行 Agent。</td><td><code>--config</code>、<code>--kind single|batch</code></td></tr>
+              <tr><td><code>performance run</code></td><td>运行不调用模型的确定性框架性能基线。</td><td><code>--small-count</code>、<code>--medium-count</code>、<code>--out</code></td></tr>
+              <tr><td><code>performance gate</code></td><td>把当前性能和同环境 reference 比较，输出 warning/block 门禁。</td><td><code>--current</code>、<code>--baseline</code>、<code>--warn-ratio</code>、<code>--block-ratio</code>、<code>--out</code></td></tr>
             </tbody>
           </table>
           <p class="small">任意命令都可以先运行 <code>agent-regression COMMAND --help</code> 查看当前版本的完整参数。</p>
@@ -1291,6 +1294,8 @@ jobs:
               <tr><td><strong>v4.10</strong></td><td>工具即使在白名单内，也可能使用错误租户、错误资源或危险参数。</td><td><code>argument_rules</code>、固定值/Trace 参考路径、<code>exists</code>/<code>absent</code>、<code>tool_argument_policy</code> 诊断和退款边界验收。</td></tr>
               <tr><td><strong>v4.11</strong></td><td>仓库内置样例还不足以证明框架能面对独立项目的真实轨迹分布。</td><td>固定 tau2-bench 零售数据集、半双工轨迹导入、独立 Contract/Reward 混淆矩阵、误报边界、样例 Trace 和 CI 校验。</td></tr>
               <tr><td><strong>v4.14</strong></td><td>公开评测数字可能混淆规则决策与外部标签，且输入版本和结果不可追溯。</td><td>哈希绑定 benchmark manifest、prepare/decide/score 隔离、decision digest、unsupported 显式计数和 Wilson 区间。</td></tr>
+              <tr><td><strong>v4.15</strong></td><td>发布包虽然可安装，但还缺少独立消费仓库对公开 API、Contract 和 CI 的边界验证。</td><td>独立 <code>agent-regression-pilot</code> 消费项目、固定 wheel/hash、正常与三类故意失败路径、跨仓库 Actions 验收。</td></tr>
+              <tr><td><strong>v4.16</strong></td><td>新用户需要自己拼接 baseline、Contract、脚本和 CI，框架自身性能回退也缺少可复现门禁。</td><td><code>init</code> 首用脚手架、三种 intentional failure、<code>guidance/next_actions</code>、依赖无关性能基线和周期开工作流。</td></tr>
             </tbody>
           </table>
           <div class="panel tint-blue">
@@ -1348,7 +1353,7 @@ agent-regression migrate trace \
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v4.14.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a>、<a href="v4.13-acceptance.md">v4.13 契约安全验收</a>、<a href="v4.14-acceptance.md">v4.14 Benchmark 治理验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
+          <p>本文档面向 Agent Regression Kit v4.16.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a>、<a href="v4.13-acceptance.md">v4.13 契约安全验收</a>、<a href="v4.14-acceptance.md">v4.14 Benchmark 治理验收</a>、<a href="v4.16-acceptance.md">v4.16 首用与性能验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

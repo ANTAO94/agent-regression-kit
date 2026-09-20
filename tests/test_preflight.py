@@ -31,6 +31,8 @@ class PreflightTests(unittest.TestCase):
             self.assertTrue(report["ok"])
             self.assertEqual("single", report["kind"])
             self.assertEqual(2, len(report["traces"]))
+            self.assertIn("next_actions", report)
+            self.assertIn("missing_contract", {item["code"] for item in report["guidance"]})
 
     def test_check_returns_input_error_for_missing_trace(self):
         with tempfile.TemporaryDirectory() as directory:

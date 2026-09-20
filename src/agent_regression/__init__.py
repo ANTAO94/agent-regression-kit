@@ -16,6 +16,7 @@ from .adapters import (
 from .async_record import AsyncToolExecutor, async_record_run, record_async_run
 from .batch import compare_trace_batch
 from .benchmark import decide_benchmark, prepare_benchmark, score_benchmark
+from .performance import evaluate_performance_gate, run_performance_benchmark
 from .cassette import CassetteEntry, CassetteToolExecutor, ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioBatchResult, ScenarioCase, ScenarioResult, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
@@ -140,6 +141,8 @@ __all__ = [
     "prepare_benchmark",
     "decide_benchmark",
     "score_benchmark",
+    "run_performance_benchmark",
+    "evaluate_performance_gate",
     "record_scenario_batch",
     "ScenarioBatchResult",
     "ScenarioCase",

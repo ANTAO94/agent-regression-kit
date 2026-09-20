@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 4.16.0 - 2026-09-21
+
+- Make `agent-regression init` a runnable first-use project: it seeds a
+  deterministic baseline and candidate, a strict Contract, bilingual starter
+  instructions and intentional `wrong-resource`, `skip-tool` and
+  `misread-result` variants.
+- Pin generated GitHub Actions to the installed release tag instead of the
+  moving `main` branch.
+- Add preflight `guidance`/`next_actions` for missing Contracts, relaxed paths,
+  missing state evidence and the next comparison command.
+- Add report-level `next_actions` that turn blocking difference categories into
+  concrete debugging steps.
+- Add dependency-free `performance run` and `performance gate` commands,
+  weekly/smoke CI and a v4.16 acceptance record.
+- Upgrade the independent consumer pilot to the v4.15.0 Release wheel and
+  verify the normal path plus three injected regressions in its own CI.
+
 ## 4.15.0 - 2026-09-21
 
 - Add the independent consumer repository

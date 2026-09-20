@@ -58,7 +58,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 契约安全加固 | v4.13 | 成功要求、失败尝试上限、未声明状态变化检查和迁移诊断 |
 | 留出数据验证 | v4.14 | benchmark manifest、决策/评分隔离、哈希 provenance 和 Wilson 区间；真正外部留出数据仍待补齐 |
 | 独立项目接入 | v4.15 | 独立消费仓库、发布包接入和三类真实错误注入 |
-| 成熟版门禁 | v4.16 计划 | 首次用户验收、CLI 收敛、性能基线和连续升级证据 |
+| 成熟版门禁 | v4.16 | 首用模板、行动建议、性能基线、独立消费升级和发布验收；真实外部用户访谈仍待补齐 |
 
 ## 迭代顺序
 
@@ -261,10 +261,20 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 ### v4.15：独立消费项目接入
 
 - [x] 创建独立仓库 `ANTAO94/agent-regression-pilot`，不复制核心实现，不引用本地源码。
-- [x] 只安装 v4.14.0 Release wheel，并在消费仓库记录 URL、SHA-256 和固定提交。
+- [x] 只安装 Release wheel，并在消费仓库记录 v4.15.0 URL、SHA-256 和固定提交。
 - [x] 接入一个两工具订单 Agent，检查跨步骤 customer ID、业务 claims、禁止工具和步数上限。
 - [x] 注入错资源、漏工具、结果误读三类回归；正常场景退出 0，三类错误退出 1。
 - [x] 通过消费仓库 GitHub Actions 复核，并记录边界与未覆盖能力。
+
+### v4.16：接入体验与成熟版门禁
+
+- [x] `init` 生成可直接运行的 baseline、candidate、严格 Contract、双语说明和 CI。
+- [x] 内置 `normal`、`wrong-resource`、`skip-tool`、`misread-result`，正常退出 0，故意错误退出 1。
+- [x] `check` 输出 `guidance`/`next_actions`，提示 Contract、宽松路径和状态证据问题。
+- [x] compare JSON/Markdown 输出按差异类别归纳的下一步动作。
+- [x] 增加 dependency-free `performance run/gate`、PR smoke 和每周完整基线工作流。
+- [x] 独立消费仓库升级到 v4.15.0 wheel 并通过 CI；v4.16 的 clean-room proxy 通过。
+- [x] 保留边界：未完成真实外部用户访谈，不宣称托管平台、大规模生产 SLA 或通用框架兼容。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

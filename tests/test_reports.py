@@ -20,6 +20,8 @@ class ReportTests(unittest.TestCase):
             }
         )
         self.assertIn("**Status:** `FAIL`", markdown)
+        self.assertIn("## Next actions", markdown)
+        self.assertIn("Inspect the candidate tool arguments", markdown)
         self.assertIn("| allowed | `final_answer` | `final_answer.text` |", markdown)
         self.assertIn("| blocking | `tool_arguments` | `tool_calls[0].arguments` |", markdown)
 

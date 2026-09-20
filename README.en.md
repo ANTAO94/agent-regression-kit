@@ -8,7 +8,7 @@
 
 [中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥3.9 · Release v4.15.0 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.16.0 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.15.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.16.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.15.0`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.16.0`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -278,7 +278,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.15.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.16.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -296,9 +296,40 @@ Exit codes: **0 = pass, 1 = regression, 2 = invalid input/configuration**. Nonze
 
 Run the same commands locally first. Store model credentials in GitHub Secrets and configure redaction at recording time. See the [manual](docs/user-manual.en.md) for JUnit, Markdown and reusable Action examples.
 
-## 7. Evidence and current limits
+## 7. First-use scaffold and performance baseline
 
-Suitable for local development and team CI pilots. The v4.15 release records **235 passing tests**, package builds, clean-environment installation and an independent consumer-repository check.
+If you are integrating a new Agent project, start in its root directory:
+
+```bash
+agent-regression init
+python scripts/record_agent.py --variant normal --out work/my-agent.trace.json
+agent-regression check --config .agent-regression/config.json
+agent-regression compare --config .agent-regression/config.json
+```
+
+The template creates a reviewed baseline, candidate Trace, strict Contract,
+bilingual starter notes and GitHub Actions pinned to the current Release tag.
+The normal variant exits 0; `wrong-resource`, `skip-tool` and `misread-result`
+are intentional failures that exit 1. See the generated `AGENT_REGRESSION.md`
+and the [performance baseline](docs/performance.md).
+
+```bash
+agent-regression performance run --out work/performance-baseline.json
+# after reviewing a stable run, commit performance/reference.json
+mkdir -p performance
+cp work/performance-baseline.json performance/reference.json
+agent-regression performance gate \
+  --current work/performance-baseline.json \
+  --baseline performance/reference.json \
+  --out work/performance-gate.json
+```
+
+The default performance policy warns above 20% and blocks above 40% elapsed-
+time regression on like-for-like environments.
+
+## 8. Evidence and current limits
+
+Suitable for local development and team CI pilots. The v4.16 release records **239 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance smoke and an independent consumer upgrade.
 
 | Evidence | Result and scope |
 | --- | --- |
@@ -306,12 +337,14 @@ Suitable for local development and team CI pilots. The v4.15 release records **2
 | [Hosted DeepSeek runs](docs/deepseek-live.md) | Actual single-tool and two-step model runs; tool order is constrained by test policy |
 | [Published τ²-bench retail trajectories](docs/tau2-independent-validation.md) | 420 eligible scenarios: 267 true passes, 153 true blocks, 0 false alarms and 0 missed failures |
 | [Independent consumer pilot](docs/consumer-pilot.md) | Normal run exits 0; wrong resource, skipped tool and result misread each exit 1 |
+| First-use scaffold | `agent-regression init` creates baseline/candidate/Contract/CI plus three negative variants | A new user can run a pass and a block without reading core internals |
+| Performance baseline | [Performance guide](docs/performance.md): fixed small/medium generator and 20%/40% gate | Detects framework regressions, not model quality or a production SLA |
 
 τ² equivalence rules were adjusted using errors from this dataset, then retested on the same data. **These are not held-out generalization results.** This integration imports published trajectories; it does not run the upstream simulator or imply upstream adoption.
 
 The kit checks recorded evidence and configured rules. You supply state snapshots where needed. Hidden side effects, free-form factual correctness and production authorization are not automatically guaranteed by Trace comparison. See [limitations](docs/limitations.md).
 
-## 8. Troubleshooting and reference
+## 9. Troubleshooting and reference
 
 | Symptom | Check |
 | --- | --- |
@@ -322,4 +355,4 @@ The kit checks recorded evidence and configured rules. You supply state snapshot
 | Wording changes fail | Extract actual claims and use `claims-only` with business assertions |
 | A valid new path fails | Review its safety, then explicitly configure allowed paths and extra calls |
 
-[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Independent consumer pilot](docs/consumer-pilot.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.15 acceptance](docs/v4.15-acceptance.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Performance baseline](docs/performance.md) · [Independent consumer pilot](docs/consumer-pilot.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.16 acceptance](docs/v4.16-acceptance.md) · [v4.15 acceptance](docs/v4.15-acceptance.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)

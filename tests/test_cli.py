@@ -19,14 +19,29 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(0, main(["init", "--directory", directory]))
             root = Path(directory)
             expected = [
+                "AGENT_REGRESSION.md",
+                ".gitignore",
                 ".agent-regression/config.json",
                 "baselines/README.md",
+                "baselines/my-agent.trace.json",
+                "work/my-agent.trace.json",
                 "scripts/record_agent.py",
                 ".github/workflows/agent-regression.yml",
                 ".github/workflows/agent-coverage.yml",
             ]
             for relative in expected:
                 self.assertTrue((root / relative).exists(), relative)
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    0,
+                    main(["check", "--config", str(root / ".agent-regression/config.json")]),
+                )
+                self.assertEqual(
+                    0,
+                    main(["compare", "--config", str(root / ".agent-regression/config.json")]),
+                )
+            workflow = (root / ".github/workflows/agent-regression.yml").read_text(encoding="utf-8")
+            self.assertIn("@4.16.0", workflow)
             script = root / "scripts/record_agent.py"
             original = script.read_text(encoding="utf-8")
             script.write_text("custom\n", encoding="utf-8")

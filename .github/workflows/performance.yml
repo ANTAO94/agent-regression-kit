@@ -1,0 +1,40 @@
+name: performance
+
+on:
+  pull_request:
+    paths:
+      - "src/agent_regression/**"
+      - "tests/test_performance.py"
+      - ".github/workflows/performance.yml"
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip
+      - name: Run performance smoke
+        if: github.event_name == 'pull_request'
+        run: |
+          PYTHONPATH=src python -m agent_regression performance run \
+            --small-count 100 \
+            --medium-count 20 \
+            --medium-tool-calls 10 \
+            --out work/performance-smoke.json
+      - name: Run full performance baseline
+        if: github.event_name != 'pull_request'
+        run: |
+          PYTHONPATH=src python -m agent_regression performance run \
+            --out work/performance-baseline.json
+      - name: Upload performance evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-regression-performance
+          path: work/performance-*.json

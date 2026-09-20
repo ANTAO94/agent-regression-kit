@@ -212,7 +212,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark" aria-hidden="true">AR</div>
-      <div><span class="brand-name">Agent Regression Kit <span style="color:var(--blue)">/</span> Trace Inspector</span><span class="brand-sub">v3.4 · evidence before opinion</span></div>
+      <div><span class="brand-name">Agent Regression Kit <span style="color:var(--blue)">/</span> Trace Inspector</span><span class="brand-sub">v4.16 · evidence before opinion</span></div>
     </div>
     <div class="top-actions">
       <a class="text-button" href="reports.html">报告索引</a>
@@ -284,11 +284,11 @@
   --format json \
   --out outputs/order-123.diff.json</pre><button class="small-button" id="copyCommand" type="button">复制命令</button></section>
         <section class="info-panel"><h3>这次失败说明什么？ <span>read the path</span></h3><ul><li>先看 <code>category</code>：变化属于工具、结果、claims 还是文本。</li><li>再看 <code>path</code>：定位到 Trace 的具体字段。</li><li>最后判断是 Bug、已知噪音，还是有意的产品变更。</li></ul></section>
-        <section class="info-panel"><h3>下一步 <span>configure</span></h3><p>如果文字允许变化或存在动态 request ID，请进入配置中心设置 <code>claims-only</code>、<code>allow_paths</code> 或 Contract。</p><a class="secondary-button" style="display:inline-flex;align-items:center" href="config.html">打开配置中心 →</a></section>
+        <section class="info-panel"><h3>下一步 <span>configure</span></h3><p id="nextActionsIntro">先处理报告建议，再决定是否调整 Contract。</p><ul id="nextActions"><li>先看第一个阻断差异，再审核是否属于有意变更。</li></ul><a class="secondary-button" style="display:inline-flex;align-items:center" href="config.html">打开配置中心 →</a></section>
       </div>
 
       <details class="raw-details"><summary>查看当前加载的原始 JSON</summary><pre id="rawJson"></pre></details>
-      <p class="footer">Trace Inspector 是 v3.4 的本地只读查看器。它不会替代 Python 核心比较器，也不会执行 Agent 或上传你的运行证据。</p>
+      <p class="footer">Trace Inspector 是 v4.16 的本地只读查看器。它不会替代 Python 核心比较器，也不会执行 Agent 或上传你的运行证据。</p>
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -328,6 +328,10 @@
           difference_count: 4,
           blocking_difference_count: 4,
           policy: { mode: "strict", allowed_categories: [], allowed_paths: [] },
+          next_actions: [
+            "Inspect the candidate tool arguments and the input-to-tool mapping before changing the baseline.",
+            "Inspect the structured claims derived from the live tool result; do not fix a result misread by changing prose only."
+          ],
           differences: [
             { category: "tool_name", path: "tool_calls[0].tool", baseline: "get_order", candidate: "lookup_order", allowed: false },
             { category: "tool_arguments", path: "tool_calls[0].arguments", baseline: { order_id: "123" }, candidate: { order_id: 123 }, allowed: false },
@@ -407,6 +411,10 @@
         $("toolCount").textContent = `${baselineCalls} / ${candidateCalls}`;
         $("policyMode").textContent = diff.policy?.mode || "unknown";
         $("policyDetail").textContent = `${(diff.policy?.allowed_paths || []).length} allowed paths`;
+        const actions = Array.isArray(diff.next_actions) && diff.next_actions.length
+          ? diff.next_actions
+          : ["Inspect the first blocking difference, reproduce it with the same fixture, and review the Contract deliberately."];
+        $("nextActions").innerHTML = actions.map((action) => `<li>${escapeHtml(action)}</li>`).join("");
         $("candidateRunId").textContent = state.candidate.run_id || "candidate";
         $("candidateAgent").textContent = `${state.candidate.agent?.name || "unknown agent"} · ${state.candidate.agent?.version || "unknown version"}`;
         const status = $("resultStatus");

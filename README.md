@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.15.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.16.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.15.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.15.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.16.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.15.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.16.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.15.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.16.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -304,9 +304,46 @@ jobs:
 
 先本地跑通，再开启 CI。模型密钥使用 GitHub Secrets，并在录制边界配置脱敏。JUnit、Markdown 和可复用 Action 的完整示例见[使用手册](docs/user-manual.zh-CN.md)。
 
-## 7. 验证到了什么程度？
+## 7. 新项目和性能基线
 
-当前适合本地开发与团队 CI 试点。v4.15 发布记录为 **235 项测试通过**，发布流程验证构建、干净环境安装和独立消费仓库接入。
+### 7.1 新项目一条命令起步
+
+如果你还没有接入代码，先在自己的 Agent 项目根目录执行：
+
+```bash
+agent-regression init
+python scripts/record_agent.py --variant normal --out work/my-agent.trace.json
+agent-regression check --config .agent-regression/config.json
+agent-regression compare --config .agent-regression/config.json
+```
+
+模板会生成已审核的 baseline、候选 Trace、严格 Contract、双语说明和固定到当前
+Release 的 GitHub Actions。正常场景退出 0；用 `--variant wrong-resource`、
+`skip-tool` 或 `misread-result` 会故意制造可解释的回归并退出 1。完整接入边界见生成在
+你项目中的 `AGENT_REGRESSION.md` 和[使用手册](docs/user-manual.zh-CN.md)。
+
+### 7.2 性能基线
+
+框架提供不调用模型的确定性性能基线：
+
+```bash
+agent-regression performance run --out work/performance-baseline.json
+# 首次建立同一环境的稳定参考后再提交 performance/reference.json
+mkdir -p performance
+cp work/performance-baseline.json performance/reference.json
+agent-regression performance gate \
+  --current work/performance-baseline.json \
+  --baseline performance/reference.json \
+  --out work/performance-gate.json
+```
+
+默认耗时回退超过 20% 报警，超过 40% 阻断；结果必须在相同 Python、操作系统和硬件条件下比较。
+详见[性能基线说明](docs/performance.md)。
+
+## 8. 验证到了什么程度？
+
+当前适合本地开发与团队 CI 试点。v4.16 发布记录 **239 项测试通过**，并验证构建、干净环境安装、
+首用模板、性能 smoke 和独立消费仓库升级。
 
 | 验证类型 | 已有证据 | 能说明什么 |
 | --- | --- | --- |
@@ -314,12 +351,14 @@ jobs:
 | 在线模型 | [DeepSeek 实测](docs/deepseek-live.md)：订单查询和两步工具依赖 | 已记录真实模型调用，工具顺序由测试策略约束 |
 | 外部公开轨迹 | [τ²-bench 零售数据](docs/tau2-independent-validation.md)：420 个适用场景，267 正确放行、153 正确阻断、0 误报、0 漏报 | 当前规则在这份固定数据上的结果 |
 | 独立消费仓库 | [agent-regression-pilot](docs/consumer-pilot.md)：正常退出 0，错资源/漏工具/结果误读均退出 1 | 发布 wheel、公开 API、Contract 和 CLI 在独立仓库中的接入边界 |
+| 首用模板 | `agent-regression init`：自动生成 baseline/candidate/Contract/CI，并提供 3 个故意失败变体 | 新用户不需要先读核心源码就能跑通通过与阻断 |
+| 性能基线 | [性能说明](docs/performance.md)：small/medium 固定生成器、环境记录和 20%/40% 门禁 | 发现框架自身明显回退，不代表模型或生产 SLA |
 
 τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
 框架只能检查已记录证据和已配置规则。真实数据库状态需要你提供快照；隐藏副作用、自然语言事实判断和外部权限执行不由 Trace 比较自动保证。详见[能力限制](docs/limitations.md)。
 
-## 8. 常见问题与文档
+## 9. 常见问题与文档
 
 | 问题 | 先检查 |
 | --- | --- |
@@ -330,4 +369,4 @@ jobs:
 | 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
 | 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [独立消费项目](docs/consumer-pilot.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [性能基线](docs/performance.md) · [独立消费项目](docs/consumer-pilot.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.16 验收](docs/v4.16-acceptance.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)

@@ -45,6 +45,7 @@ class CompareTests(unittest.TestCase):
         report = compare_traces(make_trace(), make_trace(order_id=123))
         self.assertFalse(report["passed"])
         self.assertIn("tool_arguments", {item["category"] for item in report["differences"]})
+        self.assertTrue(report["next_actions"])
 
     def test_detects_tool_name_interpretation_and_answer_changes(self):
         report = compare_traces(

@@ -33,6 +33,7 @@ from .mcp import (
     record_mcp_run,
 )
 from .preflight import check_batch_config, check_single_config
+from .performance import evaluate_performance_gate, run_performance_benchmark
 from .record import FixtureTools, record_run, record_session
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 from .reports import (
@@ -598,6 +599,28 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark_score.add_argument("--manifest", required=True)
     benchmark_score.add_argument("--decisions", required=True)
     benchmark_score.add_argument("--out", required=True)
+
+    performance = subparsers.add_parser(
+        "performance", help="run or gate the deterministic framework performance baseline"
+    )
+    performance_actions = performance.add_subparsers(
+        dest="performance_action", required=True
+    )
+    performance_run = performance_actions.add_parser(
+        "run", help="run the small and medium local workloads"
+    )
+    performance_run.add_argument("--small-count", type=int, default=10_000)
+    performance_run.add_argument("--medium-count", type=int, default=1_000)
+    performance_run.add_argument("--medium-tool-calls", type=int, default=10)
+    performance_run.add_argument("--out", required=True)
+    performance_gate = performance_actions.add_parser(
+        "gate", help="compare a current performance report with a stored baseline"
+    )
+    performance_gate.add_argument("--current", required=True)
+    performance_gate.add_argument("--baseline", required=True)
+    performance_gate.add_argument("--warn-ratio", type=float, default=0.20)
+    performance_gate.add_argument("--block-ratio", type=float, default=0.40)
+    performance_gate.add_argument("--out", required=True)
     return parser
 
 
@@ -711,6 +734,26 @@ def main(argv: list[str] | None = None) -> int:
                 _write_output(report, args.out)
                 return 0
             raise ValueError(f"unsupported benchmark action: {args.benchmark_action}")
+
+        if args.command == "performance":
+            if args.performance_action == "run":
+                report = run_performance_benchmark(
+                    small_count=args.small_count,
+                    medium_count=args.medium_count,
+                    medium_tool_calls=args.medium_tool_calls,
+                )
+                _write_output(report, args.out)
+                return 0
+            if args.performance_action == "gate":
+                report = evaluate_performance_gate(
+                    _read_json(args.current),
+                    _read_json(args.baseline),
+                    warn_ratio=args.warn_ratio,
+                    block_ratio=args.block_ratio,
+                )
+                _write_output(report, args.out)
+                return 0 if report["passed"] else 1
+            raise ValueError(f"unsupported performance action: {args.performance_action}")
 
         if args.command == "workspace":
             if args.workspace_action != "manifest":

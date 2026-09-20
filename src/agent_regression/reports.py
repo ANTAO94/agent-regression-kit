@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from typing import Any, Dict
 
 from .coverage import path_to_string
+from .guidance import next_actions_for_differences
 
 
 def _markdown_value(value: Any) -> str:
@@ -74,6 +75,8 @@ def render_markdown(report: Dict[str, Any]) -> str:
     """Render a compact human-readable comparison summary."""
     passed = bool(report.get("passed"))
     status = "PASS" if passed else "FAIL"
+    differences = report.get("differences", [])
+    actions = report.get("next_actions") or next_actions_for_differences(differences)
     lines = [
         "# Agent Regression",
         "",
@@ -84,10 +87,17 @@ def render_markdown(report: Dict[str, Any]) -> str:
         f"- Differences: `{report.get('difference_count', 0)}`",
         f"- Blocking differences: `{report.get('blocking_difference_count', 0)}`",
         "",
-        "## Differences",
+        "## Next actions",
         "",
     ]
-    differences = report.get("differences", [])
+    lines.extend(f"- {action}" for action in actions)
+    lines.extend(
+        [
+            "",
+        "## Differences",
+        "",
+        ]
+    )
     if not differences:
         lines.append("No differences detected.")
         return "\n".join(lines) + "\n"

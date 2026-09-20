@@ -75,6 +75,8 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("v4.13-acceptance.md", workflow)
         self.assertIn("v4.14-acceptance.md", workflow)
         self.assertIn("v4.15-acceptance.md", workflow)
+        self.assertIn("v4.16-acceptance.md", workflow)
+        self.assertIn("performance.md", workflow)
         self.assertIn("consumer-pilot.md", workflow)
         self.assertIn("state-equivalence.md", workflow)
         self.assertIn("maturity-evolution-plan.zh-CN.md", workflow)
@@ -141,6 +143,12 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("report.json", workflow)
         self.assertIn("sample-traces", workflow)
         self.assertIn("actions/upload-artifact@v7", workflow)
+
+    def test_performance_workflow_runs_smoke_and_weekly_baseline(self):
+        workflow = (ROOT / ".github/workflows/performance.yml").read_text(encoding="utf-8")
+        self.assertIn('cron: "17 3 * * 1"', workflow)
+        self.assertIn("performance smoke", workflow)
+        self.assertIn("performance baseline", workflow)
 
 
 if __name__ == "__main__":

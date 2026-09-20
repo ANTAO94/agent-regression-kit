@@ -14,8 +14,8 @@ v4.15 增加一个与核心仓库分离的端到端消费项目：
 The pilot installs exactly this immutable Release asset:
 
 ```text
-https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.14.0/agent_regression_kit-4.14.0-py3-none-any.whl
-sha256: 7319553b2a08eabf41f88f53daadde04019fe7412122569b43e3550866f0d784
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.15.0/agent_regression_kit-4.15.0-py3-none-any.whl
+sha256: 8b12b4c2d8267e119e4b024db433c2bc04c1070bff35a8e88334094d46a33ddb
 ```
 
 The pilot does not import the producer checkout, add the producer `src/`
@@ -46,7 +46,7 @@ Agent 的真实消费流程是两步依赖：先查订单，再使用订单返�
 
 ## Injected regressions / 注入回归
 
-The consumer workflow ran on the fixed commit `d231df3` and passed:
+The consumer workflow ran on the fixed upgrade commit `8ebc38f` and passed:
 
 | Case / 用例 | Expected / 预期 | Observed / 实测 |
 | --- | --- | --- |
@@ -56,6 +56,10 @@ The consumer workflow ran on the fixed commit `d231df3` and passed:
 | report `shipped` for a `not_shipped` result | exit 1 | blocked; Contract assertion and result-interpretation evidence |
 
 CI run: [Consumer Agent regression workflow](https://github.com/ANTAO94/agent-regression-pilot/actions/workflows/regression.yml)
+
+The original v4.15 acceptance snapshot used the v4.14.0 wheel at commit
+`d231df3`; v4.16 repeats the same consumer evidence after upgrading to the
+v4.15.0 Release wheel.
 
 消费仓库的 CI 已验证正常场景返回 0，三类注入均返回 1。报告会保留在 workflow artifact 中，
 baseline 由人工审核后提交，CI 不会自动覆盖 baseline。

@@ -5,6 +5,7 @@ from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Set
 
 from .contracts import ContractPolicy, _IGNORED
+from .guidance import next_actions_for_differences
 from .model import AgentTrace
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 
@@ -292,5 +293,6 @@ def compare_traces(
         "difference_count": len(diffs),
         "blocking_difference_count": len(blocking_diffs),
         "policy": active_policy.to_dict(),
+        "next_actions": next_actions_for_differences(diffs),
         "differences": diffs,
     }
