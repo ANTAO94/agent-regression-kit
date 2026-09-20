@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/sierra-research/tau2-bench",
+  "tag": "v1.0.1",
+  "tag_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+  "dataset_path": "data/tau2/results/final/gpt-4.1-mini-2025-04-14_telecom_base_gpt-4.1-2025-04-14_4trials.json",
+  "download_url": "https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_telecom_base_gpt-4.1-2025-04-14_4trials.json",
+  "sha256": "04fad1a6fb3ff8804be31c54cf5a993b64868e37683c226e014e7adbf60841d9",
+  "license": "MIT",
+  "license_url": "https://github.com/sierra-research/tau2-bench/blob/v1.0.1/LICENSE",
+  "evaluation_role": "cross-domain-calibration",
+  "domain": "telecom"
+}

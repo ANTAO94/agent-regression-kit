@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.18）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.19）
 
-> 状态：v4.18 已落地，继续进入真实用户与更大未见任务集验证
-> 当前基线版本：v4.18.0
+> 状态：v4.19 已落地，继续进入真实用户与更大未见任务集验证
+> 当前基线版本：v4.19.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,7 +27,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.18 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.19 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
@@ -42,7 +42,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
 | 性能边界 | 没有正式门禁 | 建立可重复的批量比较时间和内存基线 |
 | 评测来源完整性 | 不同结果文件可能复用错误 manifest | 结果字节、来源 manifest、模型身份和失败样本门槛绑定 |
 | 路径噪音控制 | 传输字段容易被误当作业务差异 | 路径规则显式忽略未建模字段，显式业务字段仍严格匹配 |
-| 跨任务域证据 | 只有 retail 结果 | 增加 airline 结果并单独记录域内误报、漏报和样本不足边界 |
+| 跨任务域证据 | 只有 retail 结果 | airline 和 telecom 分别记录域内误报、漏报、actor 边界和样本不足限制 |
 
 ### 最终通过条件
 
@@ -455,6 +455,30 @@ v4.18 仍有两个诚实边界：airline 只有 120 个适用样本，低于最�
 同时还没有一名未参与核心实现的真实使用者完成 30/60/90 分钟接入研究。下一步应补充更大的
 独立任务集，并执行外部使用者试验，而不是继续用文档自证可用性。
 
+### 7.7 v4.19：actor-aware 电信域与环境证据边界（已落地）
+
+电信域暴露了一个不能用普通流量回放规则解决的边界：同一条模拟轨迹中，既有 Agent
+（assistant）发出的工具调用，也有模拟器/用户（user）主动改变环境的工具调用。如果把
+两者混在一个调用列表里，回归框架可能把“模拟器已经替 Agent 完成动作”误判为 Agent
+行为通过。
+
+v4.19 用显式 actor 边界解决这个问题：
+
+- `trace_from_tau2_simulation(..., include_user_tools=True)` 记录 user-owned tool call，
+  并在每个事件 metadata 保留 `requestor`；默认值仍保持旧域兼容；
+- telecom Contract 只从 `requestor=assistant` 的写动作构建，user-owned 动作只能进入环境
+  证据路径；
+- 增加服务状态、移动数据、测速、MMS、数据加油和欠费账单的有限环境断言解析，并把
+  `max_steps` 终止记录为阻断差异；
+- 固定公开 telecom 结果的 456 条轨迹中，364 条进入 assistant-write 契约评估，92 条
+  user-only 轨迹明确排除；结果为 147/217/0/0；
+- 固定 prospective o4-mini 结果为 136/216/9/3，失败召回率 98.63%、误报率 6.21%、
+  漏报率 1.37%，CI 使用显式 98%/10%/2% 观察阈值；
+- 本地测试达到 247 项，来源 manifest、报告、样例 Trace 和 CI artifact 均可复现。
+
+这一版本仍然有边界：电信环境解析是有限适配器，不是通用模拟器状态还原；结果仍来自同一
+上游任务族，不能称为真正未见任务域泛化；真实用户接入研究仍待补齐。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -470,6 +494,7 @@ v4.18 仍有两个诚实边界：airline 只有 120 个适用样本，低于最�
 | `.github/workflows/` | calibration、held-out decision、score、external pilot、weekly performance |
 | `docs/` | 配置迁移、benchmark 方法、独立接入报告和首次用户测试记录 |
 | `examples/tau2-airline/` | 第二任务域的来源 manifest、复现说明和哈希绑定结果 |
+| `examples/tau2-telecom/` | 第三任务域的 actor-aware 来源 manifest、复现说明和哈希绑定结果 |
 
 ## 9. CI 结构
 
@@ -482,6 +507,7 @@ v4.18 仍有两个诚实边界：airline 只有 120 个适用样本，低于最�
 | heldout-score | decision artifact 完成后 | 是 |
 | external-pilot | 每日或上游固定版本变化时 | 候选发布必须通过 |
 | cross-domain-airline | 修改 tau2 adapter 或来源 manifest 时 | published airline gate 必须通过；prospective threshold 单独记录 |
+| cross-domain-telecom | 修改 tau2 adapter 或 telecom manifest 时 | published telecom gate 必须通过；actor 边界和 prospective threshold 单独记录 |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
 | release | tag 推送时 | 是 |
 
@@ -490,7 +516,7 @@ v4.18 仍有两个诚实边界：airline 只有 120 个适用样本，低于最�
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.18 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.19 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -518,7 +544,7 @@ v4.18 仍有两个诚实边界：airline 只有 120 个适用样本，低于最�
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.18 只接受与安全、来源完整性、独立接入、路径噪音和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.19 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -530,6 +556,7 @@ v4.18 仍有两个诚实边界：airline 只有 120 个适用样本，低于最�
 4. **v4.16**：首次用户验收、CLI 收敛和性能门禁。
 5. **v4.17**：评测结果 provenance、失败样本门槛和 prospective 模型证据。
 6. **v4.18**：路径噪音字段的显式边界和 airline 第二任务域证据。
+7. **v4.19**：telecom actor-aware 适配器、环境断言和第三任务域证据。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布

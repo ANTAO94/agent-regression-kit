@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v4.18 · Usage &amp; Technical Guide</small>
+          <small>v4.19 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -251,7 +251,7 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v4.18.0</span>
+            <span class="badge">v4.19.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
             <span class="badge orange">v4 compatibility gate</span>
@@ -272,7 +272,7 @@
             <a class="badge" href="v4.11-acceptance.md">v4.11 独立项目验证 →</a>
             <a class="badge" href="v4.14-acceptance.md">v4.14 Benchmark 治理验收 →</a>
             <a class="badge" href="v4.17-acceptance.md">v4.17 评测可追溯性验收 →</a>
-            <a class="badge" href="v4.18-acceptance.md">v4.18 路径噪音与航空域验收 →</a>
+            <a class="badge" href="v4.19-acceptance.md">v4.19 电信域与 actor 边界验收 →</a>
             <a class="badge" href="v4.16-acceptance.md">v4.16 首用与性能验收 →</a>
             <a class="badge" href="state-equivalence.md">状态等价契约说明 →</a>
             <a class="badge" href="tau2-independent-validation.md">tau2-bench 方法说明 →</a>
@@ -380,7 +380,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.18.0</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.19.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -1063,11 +1063,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.18.0"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.19.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.18.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.19.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1301,6 +1301,7 @@ jobs:
               <tr><td><strong>v4.16</strong></td><td>新用户需要自己拼接 baseline、Contract、脚本和 CI，框架自身性能回退也缺少可复现门禁。</td><td><code>init</code> 首用脚手架、三种 intentional failure、<code>guidance/next_actions</code>、依赖无关性能基线和周期开工作流。</td></tr>
               <tr><td><strong>v4.17</strong></td><td>不同模型结果可能被错误地写成同一数据集 provenance，且评测门禁没有失败样本下限。</td><td>结果文件 SHA-256 与 source manifest 绑定、<code>--min-failures</code> 门禁、prospective o4-mini 评测和 CI 证据。</td></tr>
               <tr><td><strong>v4.18</strong></td><td>路径契约容易把未建模的传输字段误判成业务回归，且独立证据只有 retail 任务域。</td><td><code>path_rules.ignore_argument_paths</code> 的显式边界、airline 第二任务域、哈希绑定结果和跨域 CI 证据。</td></tr>
+              <tr><td><strong>v4.19</strong></td><td>电信轨迹中的模拟器动作可能被误当成 Agent 行为，普通扁平回放无法表达 actor 边界。</td><td>assistant/user requestor 分离、有限环境断言、telecom 第三任务域和显式 prospective 阈值。</td></tr>
             </tbody>
           </table>
           <div class="panel tint-blue">
@@ -1358,7 +1359,7 @@ agent-regression migrate trace \
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v4.18.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a>、<a href="v4.13-acceptance.md">v4.13 契约安全验收</a>、<a href="v4.14-acceptance.md">v4.14 Benchmark 治理验收</a>、<a href="v4.16-acceptance.md">v4.16 首用与性能验收</a>、<a href="v4.17-acceptance.md">v4.17 评测可追溯性验收</a>、<a href="v4.18-acceptance.md">v4.18 路径噪音与航空域验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
+          <p>本文档面向 Agent Regression Kit v4.19.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a>、<a href="v4.13-acceptance.md">v4.13 契约安全验收</a>、<a href="v4.14-acceptance.md">v4.14 Benchmark 治理验收</a>、<a href="v4.16-acceptance.md">v4.16 首用与性能验收</a>、<a href="v4.17-acceptance.md">v4.17 评测可追溯性验收</a>、<a href="v4.18-acceptance.md">v4.18 路径噪音与航空域验收</a>、<a href="v4.19-acceptance.md">v4.19 电信域与 actor 边界验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

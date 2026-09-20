@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.18.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.19.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.18.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.19.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.18.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.19.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.18.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.19.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -599,6 +599,35 @@ agent-regression performance gate \
 The default gate warns above 20% and blocks above 40% elapsed-time regression
 on like-for-like Python/OS/hardware. See the [performance guide](performance.md)
 and [v4.16 acceptance](v4.16-acceptance.md).
+
+### v4.19: actor-aware telecom and environment assertions
+
+Telecom is not modeled as a flat replay list. `assistant` calls are Agent
+behavior; `user` calls are simulator/environment activity. The adapter builds
+the Contract only from assistant-owned writes and retains user-owned results as
+evidence for bounded environment assertions:
+
+```bash
+python3 examples/tau2_telecom_validation.py \
+  --results work/tau2-telecom/results.json \
+  --source-manifest examples/tau2-telecom/source.json \
+  --out work/tau2-telecom/report.json \
+  --traces-dir work/tau2-telecom/sample-traces \
+  --min-eligible 300 \
+  --min-failures 200 \
+  --min-failure-recall 0.99 \
+  --max-false-alarm-rate 0.05 \
+  --max-missed-failure-rate 0.0
+```
+
+The v4.19 published telecom file contains 364 eligible assistant-write
+scenarios and 92 user-only exclusions, producing 147/217/0/0. The prospective
+o4-mini file produces 136/216/9/3 and uses explicit observation thresholds of
+98% recall, 10% false alarms and 2% missed failures. This is bounded domain
+adaptation and provenance evidence, not a universal simulator-state
+reconstruction or unseen-task generalization claim. See the
+[telecom reproduction](../examples/tau2-telecom/README.md) and
+[v4.19 acceptance](v4.19-acceptance.md).
 
 ### v4.18: path noise and a second task domain
 

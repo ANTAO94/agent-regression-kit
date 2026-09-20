@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 4.19.0 - 2026-09-21
+
+- Add an actor-aware τ²-bench telecom adapter: assistant-owned tool calls are
+  evaluated as Agent behavior, while simulator/user-owned tool calls remain
+  environment evidence instead of being mistaken for Agent actions.
+- Add telecom-specific environment assertions for service status, mobile data,
+  speed, MMS, data refueling and overdue-bill evidence, with explicit
+  termination-step diagnostics.
+- Add checksum-bound published and prospective telecom validation manifests,
+  reproducible commands, sample Trace export and four telecom CI jobs alongside
+  the existing retail and airline evidence.
+- Record v4.19's cross-domain calibration and prospective results honestly:
+  364 eligible scenarios, 147/217/0/0 on the pinned published file; and
+  136/216/9/3 on the prospective o4-mini file under an explicit relaxed
+  observation threshold. These are scoped evidence, not universal guarantees.
+
 ## 4.18.0 - 2026-09-21
 
 - Add `path_rules.ignore_argument_paths` for explicit transport-noise filtering:

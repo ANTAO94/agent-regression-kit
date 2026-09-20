@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.18 deliberately stays small. The local Viewer
+Agent Regression Kit v4.19 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -90,3 +90,12 @@ is a read-only presentation layer, not a hosted management service.
   10.42%, so the workflow records an explicit 12% model/domain threshold
   rather than presenting it as the general 5% target. An uninvolved human
   usability study is still required.
+- The v4.19 telecom validation adds a third task domain with an explicit
+  assistant/user actor boundary. It evaluates 364 assistant-write scenarios
+  and excludes 92 user-only scenarios; user-owned results are environment
+  evidence, not Agent actions. The environment parser covers only a bounded
+  set of telecom assertions and does not reconstruct every hidden simulator
+  state. Its prospective o4-mini observation is 98.63% failure recall, 6.21%
+  false-alarm rate and 1.37% missed-failure rate under explicit 98%/10%/2%
+  thresholds; this is not a universal quality guarantee or unseen-task
+  generalization evidence.

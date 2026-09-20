@@ -10,6 +10,11 @@ SPEC = importlib.util.spec_from_file_location("tau2_retail_validation", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+TELECOM_SCRIPT = ROOT / "examples" / "tau2_telecom_validation.py"
+TELECOM_SPEC = importlib.util.spec_from_file_location("tau2_telecom_validation", TELECOM_SCRIPT)
+assert TELECOM_SPEC is not None and TELECOM_SPEC.loader is not None
+TELECOM_MODULE = importlib.util.module_from_spec(TELECOM_SPEC)
+TELECOM_SPEC.loader.exec_module(TELECOM_MODULE)
 
 
 class Tau2ValidationScriptTests(unittest.TestCase):
@@ -31,6 +36,13 @@ class Tau2ValidationScriptTests(unittest.TestCase):
             bound = MODULE.bind_results_to_source(results, {"tag": "fixture"})
             self.assertIsNone(bound["manifest_sha256"])
             self.assertEqual(64, len(bound["results_sha256"]))
+
+    def test_telecom_validator_rejects_a_mismatched_result_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            results = Path(directory) / "telecom.json"
+            results.write_text('{"domain":"telecom"}\n', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "does not match source manifest"):
+                TELECOM_MODULE.bind_results_to_source(results, {"sha256": "0" * 64})
 
 
 if __name__ == "__main__":

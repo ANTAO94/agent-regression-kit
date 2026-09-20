@@ -54,8 +54,14 @@ v4.13 exposes a small, dependency-free bridge for validating a published
 external Agent trajectory set without turning the external score into a test
 input:
 
-- `trace_from_tau2_simulation(simulation, task, source=None, agent=None)` maps a
-  tau2-bench half-duplex simulation into a validated `AgentTrace`.
+- `trace_from_tau2_simulation(simulation, task, source=None, agent=None,
+  domain="retail", include_user_tools=False, preserve_raw_arguments=False)` maps
+  a tau2-bench half-duplex simulation into a validated `AgentTrace`. Set
+  `include_user_tools=True` only for domains such as telecom where
+  simulator-owned tool activity is explicit; each event records its
+  `requestor` in metadata. `preserve_raw_arguments=True` is for domain evidence
+  parsers that need generated prose; the default canonical arguments remain
+  safer for deterministic Contract comparison.
 - `build_tau2_retail_contract(task)` converts the task's expected write actions
   and communication requirement into a deterministic `ContractPolicy`.
 - `evaluate_tau2_retail_results(payload, source=None, sample_limit=5)` returns
@@ -65,6 +71,12 @@ input:
   claims or the contract itself.
 - `TAU2_RETAIL_WRITE_TOOLS` and `TAU2_RETAIL_OBSERVATION_TOOLS` document the
   retail tool classification used by the adapter.
+- `build_tau2_telecom_contract(task)` and
+  `evaluate_tau2_telecom_results(payload, source=None, sample_limit=5)` add the
+  actor-aware telecom adapter. Assistant-owned writes are the Contract path;
+  user-owned calls are environment evidence for bounded telecom assertions.
+  The corresponding `TAU2_TELECOM_WRITE_TOOLS` and
+  `TAU2_TELECOM_OBSERVATION_TOOLS` constants make the domain boundary explicit.
 
 ## Benchmark governance
 
@@ -118,6 +130,11 @@ it removes a field only when the baseline path rule does not declare it. It is
 not a wildcard for business identifiers. The second τ² airline importer and
 its checksum-bound reproduction are documented in
 [`docs/v4.18-acceptance.md`](v4.18-acceptance.md).
+
+v4.19 adds the actor-aware telecom adapter and checksum-bound telecom
+validation. See [`docs/v4.19-acceptance.md`](v4.19-acceptance.md) for the
+assistant/user evidence boundary, environment assertion scope and measured
+calibration/prospective results.
 
 ## Recording
 

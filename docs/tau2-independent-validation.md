@@ -85,7 +85,8 @@ python examples/tau2_retail_validation.py \
 ### 边界
 
 - 这是第三方公开轨迹验证，不代表 τ²-bench 维护者采用或认可本项目；
-- 当前适配器覆盖半双工零售轨迹和写操作，不覆盖语音、知识检索、航空与电信域；
+- 当前适配器覆盖半双工零售、航空和电信轨迹的有限业务子集，不覆盖语音、知识检索或
+  所有其他任务域；
 - 公开结果来自一个固定模型与历史数据集，不代表所有模型版本；
 - reward 是独立 oracle，但任务参考 action 仍可能不是唯一正确实现；
 - 结果证明当前规则在这份数据上的表现，不构成生产可靠性保证。
@@ -109,6 +110,26 @@ oracle 失败。结果为 49 条正确放行、69 条正确阻断、2 条误报�
 目标，CI 使用显式的 12% 观察阈值，并把该差异写入报告；它不是 5% 通用保证。详见
 [`v4.18 验收记录`](v4.18-acceptance.md) 和
 [`examples/tau2-airline/README.md`](../examples/tau2-airline/README.md)。
+
+### v4.19 电信任务域验证
+
+v4.19 增加 telecom 任务域。它与 retail/airline 的关键区别是轨迹包含两个行为者：
+`assistant` 工具调用是 Agent 路径，`user` 工具调用是模拟器或环境动作。适配器把
+assistant-owned 写操作用于 Contract，把 user-owned 结果保留为环境断言证据，避免把
+模拟器主动改变的状态错误归因给 Agent。
+
+固定的 `gpt-4.1-mini` 电信结果包含 456 条轨迹，其中 364 条含有至少一个
+assistant-owned 写操作，92 条只有 user-owned 动作，因此明确排除。范围内结果为 147 条
+正确放行、217 条正确阻断、0 条误报和 0 条漏报。适配器还对服务状态、移动数据、测速、
+MMS、数据加油和欠费账单提供有限的环境断言解析。
+
+前瞻 `o4-mini` 电信结果为 136 条正确放行、216 条正确阻断、9 条误报和 3 条漏报，失败
+召回率 98.63%、误报率 6.21%、漏报率 1.37%。CI 使用明确的观察阈值：召回率至少 98%、
+误报率不超过 10%、漏报率不超过 2%。该阈值只描述这组模型/域结果，不是通用质量承诺。
+
+电信验证的来源、复现命令、Trace 边界和限制见
+[`v4.19 验收记录`](v4.19-acceptance.md) 与
+[`examples/tau2-telecom/README.md`](../examples/tau2-telecom/README.md)。
 
 ## English
 
@@ -177,9 +198,35 @@ blocks, 5 false alarms and 0 missed failures. Its observed false-alarm rate is
 relaxation. It is not a general 5% guarantee. See the [v4.18 acceptance
 record](v4.18-acceptance.md) and the [airline example](../examples/tau2-airline/README.md).
 
+### v4.19 telecom domain validation
+
+v4.19 adds the telecom domain. Telecom trajectories contain two actors:
+`assistant` tool calls are the Agent path, while `user` tool calls are simulator
+or environment activity. The adapter checks assistant-owned writes in the
+Contract and keeps user-owned results as evidence for bounded environment
+assertions. This prevents simulator actions from satisfying an Agent action by
+accident.
+
+The pinned `gpt-4.1-mini` telecom file has 456 trajectories, 364 eligible
+assistant-write scenarios and 92 user-only exclusions. It yields 147 true
+passes, 217 true blocks, 0 false alarms and 0 missed failures. The adapter also
+supports bounded evidence parsers for service status, mobile data, speed, MMS,
+data refueling and overdue bills.
+
+The prospective `o4-mini` telecom file yields 136 true passes, 216 true blocks,
+9 false alarms and 3 missed failures: 98.63% failure recall, 6.21%
+false-alarm rate and 1.37% missed-failure rate. CI records explicit observation
+thresholds of recall >= 98%, false alarms <= 10% and missed failures <= 2%.
+These thresholds describe this model/domain result; they are not universal
+quality guarantees.
+
+See the [v4.19 acceptance record](v4.19-acceptance.md) and the
+[telecom example](../examples/tau2-telecom/README.md) for source manifests,
+reproduction commands, actor boundaries and limitations.
+
 Run the commands in the Chinese section above or execute the dedicated
 `tau2 independent validation` GitHub Actions workflow. The check covers pinned
-published half-duplex retail and airline trajectories, including the v4.17
-retail and v4.18 airline prospective o4-mini result files. It is not evidence
-of upstream adoption, voice coverage, every τ²-bench domain, every model, or
-production reliability.
+published half-duplex retail, airline and telecom trajectories, including the
+v4.17 retail, v4.18 airline and v4.19 telecom prospective o4-mini result files.
+It is not evidence of upstream adoption, voice coverage, every τ²-bench domain,
+every model, or production reliability.

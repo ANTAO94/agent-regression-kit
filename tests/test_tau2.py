@@ -3,8 +3,10 @@ import unittest
 from agent_regression import (
     build_tau2_airline_contract,
     build_tau2_retail_contract,
+    build_tau2_telecom_contract,
     evaluate_tau2_airline_results,
     evaluate_tau2_retail_results,
+    evaluate_tau2_telecom_results,
     trace_from_tau2_simulation,
 )
 
@@ -76,6 +78,100 @@ EXPECTED_ARGUMENTS = {
 
 
 class Tau2IntegrationTests(unittest.TestCase):
+    def test_telecom_contract_separates_user_actions_from_agent_writes(self):
+        source_task = {
+            "id": "telecom-1",
+            "evaluation_criteria": {
+                "actions": [
+                    {"requestor": "user", "name": "toggle_data", "arguments": {}},
+                    {
+                        "requestor": "assistant",
+                        "name": "transfer_to_human_agents",
+                        "arguments": {"summary": "I cannot fix the issue."},
+                    },
+                ],
+                "env_assertions": [
+                    {
+                        "func_name": "assert_mobile_data_status",
+                        "arguments": {"expected_status": True},
+                    }
+                ],
+                "communicate_info": [],
+            },
+        }
+        source_simulation = {
+            "id": "telecom-pass",
+            "task_id": "telecom-1",
+            "trial": 0,
+            "termination_reason": "user_stop",
+            "reward_info": {"reward": 1.0},
+            "messages": [
+                {
+                    "role": "user",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "user-call",
+                            "name": "toggle_data",
+                            "arguments": {},
+                            "requestor": "user",
+                        }
+                    ],
+                },
+                {
+                    "role": "tool",
+                    "id": "user-call",
+                    "content": "Mobile Data is now ON. Status Bar: Data Enabled",
+                    "error": False,
+                },
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "assistant-call",
+                            "name": "transfer_to_human_agents",
+                            "arguments": {"summary": "A generated handoff summary."},
+                            "requestor": "assistant",
+                        }
+                    ],
+                },
+                {
+                    "role": "tool",
+                    "id": "assistant-call",
+                    "content": "Transfer successful",
+                    "error": False,
+                },
+                {"role": "assistant", "content": "Transferred", "tool_calls": None},
+            ],
+        }
+        trace = trace_from_tau2_simulation(
+            source_simulation,
+            source_task,
+            domain="telecom",
+            include_user_tools=True,
+            preserve_raw_arguments=True,
+        )
+        self.assertEqual("user", trace.events[0]["metadata"]["requestor"])
+        self.assertEqual(
+            "A generated handoff summary.",
+            trace.events[2]["arguments"]["summary"],
+        )
+        report = evaluate_tau2_telecom_results(
+            {
+                "info": {"agent_info": {"implementation": "test", "llm": "fixture"}},
+                "tasks": [source_task],
+                "simulations": [source_simulation],
+            },
+            source={"tag": "fixture"},
+        )
+        self.assertEqual({"true_pass": 1, "true_block": 0, "false_alarm": 0, "missed_failure": 0}, report["confusion_matrix"])
+        self.assertEqual("telecom", report["project"]["domain"])
+        self.assertEqual([], build_tau2_telecom_contract(source_task).check(
+            trace_from_tau2_simulation(source_simulation, source_task, domain="telecom"),
+            trace_from_tau2_simulation(source_simulation, source_task, domain="telecom"),
+        ))
+
     def test_airline_contract_can_ignore_explicit_payment_noise(self):
         source_task = {
             "id": "airline-1",
