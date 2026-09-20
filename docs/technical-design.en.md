@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.16.0 source. Package version 4.16.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
+Based on v4.17.0 source. Package version 4.17.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -353,6 +353,6 @@ See [the full methodology](tau2-independent-validation.md), the
 record](v4.12-acceptance.md) and the [v4.13 acceptance record](v4.13-acceptance.md) for field mappings, limitations, sample traces and
 CI behavior.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.16.0) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.17.0) · [v4.17 acceptance](v4.17-acceptance.md) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

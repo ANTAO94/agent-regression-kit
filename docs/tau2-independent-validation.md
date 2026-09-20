@@ -122,8 +122,27 @@ generalization: its labels informed Contract design. Use the generic
 `benchmark prepare`, `benchmark decide` and `benchmark score` workflow when a
 separate evaluation set is available.
 
+### v4.17 prospective model evaluation
+
+v4.17 adds a second, checksum-bound result file for the `o4-mini-2025-04-16`
+agent. It contains 420 eligible write scenarios and 126 oracle failures. The
+contract gate produced 288 true passes, 126 true blocks, 6 false alarms and 0
+missed failures: failure recall 100% and false-alarm rate 2.04%.
+
+The validator now compares the bytes passed through `--results` with the
+`sha256` in `--source-manifest` before it writes the report. The report records
+both the observed result hash and the manifest hash, so using the old default
+manifest with the new model file fails closed instead of creating misleading
+provenance. The prospective manifest and CI job are
+[`examples/tau2-retail/prospective-o4-mini-source.json`](../examples/tau2-retail/prospective-o4-mini-source.json)
+and [the independent validation workflow](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/tau2-independent-validation.yml).
+
+This is model-result-level prospective evidence: the task family, task
+definitions and upstream reward oracle are shared with the calibration source.
+It is not an unseen-domain or independent-task generalization claim.
+
 Run the commands in the Chinese section above or execute the dedicated
 `tau2 independent validation` GitHub Actions workflow. The check covers pinned
-published half-duplex retail trajectories. It is not evidence of upstream
-adoption, voice coverage, every τ²-bench domain, every model, or production
-reliability.
+published half-duplex retail trajectories, including the v4.17 prospective
+o4-mini result file. It is not evidence of upstream adoption, voice coverage,
+every τ²-bench domain, every model, or production reliability.

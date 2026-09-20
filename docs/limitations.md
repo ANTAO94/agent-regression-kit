@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.16 deliberately stays small. The local Viewer
+Agent Regression Kit v4.17 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -80,3 +80,6 @@ is a read-only presentation layer, not a hosted management service.
 - The independent consumer pilot proves one released-wheel integration and its
   three injected regressions. It does not prove automatic compatibility with
   every Agent framework or programming language.
+- The v4.17 prospective τ² result is bound to a separate published model file
+  and adds a model-level evaluation signal. It shares the task family and
+  oracle with calibration, so it is not unseen-domain generalization.

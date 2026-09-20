@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.16.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.17.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.16.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.17.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -447,13 +447,13 @@ jobs:
   regression:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.16.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.17.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,13 +476,13 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.16.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.17.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
           markdown-report: work/reports/report-index.md
           fail-on-regression: 'true'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: agent-regression-report
@@ -543,9 +543,9 @@ v4.13 自带一个可复现的独立项目适配案例：验证
 验证器把工具调用和结果映射为 `AgentTrace`，从任务的期望写操作和通信要求
 生成 Contract，然后才与上游 reward 对比；reward 不会变成 claims，也不会
 作为 Contract 输入。固定的 456 次 simulation 中，420 个写场景可纳入契约：
-253 个 true pass、153 个 true block、14 个 false alarm、0 个 missed failure；
-准确率 96.67%，失败召回率 100%，误报率 5.24%，漏报率 0%。14 个误报会保留并
-说明，因为精确的动作/参数匹配可能拒绝最终状态等价但路径不同的成功运行。
+267 个 true pass、153 个 true block、0 个 false alarm、0 个 missed failure；
+准确率、失败召回率和漏报率分别为 100%、100% 和 0%。这组结果从 v4.14 起标记为
+calibration，因为历史标签曾参与规则设计，不能当作未见数据泛化成绩。
 
 这是一个独立兼容性与测量案例，不代表 tau2-bench 上游背书或依赖本项目。
 完整字段映射和限制见 [`docs/tau2-independent-validation.md`](tau2-independent-validation.md)。
@@ -590,6 +590,25 @@ agent-regression performance gate \
 
 默认耗时回退超过 20% 报警，超过 40% 阻断；性能结果必须在同一 Python、操作系统和硬件
 条件下比较。详见[性能基线说明](performance.md)与[v4.16 验收](v4.16-acceptance.md)。
+
+### v4.17：外部评测 provenance
+
+外部模型结果不能只看最终数字，必须确认结果文件和来源 manifest 是同一份数据。运行 tau²
+prospective 评测时，使用匹配的 manifest：
+
+```bash
+python3 examples/tau2_retail_validation.py \
+  --results work/tau2-prospective/results.json \
+  --source-manifest examples/tau2-retail/prospective-o4-mini-source.json \
+  --out work/tau2-prospective/report.json \
+  --min-eligible 300 \
+  --min-failures 50
+```
+
+如果 SHA-256 不匹配，命令会在写报告前失败；报告会保留结果哈希、manifest 哈希和 source
+manifest 哈希。`--min-failures` 防止只有极少失败样本时用百分比制造虚假确定性。v4.17 的
+固定 o4-mini 结果为 420 个可判定样本、126 个失败样本、失败召回率 100%、误报率 2.04%。
+这属于模型结果级 prospective 证据，不是未见任务域泛化。详见[v4.17 验收](v4.17-acceptance.md)。
 
 ## 8. v4 兼容检查与迁移
 

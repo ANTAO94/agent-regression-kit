@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 4.17.0 - 2026-09-21
+
+- Bind the τ² result file to the source manifest SHA-256 before writing a
+  validation report, preventing metrics from one model being described as
+  another model's dataset.
+- Add explicit `--min-failures` gating and report the observed result and
+  manifest hashes as provenance.
+- Add a prospective o4-mini retail evaluation manifest and CI job: 420
+  eligible scenarios, 126 oracle failures, 100% failure recall and 2.04%
+  false-alarm rate under the release gate.
+- Keep the evaluation boundary honest: this is a model-held-out result file
+  over the same task family, not a claim of unseen-domain generalization.
+
 ## 4.16.0 - 2026-09-21
 
 - Make `agent-regression init` a runnable first-use project: it seeds a

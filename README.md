@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.16.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.17.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.16.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.16.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.17.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.16.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.17.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.16.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.17.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -342,7 +342,7 @@ agent-regression performance gate \
 
 ## 8. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.16 发布记录 **239 项测试通过**，并验证构建、干净环境安装、
+当前适合本地开发与团队 CI 试点。v4.17 发布记录 **241 项测试通过**，并验证构建、干净环境安装、
 首用模板、性能 smoke 和独立消费仓库升级。
 
 | 验证类型 | 已有证据 | 能说明什么 |
@@ -353,6 +353,7 @@ agent-regression performance gate \
 | 独立消费仓库 | [agent-regression-pilot](docs/consumer-pilot.md)：正常退出 0，错资源/漏工具/结果误读均退出 1 | 发布 wheel、公开 API、Contract 和 CLI 在独立仓库中的接入边界 |
 | 首用模板 | `agent-regression init`：自动生成 baseline/candidate/Contract/CI，并提供 3 个故意失败变体 | 新用户不需要先读核心源码就能跑通通过与阻断 |
 | 性能基线 | [性能说明](docs/performance.md)：small/medium 固定生成器、环境记录和 20%/40% 门禁 | 发现框架自身明显回退，不代表模型或生产 SLA |
+| Prospective 评测 | [τ² 独立验证](docs/tau2-independent-validation.md)：o4-mini 结果文件哈希绑定，420 个可判定样本、126 个失败样本 | 模型结果文件级留出证据，不代表未见任务域泛化 |
 
 τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
@@ -369,4 +370,4 @@ agent-regression performance gate \
 | 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
 | 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [性能基线](docs/performance.md) · [独立消费项目](docs/consumer-pilot.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.16 验收](docs/v4.16-acceptance.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [性能基线](docs/performance.md) · [独立消费项目](docs/consumer-pilot.md) · [τ² 独立验证](docs/tau2-independent-validation.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.17 验收](docs/v4.17-acceptance.md) · [v4.16 验收](docs/v4.16-acceptance.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)

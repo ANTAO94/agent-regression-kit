@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.16.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.17.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.16.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.17.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -445,13 +445,13 @@ jobs:
   regression:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.16.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.17.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,13 +474,13 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.16.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.17.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
           markdown-report: work/reports/report-index.md
           fail-on-regression: 'true'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: agent-regression-report
@@ -550,11 +550,11 @@ The validator maps tool calls and results into `AgentTrace`, builds a contract
 from each task's expected write actions and communication requirement, and only
 then compares the decision with the upstream reward. The reward never becomes a
 claim or an input to the contract. On the pinned 456-simulation dataset, 420
-write scenarios were eligible: 253 true passes, 153 true blocks, 14 false
-alarms and 0 missed failures. That is 96.67% accuracy, 100% failure recall,
-5.24% false-alarm rate and 0% missed-failure rate. The 14 false alarms are
-documented rather than suppressed because exact action/argument matching can
-reject a semantically equivalent successful path.
+write scenarios were eligible: 267 true passes, 153 true blocks, 0 false
+alarms and 0 missed failures. Accuracy, failure recall and missed-failure rate
+are 100%, 100% and 0%. Since historical labels participated in rule design,
+this result has been labeled calibration since v4.14 and is not a held-out
+generalization score.
 
 This is an independent compatibility and measurement example, not a claim that
 tau2-bench endorses or depends on this kit. See
@@ -599,6 +599,29 @@ agent-regression performance gate \
 The default gate warns above 20% and blocks above 40% elapsed-time regression
 on like-for-like Python/OS/hardware. See the [performance guide](performance.md)
 and [v4.16 acceptance](v4.16-acceptance.md).
+
+### v4.17: external evaluation provenance
+
+Do not trust an external metric until the result bytes and source manifest are
+bound to each other. For the prospective tau2 evaluation, pass the matching
+manifest:
+
+```bash
+python3 examples/tau2_retail_validation.py \
+  --results work/tau2-prospective/results.json \
+  --source-manifest examples/tau2-retail/prospective-o4-mini-source.json \
+  --out work/tau2-prospective/report.json \
+  --min-eligible 300 \
+  --min-failures 50
+```
+
+The command fails before writing a report when the SHA-256 does not match. The
+report retains the result, manifest and source-manifest hashes. `--min-failures`
+prevents a tiny failure denominator from producing an overconfident percentage.
+The v4.17 o4-mini result contains 420 eligible scenarios and 126 oracle
+failures, with 100% failure recall and a 2.04% false-alarm rate. This is
+prospective model-result evidence, not unseen-task-domain generalization; see
+the [v4.17 acceptance record](v4.17-acceptance.md).
 
 ## 8. v4 compatibility and migration
 

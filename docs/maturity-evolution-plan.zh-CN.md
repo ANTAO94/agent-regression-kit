@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.16）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.17）
 
-> 状态：v4.16 已落地，后续进入真实用户与更广泛生态验证
-> 当前基线版本：v4.16.0
+> 状态：v4.17 已落地，后续进入真实用户与未见任务域验证
+> 当前基线版本：v4.17.0
 > 更新时间：2026-09-20  
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,7 +27,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.16 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.17 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
@@ -40,6 +40,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
 | 易用性 | README 已覆盖首跑、配置、接入和 CI | 首次用户无需阅读核心代码即可完成首个通过、失败和自定义 Agent 接入 |
 | 可追溯性 | 有版本、提交、数据校验和 | 每次评测同时记录代码、规则、数据、拆分和报告哈希 |
 | 性能边界 | 没有正式门禁 | 建立可重复的批量比较时间和内存基线 |
+| 评测来源完整性 | 不同结果文件可能复用错误 manifest | 结果字节、来源 manifest、模型身份和失败样本门槛绑定 |
 
 ### 最终通过条件
 
@@ -402,6 +403,30 @@ sequenceDiagram
 其中首次用户部分是自动化 clean-room proxy，真实未参与实现用户的可用性访谈仍需后续补齐，
 因此本版本不把它描述成完整的人因研究。
 
+### 7.5 v4.17：评测来源完整性与 prospective 证据（已落地）
+
+v4.16 的性能和首用证据已经可以证明“框架能被安装和运行”，但外部评测仍有一个容易被
+忽略的风险：如果结果文件换成了另一个模型，而报告继续沿用旧的 source manifest，数字看似
+完整，实际 provenance 已经错了。v4.17 先修这个边界，再扩大模型结果证据。
+
+实现内容：
+
+- `examples/tau2_retail_validation.py` 在写报告前计算 `--results` 的 SHA-256，并与
+  `--source-manifest` 的 `sha256` 严格匹配；错配返回输入错误，不生成可信报告；
+- 增加 `--min-failures`，将 oracle failure 数量作为正式门禁，而不是只看比例；
+- 新增 `prospective-o4-mini-source.json` 和独立 CI Job，固定上游 tag、下载地址、结果哈希和
+  许可信息；
+- v4.17 prospective 结果为 420 个可判定样本、126 个失败样本、failure recall 100%、
+  false-alarm rate 2.04%、missed failure 0；
+- 报告同时记录结果哈希、manifest 哈希和 source manifest 文件哈希，便于审计。
+
+这组数据是模型结果级 prospective evidence：它没有参与 v4.13 calibration，但任务定义、任务
+域和 upstream reward oracle 与 calibration 来源相同。因此它不能被描述成未见任务域泛化；
+真正的独立任务集和未参与实现用户仍是后续验收项。
+
+实现证据见 [v4.17 验收记录](v4.17-acceptance.md) 和
+[τ² 独立验证说明](tau2-independent-validation.md)。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -435,7 +460,7 @@ sequenceDiagram
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.16 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.17 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -463,7 +488,7 @@ sequenceDiagram
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.16 只接受与四个成熟度目标直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.17 只接受与安全、来源完整性、独立接入和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -473,6 +498,7 @@ sequenceDiagram
 2. **v4.14**：benchmark manifest、决策和评分隔离、留出数据；
 3. **v4.15**：独立消费仓库和三类真实回归；
 4. **v4.16**：首次用户验收、CLI 收敛和性能门禁。
+5. **v4.17**：评测结果 provenance、失败样本门槛和 prospective 模型证据。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布
@@ -489,6 +515,7 @@ sequenceDiagram
 - 三类注入回归的 Trace 和阻断报告；
 - 一次首次用户接入记录和修复清单；
 - 一份可重复的性能基线；
+- 一份结果字节与 source manifest 哈希绑定的 prospective 评测报告；
 - 完整的升级、限制和安全说明。
 
 这些证据齐全后，可以把项目描述为成熟的本地/CI Agent 回归框架。托管后台、多租户权限、

@@ -105,6 +105,14 @@ v4.16 adds two dependency-free helpers for framework-level performance checks:
 The equivalent CLI is `agent-regression performance run` and
 `agent-regression performance gate`; see [`performance.md`](performance.md).
 
+## Prospective τ² result provenance
+
+The example validator binds a downloaded result file to the SHA-256 in its
+source manifest before writing a report. Use the matching manifest when
+evaluating a different published model result; a mismatch fails closed. The
+v4.17 prospective o4-mini example and its minimum-failure gate are documented
+in [`docs/v4.17-acceptance.md`](v4.17-acceptance.md).
+
 ## Recording
 
 - `record_run(adapter, request, tools, *, run_id, metadata=None, redaction_policy=None, state_backend=None)` records any `AgentAdapter` with any `ToolExecutor`. When supplied, `state_backend.snapshot()` is used for the recorded initial/final world state instead of the tool executor.

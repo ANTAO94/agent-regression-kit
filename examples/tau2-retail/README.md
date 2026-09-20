@@ -24,3 +24,15 @@ contract uses explicit outcome equivalence for reviewed alternatives while
 keeping object arguments and unexpected successful writes fail-closed. See the
 [bilingual validation guide](../../docs/tau2-independent-validation.md) for
 terminology, provenance, interpretation and limitations.
+
+For the prospective model-level evaluation, use the matching source manifest;
+the validator rejects a result file whose SHA-256 does not match it:
+
+```bash
+python3 examples/tau2_retail_validation.py \
+  --results work/tau2-prospective/results.json \
+  --source-manifest examples/tau2-retail/prospective-o4-mini-source.json \
+  --out work/tau2-prospective/report.json \
+  --min-eligible 300 \
+  --min-failures 50
+```
