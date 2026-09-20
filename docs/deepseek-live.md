@@ -2,9 +2,15 @@
 
 ## 中文
 
-这个检查使用 DeepSeek 当前价格最低的 `deepseek-flash`，运行一次真正的工具型
-Agent 闭环：模型先选择 `get_order`，本地 Fixture 返回审核过的订单状态，模型再
-输出结构化业务结论。生成的 Trace 会与 `baselines/order-123.trace.json` 比较。
+这个检查使用 `deepseek-flash` 运行两种真正的工具型 Agent 闭环：
+
+1. 单工具：`get_order → final_answer`；
+2. 多工具依赖链：`get_order → check_refund_eligibility → final_answer`。
+
+第二个场景要求模型把第一步结果中的订单号、状态和金额正确传入第二个工具。工具
+顺序由 `required_tool_sequence` 固定，因此它验证的是跨步骤数据传递，不宣称验证
+模型的自主工具规划。两份 Trace 分别与 `baselines/order-123.trace.json` 和
+`baselines/order-refund.trace.json` 比较。
 
 它与离线框架测试的职责不同：离线测试证明接入代码稳定、可复现；真实供应商检查
 证明当前远端模型仍能遵守工具参数和业务契约。远端模型的自然语言可能变化，因此
@@ -17,10 +23,14 @@ export DEEPSEEK_API_KEY='在终端中设置，不要写入仓库'
 python examples/deepseek_live_agent_example.py
 agent-regression validate --trace work/deepseek-live.trace.json
 agent-regression compare --config examples/deepseek-live/compare.config.json
+
+python examples/deepseek_multi_tool_agent_example.py
+agent-regression validate --trace work/deepseek-multi-tool.trace.json
+agent-regression compare --config examples/deepseek-multi-tool/compare.config.json
 ```
 
-默认使用 `deepseek-flash`、关闭思考模式，并把每次输出限制为 64 tokens。一次检查
-通常包含两次短请求：工具选择和最终答案。不要把 API Key 写进 `.env`、Trace、
+默认使用 `deepseek-flash`、关闭思考模式；单工具和多工具场景分别需要两次和三次
+短请求。不要把 API Key 写进 `.env`、Trace、
 测试 Fixture、命令输出或 Git 历史。
 
 GitHub 仓库中将密钥配置为 Actions Secret `DEEPSEEK_API_KEY`，然后手动运行
@@ -30,10 +40,16 @@ GitHub 仓库中将密钥配置为 Actions Secret `DEEPSEEK_API_KEY`，然后手
 
 ## English
 
-This check uses the lowest-priced current DeepSeek model, `deepseek-flash`, to
-run a real tool-Agent loop. The model selects `get_order`, a local reviewed
-fixture returns the order state, and the model emits structured business
-claims. The resulting Trace is compared with `baselines/order-123.trace.json`.
+This check runs two real `deepseek-flash` tool-Agent loops:
+
+1. `get_order → final_answer`;
+2. `get_order → check_refund_eligibility → final_answer`.
+
+The second case requires the model to copy order ID, status and paid amount
+from the first result into the second call. `required_tool_sequence` fixes tool
+order, so this tests cross-step data propagation rather than claiming fully
+autonomous tool planning. The traces are compared with the reviewed single-
+and multi-tool baselines.
 
 Offline framework tests prove deterministic integration behavior. This live
 check proves that the current hosted model still respects tool arguments and
@@ -47,10 +63,14 @@ export DEEPSEEK_API_KEY='set this in your shell, never in the repository'
 python examples/deepseek_live_agent_example.py
 agent-regression validate --trace work/deepseek-live.trace.json
 agent-regression compare --config examples/deepseek-live/compare.config.json
+
+python examples/deepseek_multi_tool_agent_example.py
+agent-regression validate --trace work/deepseek-multi-tool.trace.json
+agent-regression compare --config examples/deepseek-multi-tool/compare.config.json
 ```
 
-The example defaults to `deepseek-flash`, disables thinking, and caps each
-response at 64 tokens. A normal check makes two short paid requests. Configure
+The examples default to `deepseek-flash` and disable thinking. The single- and
+multi-tool checks make two and three short paid requests respectively. Configure
 the GitHub Actions secret `DEEPSEEK_API_KEY` and run the `DeepSeek live
 provider` workflow manually, or let its weekly Sunday schedule run off the
 documented weekday peak-price windows.

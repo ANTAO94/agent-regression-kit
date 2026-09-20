@@ -294,7 +294,10 @@ class DeepSeekIntegrationTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            any(difference["category"] == "contract" for difference in report["differences"])
+            any(
+                difference["category"] == "required_tool"
+                for difference in report["differences"]
+            )
         )
 
     def test_required_sequence_validates_configuration(self):

@@ -331,6 +331,26 @@ trace = record_deepseek_tool_run(
 )
 ```
 
+For a deterministic dependency chain, replace `force_first_tool` with an exact
+sequence. Each named tool is forced in order, while the model remains
+responsible for generating arguments from prior tool results:
+
+```python
+trace = record_deepseek_tool_run(
+    "Look up order 123 and check its refund eligibility",
+    run_id="deepseek-refund-123",
+    system_prompt="Use observed tool results; never invent order fields.",
+    tools=tool_definitions,
+    tool_handlers=tool_handlers,
+    claims_extractor=parse_business_claims,
+    required_tool_sequence=("get_order", "check_refund_eligibility"),
+)
+```
+
+`force_first_tool` and `required_tool_sequence` are mutually exclusive. The
+sequence plus the final answer must fit within `max_rounds`. An unexpected,
+missing or out-of-order call raises `DeepSeekAPIError` before a Trace can pass.
+
 The default model is `deepseek-flash`. `DeepSeekAPIError` separates provider,
 transport and response-shape failures from local policy failures. No automatic
 network retry is performed. Pass a `transport` callable for offline tests; a

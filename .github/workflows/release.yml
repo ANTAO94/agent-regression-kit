@@ -58,6 +58,7 @@ jobs:
           test -f "$DOC_ROOT/v4-acceptance.md"
           test -f "$DOC_ROOT/v4.1-acceptance.md"
           test -f "$DOC_ROOT/v4.2-acceptance.md"
+          test -f "$DOC_ROOT/v4.3-acceptance.md"
           test -f "$DOC_ROOT/framework-integrations.md"
           test -f "$DOC_ROOT/deepseek-live.md"
           VIEWER_ROOT="$(/tmp/agent-regression-release-venv/bin/python -c 'import sys; print(sys.prefix)')/share/agent-regression-kit/viewer"

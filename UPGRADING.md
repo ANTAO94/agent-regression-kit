@@ -4,6 +4,28 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.2.0 → v4.3.0
+
+This feature release adds `required_tool_sequence` to the dependency-free
+DeepSeek runner and a reviewed two-tool refund baseline. Existing
+`force_first_tool` integrations continue to work unchanged. Do not set both
+options in one call; they are intentionally mutually exclusive.
+
+No Trace schema or public API generation migration is required. To adopt the
+new path, add every tool definition and handler, then replace
+`force_first_tool` with the exact sequence:
+
+```python
+trace = record_deepseek_tool_run(
+    ...,
+    required_tool_sequence=("get_order", "check_refund_eligibility"),
+)
+```
+
+Set `max_rounds` to at least the number of required tools plus one final-answer
+round. Keep a Contract that checks the dependent arguments; forcing tool order
+alone does not prove that values were propagated correctly.
+
 ## v3.1.x → v3.2.0
 
 ### What changed

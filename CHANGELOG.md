@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+## 4.3.0 - 2026-09-20
+
 - Surface real PydanticAI, OpenAI Agents, LangGraph, LangChain Core and hosted DeepSeek evidence prominently in the bilingual README.
 - Distinguish deterministic real-framework runs from paid live-provider runs and document the verified negative regression boundary.
+- Add deterministic DeepSeek multi-tool sequences while keeping model-generated arguments observable.
+- Verify live cross-step order status and amount propagation with a reviewed baseline and strict Contract.
+- Add a wrong-dependent-argument regression test and run both paid scenarios in the weekly credential-gated workflow.
 
 ## 4.2.0 - 2026-09-20
 
