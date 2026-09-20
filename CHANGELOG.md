@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 4.15.0 - 2026-09-21
+
+- Add the independent consumer repository
+  `ANTAO94/agent-regression-pilot`, which installs only the v4.14.0 Release
+  wheel and uses the public API/CLI from a separate project.
+- Verify three consumer-side injected regressions: wrong resource ID, skipped
+  required tool and incorrect result interpretation; each blocks with exit code
+  1 while the normal run passes with exit code 0.
+- Record the consumer wheel URL, SHA-256, fixed commit and CI workflow in a
+  bilingual acceptance document instead of copying consumer code into the core
+  repository.
+- Keep the external acceptance boundary explicit: this is one deterministic
+  consumer project, not automatic compatibility with every Agent framework.
+
 ## 4.14.0 - 2026-09-20
 
 - Add a dependency-free benchmark manifest with immutable source/revision,
