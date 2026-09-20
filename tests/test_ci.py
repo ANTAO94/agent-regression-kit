@@ -69,6 +69,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("generate_release_metadata.py", workflow)
         self.assertIn("dist/SHA256SUMS", workflow)
         self.assertIn("actions/attest@v4", workflow)
+        self.assertIn("steps.release-metadata.outputs.sbom", workflow)
         self.assertIn("id-token: write", workflow)
         self.assertIn("attestations: write", workflow)
 

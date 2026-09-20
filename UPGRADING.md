@@ -4,7 +4,7 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
-## v4.3.0 → v4.4.0
+## v4.3.0 → v4.4.1
 
 This release changes packaging and repository governance, not Trace or public
 Python API semantics. Existing Agent integrations and baselines require no
@@ -18,6 +18,10 @@ the commands in [`docs/supply-chain.md`](docs/supply-chain.md).
 Official checkout, Python setup and artifact-upload Actions move to their
 Node 24-based v7 releases. Self-hosted GitHub Actions runners must satisfy the
 minimum runner version required by those Actions.
+
+The `v4.4.0` tag did not produce a GitHub Release because the SBOM attestation
+gate rejected a glob path before asset upload. Use `v4.4.1`, which passes the
+exact generated SBOM filename between workflow steps.
 
 ## v4.2.0 → v4.3.0
 

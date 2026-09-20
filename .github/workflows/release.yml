@@ -29,6 +29,7 @@ jobs:
       - name: Build source distribution and wheel
         run: python -m build
       - name: Generate release checksums and SPDX SBOM
+        id: release-metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -36,6 +37,7 @@ jobs:
           python scripts/generate_release_metadata.py \
             --dist-dir dist \
             --version "$release_version"
+          echo "sbom=dist/agent-regression-kit-${release_version}.spdx.json" >> "$GITHUB_OUTPUT"
       - name: Verify wheel in a clean virtual environment
         shell: bash
         run: |
@@ -87,7 +89,7 @@ jobs:
         uses: actions/attest@v4
         with:
           subject-checksums: dist/SHA256SUMS
-          sbom-path: dist/*.spdx.json
+          sbom-path: ${{ steps.release-metadata.outputs.sbom }}
       - name: Create GitHub release for a pushed tag
         if: startsWith(github.ref, 'refs/tags/')
         env:

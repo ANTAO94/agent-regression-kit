@@ -14,7 +14,7 @@
 
 改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
-当前版本：[v4.4.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+当前版本：[v4.4.1](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.1)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
 
 ### 已验证的真实 Agent
 
@@ -67,7 +67,7 @@ Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际�
 macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
 
 ```bash
-git clone --branch v4.4.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.4.1 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -127,7 +127,7 @@ agent-regression ui
 
 ### 验证与维护
 
-v4.4.0 的发布验收：
+v4.4.1 的发布验收：
 
 | 检查 | 证据 |
 | --- | --- |
@@ -137,7 +137,7 @@ v4.4.0 的发布验收：
 | 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/release.yml) |
 | 发布完整性 | SHA-256、SPDX 2.3 SBOM 与 GitHub 签名证明，见[验证说明](docs/supply-chain.md) |
 | 兼容与迁移 | [v4.4 验收契约](docs/v4.4-acceptance.md) |
-| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.0) |
+| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.1) |
 
 这些验证覆盖已实现路径，生产接入仍需要自己的业务用例。官方 MCP 检查是独立的[可选工作流](.github/workflows/mcp-compatibility.yml)，不等于完整协议认证。文档更新以 main 为准，发布 tag 内容固定。
 
@@ -149,7 +149,7 @@ v4.4.0 的发布验收：
 
 After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
 
-Release: [v4.4.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+Release: [v4.4.1](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.4.1). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
 
 ### Verified real Agents
 
@@ -199,7 +199,7 @@ production workload. See the [v4.4 acceptance contract](docs/v4.4-acceptance.md)
 Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
 
 ```bash
-git clone --branch v4.4.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.4.1 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -252,7 +252,7 @@ Use **compare --config** for custom contracts in CI, or pass `config` to the v3.
 
 ### Verification and maintenance
 
-Recorded v4.4.0 evidence is maintained by the main regression, framework compatibility, live-provider and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
+Recorded v4.4.1 evidence is maintained by the main regression, framework compatibility, live-provider and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
 
 Tagged releases additionally publish SHA-256 checksums, an SPDX 2.3 release
 SBOM, and GitHub-signed provenance/SBOM attestations. See the

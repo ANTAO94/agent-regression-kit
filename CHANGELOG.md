@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.4.1 - 2026-09-20
+
+- Pass the generated SPDX filename to `actions/attest` as an exact step output; the v4.4.0 tag failed closed before release creation because `sbom-path` does not expand globs.
+
 ## 4.4.0 - 2026-09-20
 
 - Add SHA-256 release checksums and an SPDX 2.3 release SBOM generated without third-party runtime dependencies.

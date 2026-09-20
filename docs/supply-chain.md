@@ -21,7 +21,7 @@ sha256sum --check SHA256SUMS
 On macOS, verify one file with the digest shown in `SHA256SUMS`:
 
 ```bash
-shasum -a 256 agent_regression_kit-4.4.0-py3-none-any.whl
+shasum -a 256 agent_regression_kit-4.4.1-py3-none-any.whl
 ```
 
 Then use a current GitHub CLI to verify that the artifact was produced by this
@@ -29,7 +29,7 @@ repository's signed workflow:
 
 ```bash
 gh attestation verify \
-  agent_regression_kit-4.4.0-py3-none-any.whl \
+  agent_regression_kit-4.4.1-py3-none-any.whl \
   --repo ANTAO94/agent-regression-kit \
   --signer-workflow ANTAO94/agent-regression-kit/.github/workflows/release.yml
 ```
@@ -37,7 +37,7 @@ gh attestation verify \
 也可以验证整个 GitHub Release：
 
 ```bash
-gh release verify v4.4.0 --repo ANTAO94/agent-regression-kit
+gh release verify v4.4.1 --repo ANTAO94/agent-regression-kit
 ```
 
 Checksum verification detects accidental or malicious byte changes after the
