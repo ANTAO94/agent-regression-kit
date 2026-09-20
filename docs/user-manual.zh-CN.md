@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.9.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.10.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.9.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.10.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -175,6 +175,7 @@ baseline 保存预期证据；检查规则放在独立 config 中，便于代码
 | path_rules.extra_calls | 放宽模式下允许的额外调用白名单；省略保持 v4.6 兼容，`[]` 表示不允许额外调用 |
 | tool_limits | 按工具和可选参数限制最小/最大调用次数；失败类别为 `tool_count` |
 | tool_allowlist | 限制场景允许调用的完整工具目录；可按参数精确匹配；失败类别为 `unauthorized_tool_call` |
+| argument_rules | 对指定工具的每一次调用检查参数值、Trace 参考值、必填和禁用字段；失败类别为 `tool_argument_policy` |
 | side_effects | 检查 world_state 的初始/最终状态，要求先录制快照 |
 | relations | 检查跨步骤字段关系，例如退款金额不超过查询结果中的 paid_amount |
 
@@ -293,6 +294,58 @@ v4.6 兼容行为，所有未匹配的额外调用都允许；配置 `extra_call
 不是生产权限系统；真实 Tool Gateway 仍必须执行权限控制。完整规则和空白名单案例见
 [v4.9 验收说明](v4.9-acceptance.md)。
 
+### 工具参数策略：防止越租户、越资源和危险参数
+
+`tool_allowlist` 只回答“这个场景能不能调用该工具”；如果工具在白名单内，Agent 仍可能
+传入错误订单、其他租户或超额金额。`argument_rules` 按工具名匹配，并检查该工具的每一
+次调用。参数路径相对于本次调用的 `arguments`：
+
+```json
+{
+  "contract": {
+    "tool_allowlist": ["get_order", "refund_order"],
+    "argument_rules": [
+      {
+        "tool": "get_order",
+        "path": "order_id",
+        "operator": "equals_path",
+        "right_path": "metadata.input.order_id",
+        "message": "查询必须使用用户请求中的订单号"
+      },
+      {
+        "tool": "get_order",
+        "path": "tenant_id",
+        "operator": "equals_path",
+        "right_path": "metadata.input.tenant_id",
+        "message": "禁止跨租户查询"
+      },
+      {
+        "tool": "refund_order",
+        "path": "amount",
+        "operator": "less_or_equal_path",
+        "right_path": "tool_results[0].result.paid_amount",
+        "message": "退款金额不得超过实付金额"
+      },
+      {
+        "tool": "refund_order",
+        "path": "admin_override",
+        "operator": "absent"
+      }
+    ]
+  }
+}
+```
+
+固定值操作符使用 `value`，例如 `equals`、`less_or_equal` 和 `in`；引用 Trace 中其他
+字段时使用 `*_path` 操作符和 `right_path`；`exists` 要求参数存在，`absent` 要求参数
+不存在。没有调用该工具时本规则不失败，必须调用请另外配置 `must_call`。参数违规会
+生成 `tool_argument_policy`，例如 `tool_calls[2].arguments.amount`，并在报告中保留
+实际值、参考值和 `message`。
+
+不要把同一条固定下标的参数关系同时写进 `relations` 和 `argument_rules`；如果条件应该
+适用于某个工具的每一次调用，应优先使用 `argument_rules`。完整配置和错误案例见
+[v4.10 验收说明](v4.10-acceptance.md)。
+
 可以直接运行完整的退款案例：
 
 ```bash
@@ -306,7 +359,7 @@ agent-regression compare --config examples/refund-business-case/compare.config.j
 
 路径规则：配置放在 .agent-regression/ 下时相对项目根目录解析；放在其他位置时相对配置文件所在目录解析。命令行参数优先于文件配置。
 
-可运行的比较策略示例位于 v4.9.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
+可运行的比较策略示例位于 v4.10.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -400,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.9.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.10.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -423,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.9.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.10.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json

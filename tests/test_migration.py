@@ -65,6 +65,23 @@ class MigrationTests(unittest.TestCase):
         self.assertTrue(result["ok"], result)
         self.assertEqual("agent_compatibility", result["report_type"])
 
+    def test_compatibility_detects_an_argument_rules_only_contract(self):
+        result = build_compatibility_report(
+            config={
+                "argument_rules": [
+                    {
+                        "tool": "refund_order",
+                        "path": "amount",
+                        "operator": "less_or_equal",
+                        "value": 88,
+                    }
+                ]
+            },
+            public_api_version="4",
+        )
+        self.assertTrue(result["ok"], result)
+        self.assertEqual("agent_compatibility", result["report_type"])
+
     def test_compatibility_rejects_unsupported_schema_and_accepts_session(self):
         trace = self._trace()
         session = {

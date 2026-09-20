@@ -276,6 +276,28 @@ v4.9 增加 `tool_allowlist`，用于表达场景允许调用的完整工具目�
 `tool_calls[index]`。它是 Agent Trace 的安全边界，不代替真实 Tool Gateway 的权限
 控制；推荐与 `tool_limits`、`path_rules`、`relations` 和 `side_effects` 一起使用。
 
+v4.10 增加 `argument_rules`，用于把工具参数安全边界写成可执行规则。它按 `tool`
+选择工具，按相对于调用 `arguments` 的 `path` 选择参数；固定值比较使用 `value`，
+跨 Trace 字段比较使用 `right_path`，`exists` / `absent` 用于必填和禁用字段。规则会
+检查该工具的每一次调用，失败生成 `tool_argument_policy`。
+
+```json
+{
+  "contract": {
+    "argument_rules": [
+      {"tool": "get_order", "path": "tenant_id", "operator": "equals_path", "right_path": "metadata.input.tenant_id"},
+      {"tool": "refund_order", "path": "amount", "operator": "less_or_equal_path", "right_path": "tool_results[0].result.paid_amount"},
+      {"tool": "refund_order", "path": "admin_override", "operator": "absent"}
+    ]
+  }
+}
+```
+
+没有调用某工具时，参数规则本身不失败；要约束工具必须出现，仍需配置 `must_call`。
+如果原有关系只检查 `tool_calls[2].arguments.amount` 这类固定位置，且规则应适用于
+所有同名工具调用，应迁移为 `argument_rules`；更通用的 claims、结果和状态关系仍使用
+`relations`。
+
 ```json
 {
   "contract": {
@@ -548,7 +570,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.9.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.10.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

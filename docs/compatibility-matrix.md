@@ -12,7 +12,7 @@ automatically captured.
 | AgentTrace | schema `0.1` | runtime validation + compatibility tests | Product version and evidence schema are independent; tool results retain call_id association. |
 | AgentSession | schema `0.1` | session tests | State continuity is explicit, not inferred. |
 | Public Python API | v4 stable; v3 deprecated-readable | public API manifest + compatibility command | Documented imports are the names in `agent_regression.__all__`. |
-| Contract/config | schema `0.1` | ContractPolicy validation + compatibility command | v4.9 adds optional `tool_allowlist`; omission is backward-compatible and explicit `[]` denies all calls. Unknown semantics are not silently accepted. |
+| Contract/config | schema `0.1` | ContractPolicy validation + compatibility command | v4.10 adds optional `argument_rules`; omission is backward-compatible. Rules are evaluated against every matching tool call; unknown semantics are not silently accepted. |
 | Reports | schema `0.1` with explicit `report_type` | renderer/index tests + compatibility command | Consumers should reject unsupported report schemas. |
 | MCP stdio | protocol `2025-11-25`; newline and Content-Length framing | offline fixture + official Everything Server smoke | The client is synchronous at lifecycle level. |
 | MCP Streamable HTTP | JSON/SSE responses, session GET SSE, headers, pagination, cancellation, reconnect | HTTP fixture + official Everything Server smoke | OAuth negotiation and every optional capability are not promised. |

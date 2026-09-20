@@ -4,6 +4,48 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.9.0 → v4.10.0
+
+This feature release adds optional `contract.argument_rules`. Existing
+contracts that omit the field keep their behavior and do not require a Trace
+or baseline migration. Add a rule when a condition should apply to every call
+of a named tool rather than to one fixed `tool_calls[index]` path.
+
+```json
+{
+  "contract": {
+    "argument_rules": [
+      {
+        "tool": "get_order",
+        "path": "tenant_id",
+        "operator": "equals_path",
+        "right_path": "metadata.input.tenant_id"
+      },
+      {
+        "tool": "refund_order",
+        "path": "amount",
+        "operator": "less_or_equal_path",
+        "right_path": "tool_results[0].result.paid_amount"
+      },
+      {"tool": "refund_order", "path": "admin_override", "operator": "absent"}
+    ]
+  }
+}
+```
+
+`argument_rules` checks every matching call. Literal operators use `value`,
+Trace operators use `right_path`, and `exists`/`absent` check required or
+forbidden paths. Violations produce `tool_argument_policy`; a missing tool does
+not replace `must_call`. Keep `relations` for general claims/result/state
+relationships. See the [v4.10 acceptance contract](docs/v4.10-acceptance.md).
+
+本次版本增加可选的 `contract.argument_rules`。省略该字段的旧配置保持行为不变，
+不需要迁移 Trace 或 baseline。当一条条件应该适用于某个工具的每一次调用，而不是
+固定的 `tool_calls[index]` 时，使用这项能力。固定值用 `value`，Trace 字段用
+`right_path`，`exists` / `absent` 检查必填和禁用参数，失败类别为
+`tool_argument_policy`。工具没有被调用时不代替 `must_call`；通用 claims、结果和状态
+关系继续使用 `relations`。
+
 ## v4.8.0 → v4.9.0
 
 This feature release adds an optional scenario-level `contract.tool_allowlist`.

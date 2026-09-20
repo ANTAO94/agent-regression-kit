@@ -12,7 +12,8 @@
       "call_id": "call-1",
       "tool": "get_order",
       "arguments": {
-        "order_id": "123"
+        "order_id": "123",
+        "tenant_id": "tenant-a"
       },
       "sequence": 1
     },
@@ -23,6 +24,7 @@
         "order_id": "123",
         "found": true,
         "customer_id": "customer-7",
+        "tenant_id": "tenant-a",
         "status": "not_shipped",
         "paid_amount": 88,
         "refund_eligible": true,
@@ -37,7 +39,8 @@
       "call_id": "call-2",
       "tool": "check_refund_eligibility",
       "arguments": {
-        "order_id": "123"
+        "order_id": "123",
+        "tenant_id": "tenant-a"
       },
       "sequence": 3
     },
@@ -58,6 +61,7 @@
       "tool": "refund_order",
       "arguments": {
         "order_id": "123",
+        "tenant_id": "tenant-a",
         "amount": 88
       },
       "sequence": 5
@@ -88,6 +92,7 @@
   "metadata": {
     "input": {
       "order_id": "123",
+      "tenant_id": "tenant-a",
       "request": "请退掉订单 123"
     },
     "case": "order-refund",
@@ -97,6 +102,7 @@
         "orders": {
           "123": {
             "customer_id": "customer-7",
+            "tenant_id": "tenant-a",
             "status": "not_shipped",
             "paid_amount": 88,
             "refund_eligible": true,
@@ -105,6 +111,7 @@
           },
           "456": {
             "customer_id": "customer-9",
+            "tenant_id": "tenant-a",
             "status": "shipped",
             "paid_amount": 40,
             "refund_eligible": false,
@@ -117,6 +124,7 @@
         "orders": {
           "123": {
             "customer_id": "customer-7",
+            "tenant_id": "tenant-a",
             "status": "refunded",
             "paid_amount": 88,
             "refund_eligible": true,
@@ -125,6 +133,7 @@
           },
           "456": {
             "customer_id": "customer-9",
+            "tenant_id": "tenant-a",
             "status": "shipped",
             "paid_amount": 40,
             "refund_eligible": false,

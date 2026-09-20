@@ -286,6 +286,30 @@ for an exact argument-object match. An unmatched candidate call produces
 not a replacement for authorization in the real Tool Gateway; use it with
 `tool_limits`, `path_rules`, `relations` and `side_effects`.
 
+v4.10 adds `argument_rules` for executable tool-argument boundaries. A rule
+selects a tool with `tool` and a parameter relative to that call's `arguments`
+with `path`. Literal comparisons use `value`; Trace comparisons use
+`right_path`; `exists` and `absent` express required and forbidden fields. Every
+matching call is checked and a violation produces `tool_argument_policy`.
+
+```json
+{
+  "contract": {
+    "argument_rules": [
+      {"tool": "get_order", "path": "tenant_id", "operator": "equals_path", "right_path": "metadata.input.tenant_id"},
+      {"tool": "refund_order", "path": "amount", "operator": "less_or_equal_path", "right_path": "tool_results[0].result.paid_amount"},
+      {"tool": "refund_order", "path": "admin_override", "operator": "absent"}
+    ]
+  }
+}
+```
+
+A missing tool does not fail an argument rule; use `must_call` when presence is
+required. If an old relation only checks a fixed path such as
+`tool_calls[2].arguments.amount` and should apply to every call of that tool,
+migrate it to `argument_rules`. Keep `relations` for general claims, result and
+state relationships.
+
 ```json
 {
   "contract": {
@@ -597,7 +621,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.9.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.10.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

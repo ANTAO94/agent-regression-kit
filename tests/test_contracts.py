@@ -54,7 +54,7 @@ def make_refund_trace(*, amount=88, order_id="123"):
                     "type": "tool_call",
                     "call_id": "call-1",
                     "tool": "get_order",
-                    "arguments": {"order_id": order_id},
+                    "arguments": {"order_id": order_id, "tenant_id": "tenant-a"},
                 },
                 {
                     "sequence": 2,
@@ -84,7 +84,12 @@ def make_refund_trace(*, amount=88, order_id="123"):
                     "claims": {"order_id": order_id, "refund_amount": amount},
                 },
             ],
-            "metadata": {},
+            "metadata": {
+                "input": {
+                    "order_id": order_id,
+                    "tenant_id": "tenant-a",
+                }
+            },
         }
     )
 
@@ -253,6 +258,148 @@ class ContractTests(unittest.TestCase):
             ContractPolicy.from_dict(
                 {"relations": [{"left": "a", "operator": "regex", "value": "x"}]}
             )
+
+    def test_argument_rules_check_every_matching_tool_call(self):
+        policy = ComparisonPolicy(
+            contract=ContractPolicy.from_dict(
+                {
+                    "argument_rules": [
+                        {
+                            "tool": "get_order",
+                            "path": "order_id",
+                            "operator": "equals_path",
+                            "right_path": "metadata.input.order_id",
+                            "message": "lookup must use the requested order",
+                        },
+                        {
+                            "tool": "get_order",
+                            "path": "tenant_id",
+                            "operator": "equals",
+                            "value": "tenant-a",
+                        },
+                        {
+                            "tool": "refund_order",
+                            "path": "order_id",
+                            "operator": "equals_path",
+                            "right_path": "metadata.input.order_id",
+                        },
+                        {
+                            "tool": "refund_order",
+                            "path": "amount",
+                            "operator": "less_or_equal_path",
+                            "right_path": "tool_results[0].result.paid_amount",
+                        },
+                        {
+                            "tool": "refund_order",
+                            "path": "admin_override",
+                            "operator": "absent",
+                        },
+                    ]
+                }
+            )
+        )
+        passed = compare_traces(
+            make_refund_trace(), make_refund_trace(), policy
+        )
+        self.assertTrue(passed["passed"], passed["differences"])
+
+        bad = make_refund_trace(amount=880)
+        bad.events[0]["arguments"]["tenant_id"] = "tenant-b"
+        bad.events[1]["result"]["paid_amount"] = 88
+        bad.events[2]["arguments"]["order_id"] = "456"
+        bad.events[2]["arguments"]["admin_override"] = True
+        report = compare_traces(make_refund_trace(), bad, policy)
+        self.assertFalse(report["passed"])
+        argument_diffs = [
+            item
+            for item in report["differences"]
+            if item["category"] == "tool_argument_policy"
+        ]
+        self.assertEqual(
+            {
+                "tool_calls[0].arguments.tenant_id",
+                "tool_calls[1].arguments.order_id",
+                "tool_calls[1].arguments.amount",
+                "tool_calls[1].arguments.admin_override",
+            },
+            {item["path"] for item in argument_diffs},
+        )
+
+    def test_argument_rules_apply_to_multiple_calls_and_missing_tool_is_not_a_call_requirement(self):
+        trace = make_refund_trace()
+        second_call = {
+            "sequence": 5,
+            "type": "tool_call",
+            "call_id": "call-3",
+            "tool": "refund_order",
+            "arguments": {"order_id": "123", "amount": 880},
+        }
+        second_result = {
+            "sequence": 6,
+            "type": "tool_result",
+            "call_id": "call-3",
+            "result": {"order_id": "123", "refunded_amount": 0},
+            "is_error": True,
+        }
+        final_answer = trace.events.pop()
+        trace.events.extend([second_call, second_result, final_answer])
+        for sequence, event in enumerate(trace.events, start=1):
+            event["sequence"] = sequence
+        policy = ComparisonPolicy(
+            contract=ContractPolicy.from_dict(
+                {
+                    "argument_rules": [
+                        {
+                            "tool": "refund_order",
+                            "path": "amount",
+                            "operator": "less_or_equal",
+                            "value": 88,
+                        },
+                        {
+                            "tool": "archive_order",
+                            "path": "reason",
+                            "operator": "absent",
+                        },
+                    ]
+                }
+            )
+        )
+        report = compare_traces(trace, trace, policy)
+        self.assertFalse(report["passed"])
+        self.assertEqual(
+            ["tool_calls[2].arguments.amount"],
+            [
+                item["path"]
+                for item in report["differences"]
+                if item["category"] == "tool_argument_policy"
+            ],
+        )
+
+    def test_argument_rules_validate_and_round_trip(self):
+        policy = ContractPolicy.from_dict(
+            {
+                "argument_rules": [
+                    {
+                        "tool": "refund_order",
+                        "path": "amount",
+                        "operator": "less_or_equal",
+                        "value": 88,
+                    }
+                ]
+            }
+        )
+        self.assertEqual(policy.to_dict()["argument_rules"][0]["tool"], "refund_order")
+        invalid_rules = [
+            {"tool": "refund_order", "path": "amount", "operator": "regex", "value": 88},
+            {"tool": "refund_order", "path": "amount", "operator": [], "value": 88},
+            {"tool": "refund_order", "path": "amount", "operator": "equals"},
+            {"tool": "refund_order", "path": "amount", "operator": "equals", "value": 1, "right_path": "a"},
+            {"tool": "refund_order", "path": "amount", "operator": "absent", "value": 1},
+            {"tool": "refund_order", "path": "amount", "operator": "equals_path", "right_path": ""},
+        ]
+        for rule in invalid_rules:
+            with self.assertRaises(ValueError):
+                ContractPolicy.from_dict({"argument_rules": [rule]})
 
     def test_tool_limits_enforce_call_counts_and_optional_arguments(self):
         policy = ComparisonPolicy(

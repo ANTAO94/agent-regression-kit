@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.9.0 source. Package version 4.9.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.10.0 source. Package version 4.10.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -101,6 +101,7 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | path_rules.extra_calls | Explicit allowlist for unmatched calls in tolerant modes; omitted preserves v4.6, an empty list rejects all extras |
 | tool_limits | Per-tool, optionally argument-scoped minimum/maximum counts; failures produce `tool_count` |
 | tool_allowlist | Scenario-level permitted tool catalog with optional exact arguments; failures produce `unauthorized_tool_call` |
+| argument_rules | Per-tool rules for every call's relative argument paths, literal/Trace references and presence; failures produce `tool_argument_policy` |
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | relations | Cross-step field constraints; missing or false relations block |
@@ -135,6 +136,67 @@ match one rule or comparison emits `unauthorized_tool_call` at
 `tool_calls[index]`. This verifies observed Agent evidence against the declared
 boundary; it does not replace authorization in the real Tool Gateway. Keep it
 separate from call counts, path rules, relations and side-effect contracts.
+
+`argument_rules` closes the gap between an allowed tool and a safe use of that
+tool. Each rule contains a `tool`, a `path` relative to that call's
+`arguments`, and an `operator`. Literal operators (`equals`, `not_equals`,
+numeric comparisons and `in`) use `value`; path operators use `right_path` and
+can reference `metadata.input.order_id` or an observed tool result. `exists`
+and `absent` require or forbid an argument path. Every call of the named tool
+is checked; a missing tool is not a `must_call` assertion.
+
+```json
+{
+  "contract": {
+    "tool_allowlist": ["get_order", "refund_order"],
+    "argument_rules": [
+      {
+        "tool": "get_order",
+        "path": "tenant_id",
+        "operator": "equals_path",
+        "right_path": "metadata.input.tenant_id",
+        "message": "cross-tenant lookup is not allowed"
+      },
+      {
+        "tool": "refund_order",
+        "path": "amount",
+        "operator": "less_or_equal_path",
+        "right_path": "tool_results[0].result.paid_amount",
+        "message": "refund amount must not exceed paid amount"
+      },
+      {
+        "tool": "refund_order",
+        "path": "admin_override",
+        "operator": "absent"
+      }
+    ]
+  }
+}
+```
+
+Violations are structured and point to the zero-based candidate call index:
+
+```json
+{
+  "category": "tool_argument_policy",
+  "path": "tool_calls[2].arguments.amount",
+  "baseline": {
+    "tool": "refund_order",
+    "path": "amount",
+    "operator": "less_or_equal_path",
+    "right_path": "tool_results[0].result.paid_amount"
+  },
+  "candidate": {"value": [880], "right_values": [88]},
+  "message": "refund amount must not exceed paid amount"
+}
+```
+
+If an existing `relations` rule only checks a fixed tool-call argument index
+and the condition should apply to every call of that tool, migrate it to
+`argument_rules`. Keep `relations` for general relationships among claims,
+tool results and world state. A production Tool Gateway must still enforce
+tenant isolation and authorization; the kit verifies only behavior exposed in
+the Trace.
 
 `relations` covers business constraints that a single-field assertion cannot
 express. It resolves JSON paths in the candidate `tool_calls`, `tool_results`,
@@ -226,6 +288,6 @@ compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.9.0) · [v4.9 acceptance](v4.9-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.10.0) · [v4.10 acceptance](v4.10-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

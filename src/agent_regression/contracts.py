@@ -14,6 +14,23 @@ _PATH_TOKEN = re.compile(r"([^.[\]]+)|\[([^\]]+)\]")
 _MISSING = object()
 _IGNORED = object()
 _PATH_RULE_MODES = {"exact", "ordered_subsequence", "unordered_subset"}
+_ARGUMENT_POLICY_OPERATORS = {
+    "equals",
+    "not_equals",
+    "less_than",
+    "less_or_equal",
+    "greater_than",
+    "greater_or_equal",
+    "in",
+    "exists",
+    "absent",
+    "equals_path",
+    "not_equals_path",
+    "less_than_path",
+    "less_or_equal_path",
+    "greater_than_path",
+    "greater_or_equal_path",
+}
 
 
 def _reject_unknown_fields(
@@ -144,6 +161,9 @@ class ContractPolicy:
     # None means that the scenario does not constrain the tool catalog. An
     # explicit empty list is intentionally different: it denies every tool.
     tool_allowlist: List[Dict[str, Any]] | None = None
+    # Rules are evaluated against every candidate call for the named tool. The
+    # argument path is relative to that call's arguments object.
+    argument_rules: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.max_steps is not None and (
@@ -224,6 +244,57 @@ class ContractPolicy:
                 if "arguments" in rule and not isinstance(rule["arguments"], dict):
                     raise ValueError(
                         "tool allowlist rule arguments must be an object"
+                    )
+        for rule in self.argument_rules:
+            if (
+                not isinstance(rule, dict)
+                or not isinstance(rule.get("tool"), str)
+                or not rule["tool"].strip()
+            ):
+                raise ValueError(
+                    "contract argument rules must contain a non-empty tool"
+                )
+            _reject_unknown_fields(
+                rule,
+                {"tool", "path", "operator", "value", "right_path", "message"},
+                "argument rule",
+            )
+            if not isinstance(rule.get("path"), str) or not rule["path"].strip():
+                raise ValueError("argument rule path must be a non-empty string")
+            _tokens(rule["path"])
+            operator = rule.get("operator")
+            if not isinstance(operator, str) or operator not in _ARGUMENT_POLICY_OPERATORS:
+                raise ValueError("unsupported contract argument rule operator")
+            if "message" in rule and (
+                not isinstance(rule["message"], str) or not rule["message"].strip()
+            ):
+                raise ValueError("argument rule message must be a non-empty string")
+            if operator in {"exists", "absent"}:
+                if "value" in rule or "right_path" in rule:
+                    raise ValueError(
+                        f"argument rule operator {operator} cannot use value or right_path"
+                    )
+            elif operator.endswith("_path"):
+                if (
+                    not isinstance(rule.get("right_path"), str)
+                    or not rule["right_path"].strip()
+                ):
+                    raise ValueError(
+                        f"argument rule operator {operator} requires right_path"
+                    )
+                _tokens(rule["right_path"])
+                if "value" in rule:
+                    raise ValueError(
+                        f"argument rule operator {operator} cannot use value"
+                    )
+            else:
+                if "value" not in rule:
+                    raise ValueError(
+                        f"argument rule operator {operator} requires value"
+                    )
+                if "right_path" in rule:
+                    raise ValueError(
+                        f"argument rule operator {operator} cannot use right_path"
                     )
         if not isinstance(self.path_rules, dict):
             raise ValueError("contract.path_rules must be an object")
@@ -353,6 +424,7 @@ class ContractPolicy:
             "required_claims",
             "tool_limits",
             "tool_allowlist",
+            "argument_rules",
         }
         unknown_fields = sorted(set(value) - allowed_fields)
         if unknown_fields:
@@ -409,6 +481,11 @@ class ContractPolicy:
             ]
         else:
             tool_allowlist = None
+        argument_rules = value.get("argument_rules", [])
+        if not isinstance(argument_rules, list) or not all(
+            isinstance(item, dict) for item in argument_rules
+        ):
+            raise ValueError("contract.argument_rules must be an array of objects")
         required_claims = value.get("required_claims", [])
         if not isinstance(required_claims, list) or not all(
             isinstance(item, str) and item.strip() for item in required_claims
@@ -427,6 +504,7 @@ class ContractPolicy:
             required_claims=list(required_claims),
             tool_limits=[dict(item) for item in tool_limits],
             tool_allowlist=tool_allowlist,
+            argument_rules=[dict(item) for item in argument_rules],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -448,6 +526,7 @@ class ContractPolicy:
             "max_steps": self.max_steps,
             "required_claims": list(self.required_claims),
             "tool_limits": deepcopy(self.tool_limits),
+            "argument_rules": deepcopy(self.argument_rules),
         }
         if self.tool_allowlist is not None:
             result["tool_allowlist"] = tool_rules(self.tool_allowlist)
@@ -640,6 +719,49 @@ class ContractPolicy:
                             "message": (
                                 "tool call is not permitted by "
                                 "contract.tool_allowlist"
+                            ),
+                        }
+                    )
+        for rule in self.argument_rules:
+            matching_calls = [
+                (index, event)
+                for index, event in enumerate(candidate_calls)
+                if event.get("tool") == rule["tool"]
+            ]
+            for index, event in matching_calls:
+                arguments = event.get("arguments", {})
+                left_values = _lookup(arguments, _tokens(rule["path"]))
+                operator = rule["operator"]
+                if operator == "exists":
+                    passed = bool(left_values)
+                    right_values: List[Any] = []
+                elif operator == "absent":
+                    passed = not left_values
+                    right_values = []
+                elif operator.endswith("_path"):
+                    right_values = _lookup(
+                        candidate_data, _tokens(rule["right_path"])
+                    )
+                    passed = self._relation_matches(
+                        operator, left_values, right_values
+                    )
+                else:
+                    right_values = [rule["value"]]
+                    passed = self._relation_matches(
+                        operator, left_values, right_values
+                    )
+                if not passed:
+                    differences.append(
+                        {
+                            "category": "tool_argument_policy",
+                            "path": f"tool_calls[{index}].arguments.{rule['path']}",
+                            "baseline": deepcopy(rule),
+                            "candidate": {
+                                "value": left_values or None,
+                                "right_values": right_values or None,
+                            },
+                            "message": rule.get(
+                                "message", "tool argument policy failed"
                             ),
                         }
                     )

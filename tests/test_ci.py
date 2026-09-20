@@ -69,6 +69,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("v4.5-acceptance.md", workflow)
         self.assertIn("v4.6-acceptance.md", workflow)
         self.assertIn("v4.9-acceptance.md", workflow)
+        self.assertIn("v4.10-acceptance.md", workflow)
         self.assertIn("generate_release_metadata.py", workflow)
         self.assertIn("dist/SHA256SUMS", workflow)
         self.assertIn("actions/attest@v4", workflow)
@@ -103,7 +104,7 @@ class CiIntegrationTests(unittest.TestCase):
         )
         self.assertIn("refund_business_case.py", workflow)
         self.assertIn("--behavior normal", workflow)
-        for behavior in ("wrong-order", "wrong-amount", "skip-eligibility", "duplicate-refund"):
+        for behavior in ("wrong-order", "wrong-tenant", "wrong-amount", "skip-eligibility", "duplicate-refund"):
             self.assertIn(behavior, workflow)
         self.assertIn('test "$exit_code" -eq 1', workflow)
         self.assertIn("refund-business-case-evidence", workflow)

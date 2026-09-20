@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.9.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.10.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.9.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.10.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -171,6 +171,7 @@ Store expected evidence in baseline files and policy in a separate config. Examp
 | path_rules.extra_calls | Allowlist for unmatched calls in tolerant modes; omitted preserves v4.6, `[]` rejects all extras |
 | tool_limits | Per-tool and optional argument-scoped minimum/maximum counts; failures use `tool_count` |
 | tool_allowlist | Scenario-level permitted tool catalog with optional exact arguments; failures use `unauthorized_tool_call` |
+| argument_rules | Check every matching tool call's arguments against literal values, Trace references, required or forbidden fields; failures use `tool_argument_policy` |
 | side_effects | Constraints on recorded initial/final world snapshots |
 | relations | Cross-step field rules such as refund amount <= the paid amount returned by lookup |
 
@@ -294,6 +295,60 @@ permission system, so the real Tool Gateway must still enforce authorization.
 See the [v4.9 acceptance contract](v4.9-acceptance.md) for the empty-list and
 argument-scope cases.
 
+### Tool argument policies: tenant, resource and dangerous-argument boundaries
+
+`tool_allowlist` answers whether a scenario may call a tool. It does not stop
+an allowed tool from receiving another tenant's ID, the wrong resource or an
+excessive amount. `argument_rules` match a tool name and inspect every matching
+call. The `path` is relative to that call's `arguments` object:
+
+```json
+{
+  "contract": {
+    "tool_allowlist": ["get_order", "refund_order"],
+    "argument_rules": [
+      {
+        "tool": "get_order",
+        "path": "order_id",
+        "operator": "equals_path",
+        "right_path": "metadata.input.order_id",
+        "message": "lookup must use the order from the request"
+      },
+      {
+        "tool": "get_order",
+        "path": "tenant_id",
+        "operator": "equals_path",
+        "right_path": "metadata.input.tenant_id",
+        "message": "cross-tenant lookup is not allowed"
+      },
+      {
+        "tool": "refund_order",
+        "path": "amount",
+        "operator": "less_or_equal_path",
+        "right_path": "tool_results[0].result.paid_amount",
+        "message": "refund amount must not exceed paid amount"
+      },
+      {
+        "tool": "refund_order",
+        "path": "admin_override",
+        "operator": "absent"
+      }
+    ]
+  }
+}
+```
+
+Literal operators use `value`, path operators use `right_path`, `exists`
+requires a path and `absent` forbids it. A missing tool does not satisfy a
+`must_call` requirement; configure `must_call` separately. A violation emits
+`tool_argument_policy`, such as `tool_calls[2].arguments.amount`, and keeps
+the actual value, reference values and custom message in the report.
+
+Do not duplicate the same fixed-index argument relation in both `relations`
+and `argument_rules`. If a condition should apply to every call of a tool,
+prefer `argument_rules`. See the [v4.10 acceptance contract](v4.10-acceptance.md)
+for the complete configuration and negative cases.
+
 Run the complete refund case:
 
 ```bash
@@ -307,7 +362,7 @@ The case also includes four controlled defects: `wrong-order`, `wrong-amount`, `
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v4.9.0. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.10.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -396,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.9.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.10.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -419,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.9.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.10.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json

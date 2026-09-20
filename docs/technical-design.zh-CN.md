@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.9.0 源码整理；产品版本 4.9.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.10.0 源码整理；产品版本 4.10.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
 
 ## 1. 目标和适用场景
 
@@ -101,6 +101,7 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | path_rules.extra_calls | 放宽模式下对未匹配额外调用的显式白名单；省略保持 v4.6，空数组拒绝全部额外调用 |
 | tool_limits | 按工具和可选参数约束最小/最大调用次数；失败生成 `tool_count` |
 | tool_allowlist | 约束场景允许调用的工具目录，可按参数精确匹配；失败生成 `unauthorized_tool_call` |
+| argument_rules | 对指定工具的每一次调用检查相对参数路径、固定值/Trace 参考值以及存在性；失败生成 `tool_argument_policy` |
 | result_alignment | 默认按 call_id 关联工具结果；`order` 是旧的按事件位置对齐模式 |
 | side_effects | 约束已录制状态的 from/to 变化 |
 | required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
@@ -129,6 +130,64 @@ side_effects 单独声明。
 `unauthorized_tool_call`，路径为 `tool_calls[index]`。它验证的是 Agent 运行证据是否
 越过声明边界，不替代真实 Tool Gateway 的权限执行。白名单与 `tool_limits`、路径规则、
 关系和副作用契约是互补的，不应把它们合并成一个模糊的“回放通过”开关。
+
+`argument_rules` 解决的是“工具虽然在白名单内，但参数是否越过租户、资源或业务边界”。
+每条规则包含 `tool`、相对于本次调用 `arguments` 的 `path` 和一个 `operator`。固定值
+运算符（`equals`、`not_equals`、数值比较、`in`）使用 `value`；路径运算符使用
+`right_path`，可以引用 `metadata.input.order_id` 或已记录的工具结果；`exists` 和
+`absent` 分别要求参数存在或不存在。规则会检查该工具的每一次调用，缺少该工具时
+本规则不代替 `must_call`。
+
+```json
+{
+  "contract": {
+    "tool_allowlist": ["get_order", "refund_order"],
+    "argument_rules": [
+      {
+        "tool": "get_order",
+        "path": "tenant_id",
+        "operator": "equals_path",
+        "right_path": "metadata.input.tenant_id",
+        "message": "不得跨租户查询"
+      },
+      {
+        "tool": "refund_order",
+        "path": "amount",
+        "operator": "less_or_equal_path",
+        "right_path": "tool_results[0].result.paid_amount",
+        "message": "退款金额不得超过实付金额"
+      },
+      {
+        "tool": "refund_order",
+        "path": "admin_override",
+        "operator": "absent"
+      }
+    ]
+  }
+}
+```
+
+参数违规生成结构化差异；`path` 使用候选工具调用列表中的从零开始索引：
+
+```json
+{
+  "category": "tool_argument_policy",
+  "path": "tool_calls[2].arguments.amount",
+  "baseline": {
+    "tool": "refund_order",
+    "path": "amount",
+    "operator": "less_or_equal_path",
+    "right_path": "tool_results[0].result.paid_amount"
+  },
+  "candidate": {"value": [880], "right_values": [88]},
+  "message": "退款金额不得超过实付金额"
+}
+```
+
+如果原有 `relations` 只是为了检查固定下标的工具参数，且同一条件应适用于该工具的
+所有调用，应迁移为 `argument_rules`；`relations` 继续负责 claims、工具结果和
+world state 之间的通用关系。生产 Tool Gateway 仍必须自行执行租户隔离和权限控制，
+框架只验证 Trace 中暴露的行为证据。
 
 `relations` 解决单字段断言无法表达的业务约束。它从 candidate 的
 `tool_calls`、`tool_results`、`final_answer` 和 `world_state` 投影视图解析
@@ -230,6 +289,6 @@ Core 事件接入检查、PydanticAI/OpenAI Agents/LangGraph 正反例、DeepSee
 manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等价于多年生产
 使用或任意 Agent 自动兼容。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.9.0) · [v4.9 验收](v4.9-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.10.0) · [v4.10 验收](v4.10-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

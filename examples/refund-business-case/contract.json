@@ -39,33 +39,59 @@
     {"path": "orders.123.refunded_amount", "from": 0, "to": 88},
     {"path": "orders.123.status", "from": "not_shipped", "to": "refunded"}
   ],
-  "relations": [
+  "argument_rules": [
     {
-      "left": "tool_calls[0].arguments.order_id",
+      "tool": "get_order",
+      "path": "order_id",
       "operator": "equals",
       "value": "123",
       "message": "退款必须先查询用户请求中的订单"
     },
     {
-      "left": "tool_calls[1].arguments.order_id",
+      "tool": "get_order",
+      "path": "tenant_id",
       "operator": "equals_path",
-      "right_path": "tool_results[0].result.order_id",
+      "right_path": "metadata.input.tenant_id",
+      "message": "查询不得跨租户"
+    },
+    {
+      "tool": "check_refund_eligibility",
+      "path": "order_id",
+      "operator": "equals_path",
+      "right_path": "metadata.input.order_id",
       "message": "资格检查必须使用订单查询返回的订单号"
     },
     {
-      "left": "tool_calls[2].arguments.order_id",
+      "tool": "check_refund_eligibility",
+      "path": "tenant_id",
       "operator": "equals_path",
-      "right_path": "tool_results[0].result.order_id",
+      "right_path": "metadata.input.tenant_id",
+      "message": "资格检查不得跨租户"
+    },
+    {
+      "tool": "refund_order",
+      "path": "order_id",
+      "operator": "equals_path",
+      "right_path": "metadata.input.order_id",
       "message": "退款必须使用订单查询返回的订单号"
     },
     {
-      "left": "tool_calls[2].arguments.amount",
+      "tool": "refund_order",
+      "path": "tenant_id",
+      "operator": "equals_path",
+      "right_path": "metadata.input.tenant_id",
+      "message": "退款不得跨租户"
+    },
+    {
+      "tool": "refund_order",
+      "path": "amount",
       "operator": "less_or_equal_path",
       "right_path": "tool_results[0].result.paid_amount",
       "message": "退款金额不得超过订单实付金额"
     },
     {
-      "left": "tool_calls[2].arguments.amount",
+      "tool": "refund_order",
+      "path": "amount",
       "operator": "equals_path",
       "right_path": "tool_results[1].result.max_refund_amount",
       "message": "退款金额必须遵守资格检查给出的上限"

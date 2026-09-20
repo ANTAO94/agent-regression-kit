@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for behavior in wrong-order wrong-amount skip-eligibility duplicate-refund; do
+          for behavior in wrong-order wrong-tenant wrong-amount skip-eligibility duplicate-refund; do
             set +e
             python examples/refund_business_case.py \
               --behavior "$behavior" \

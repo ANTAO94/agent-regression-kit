@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v4.9 Configuration Center">
+  <meta name="description" content="Agent Regression Kit v4.10 Configuration Center">
   <title>Configuration Center · Agent Regression Kit</title>
   <style>
     :root {
@@ -183,6 +183,7 @@
     .rule-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr) auto; gap: .5rem; align-items: center; }
     .rule-row.two { grid-template-columns: minmax(0, 1fr) auto; }
     .rule-row.three { grid-template-columns: minmax(0, 1fr) minmax(130px, .42fr) auto; }
+    .rule-row.argument-rule { grid-template-columns: minmax(110px, .8fr) minmax(120px, 1fr) minmax(140px, .75fr) minmax(130px, 1fr) minmax(130px, 1fr) auto; }
     .row-empty { padding: .85rem; border: 1px dashed var(--line-strong); border-radius: 9px; color: var(--muted); background: var(--paper-2); font-size: .75rem; text-align: center; }
     .add-row { margin-top: .65rem; padding: .35rem .5rem; border: 1px dashed var(--line-strong); border-radius: 7px; color: var(--blue); background: transparent; cursor: pointer; font-size: .75rem; font-weight: 800; }
     .add-row:hover { border-color: var(--blue); background: var(--blue-soft); }
@@ -254,12 +255,14 @@
     @media (max-width: 560px) {
       .brand-sub, .top-actions .text-button { display: none; }
       .field-grid { grid-template-columns: 1fr; }
-      .rule-row, .rule-row.three { grid-template-columns: 1fr auto; }
+      .rule-row, .rule-row.three, .rule-row.argument-rule { grid-template-columns: 1fr auto; }
       .rule-row input:nth-child(2), .rule-row.three select { grid-column: 1; }
       .rule-row.three > input, .rule-row.three > .select-wrap { grid-column: 1; }
+      .rule-row.argument-rule > input, .rule-row.argument-rule > .select-wrap { grid-column: 1; }
       .rule-row[data-row="side-effect"] > input { grid-column: 1; }
       .rule-row button { grid-column: 2; grid-row: 1 / span 2; }
       .rule-row.three > button, .rule-row[data-row="side-effect"] > button { grid-column: 2; grid-row: 1 / span 3; }
+      .rule-row.argument-rule > button { grid-column: 2; grid-row: 1 / span 5; }
       .grid-checks { grid-template-columns: 1fr !important; }
       .section { padding: 1rem; }
       .section-heading { display: block; }
@@ -280,7 +283,7 @@
         <div class="brand-mark" aria-hidden="true">AR</div>
         <div>
           <span class="brand-name">Agent Regression Kit <span style="color: var(--blue)">/</span> Configuration Center</span>
-          <span class="brand-sub">v4.9 · policy before execution</span>
+          <span class="brand-sub">v4.10 · policy before execution</span>
         </div>
       </div>
       <div class="top-actions">
@@ -428,6 +431,13 @@ tool_results[0].result.trace_id"></textarea>
           </div>
 
           <div class="subsection">
+            <div class="subsection-head"><h3>工具参数策略</h3><span>argument_rules</span></div>
+            <div id="argumentRuleRows" class="rows"></div>
+            <button class="add-row" type="button" data-add="argument-rule">＋ 添加参数策略</button>
+            <p class="help">每条规则会应用到该工具的每一次调用。参数路径相对于 <code>arguments</code>，例如 <code>amount</code> 或 <code>customer.id</code>；路径运算符填写 Trace 参考路径，其他运算符填写 JSON 值。没有调用该工具时，本规则不替代 <code>must_call</code>；失败类别为 <code>tool_argument_policy</code>。</p>
+          </div>
+
+          <div class="subsection">
             <div class="subsection-head"><h3>字段断言</h3><span>equals · contains · exists</span></div>
             <div id="assertionRows" class="rows"></div>
             <button class="add-row" type="button" data-add="assertion">＋ 添加字段断言</button>
@@ -522,6 +532,7 @@ get_order -&gt; get_shipping</textarea></div>
             <div class="rule-summary-item"><span>禁止工具</span><strong id="summaryMustNotCall">0</strong></div>
             <div class="rule-summary-item"><span>字段断言</span><strong id="summaryAssertions">0</strong></div>
             <div class="rule-summary-item"><span>工具白名单</span><strong id="summaryAllowlist">0</strong></div>
+            <div class="rule-summary-item"><span>参数策略</span><strong id="summaryArgumentRules">0</strong></div>
             <div class="rule-summary-item"><span>合法路径</span><strong id="summaryPaths">0</strong></div>
             <div class="rule-summary-item"><span>噪音路径</span><strong id="summaryIgnore">0</strong></div>
             <div class="rule-summary-item"><span>状态副作用</span><strong id="summaryEffects">0</strong></div>
@@ -554,6 +565,10 @@ get_order -&gt; get_shipping</textarea></div>
           normalizers: [{ path: "tool_results[*].result.created_at", type: "timestamp" }],
           max_steps: 5,
           tool_allowlist: ["get_order", "get_shipping"],
+          argument_rules: [
+            { tool: "get_order", path: "order_id", operator: "equals_path", right_path: "metadata.input.order_id", message: "查询必须使用用户请求中的订单号" },
+            { tool: "refund_order", path: "amount", operator: "less_or_equal_path", right_path: "tool_results[0].result.paid_amount", message: "退款金额不得超过实付金额" }
+          ],
           path_rules: { ordered: true, any_of: [["get_order"], ["get_order", "get_shipping"]] },
           side_effects: []
         }
@@ -594,6 +609,14 @@ get_order -&gt; get_shipping</textarea></div>
         if (type === "tool-allowlist") {
           return `<div class="rule-row" data-row="tool-allowlist"><input data-key="tool" type="text" value="${escapeHtml(item.tool || "get_order")}" aria-label="允许调用的工具名" placeholder="工具名，例如 get_order"><input data-key="arguments" type="text" value="${escapeHtml(item.arguments ? JSON.stringify(item.arguments) : "")}" aria-label="允许工具的精确参数 JSON" placeholder='可选精确参数，例如 {"order_id":"123"}'><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
         }
+        if (type === "argument-rule") {
+          const operator = item.operator || "equals";
+          const pathOperator = operator.endsWith("_path");
+          const rhs = pathOperator ? item.right_path : Object.prototype.hasOwnProperty.call(item, "value") ? item.value : "";
+          const rhsText = typeof rhs === "string" ? rhs : JSON.stringify(rhs);
+          const placeholder = pathOperator ? "参考路径，例如 metadata.input.tenant_id" : operator === "exists" || operator === "absent" ? "该操作符不需要值" : "固定值或 JSON，例如 88";
+          return `<div class="rule-row argument-rule" data-row="argument-rule"><input data-key="tool" type="text" value="${escapeHtml(item.tool || "refund_order")}" aria-label="参数策略工具名" placeholder="工具名"><input data-key="path" type="text" value="${escapeHtml(item.path || "amount")}" aria-label="工具参数路径" placeholder="参数路径，例如 amount"><div class="select-wrap"><select data-key="operator" aria-label="参数策略运算符"><option value="equals" ${operator === "equals" ? "selected" : ""}>equals</option><option value="not_equals" ${operator === "not_equals" ? "selected" : ""}>not_equals</option><option value="less_than" ${operator === "less_than" ? "selected" : ""}>less_than</option><option value="less_or_equal" ${operator === "less_or_equal" ? "selected" : ""}>less_or_equal</option><option value="greater_than" ${operator === "greater_than" ? "selected" : ""}>greater_than</option><option value="greater_or_equal" ${operator === "greater_or_equal" ? "selected" : ""}>greater_or_equal</option><option value="in" ${operator === "in" ? "selected" : ""}>in</option><option value="exists" ${operator === "exists" ? "selected" : ""}>exists</option><option value="absent" ${operator === "absent" ? "selected" : ""}>absent</option><option value="equals_path" ${operator === "equals_path" ? "selected" : ""}>equals_path</option><option value="not_equals_path" ${operator === "not_equals_path" ? "selected" : ""}>not_equals_path</option><option value="less_than_path" ${operator === "less_than_path" ? "selected" : ""}>less_than_path</option><option value="less_or_equal_path" ${operator === "less_or_equal_path" ? "selected" : ""}>less_or_equal_path</option><option value="greater_than_path" ${operator === "greater_than_path" ? "selected" : ""}>greater_than_path</option><option value="greater_or_equal_path" ${operator === "greater_or_equal_path" ? "selected" : ""}>greater_or_equal_path</option></select></div><input data-key="rhs" type="text" value="${escapeHtml(rhsText || "")}" aria-label="参数策略右侧值或路径" placeholder="${escapeHtml(placeholder)}" ${operator === "exists" || operator === "absent" ? "disabled" : ""}><input data-key="message" type="text" value="${escapeHtml(item.message || "")}" aria-label="参数策略失败说明" placeholder="可选失败说明"><button class="danger-button" type="button" data-remove="row">移除</button></div>`;
+        }
         if (type === "assertion") {
           const operator = item.operator || (Object.prototype.hasOwnProperty.call(item, "exists") ? "exists" : Object.prototype.hasOwnProperty.call(item, "contains") ? "contains" : "equals");
           const value = Object.prototype.hasOwnProperty.call(item, "value") ? item.value : Object.prototype.hasOwnProperty.call(item, "equals") ? item.equals : Object.prototype.hasOwnProperty.call(item, "contains") ? item.contains : "true";
@@ -618,6 +641,7 @@ get_order -&gt; get_shipping</textarea></div>
         renderRows("mustNotCallRows", "must-not-call", example.contract.must_not_call.map((tool) => ({ tool })));
         ids("toolAllowlistEnabled").checked = Object.prototype.hasOwnProperty.call(example.contract, "tool_allowlist");
         renderRows("toolAllowlistRows", "tool-allowlist", example.contract.tool_allowlist || []);
+        renderRows("argumentRuleRows", "argument-rule", example.contract.argument_rules || []);
         renderRows("assertionRows", "assertion", example.contract.assertions);
         renderRows("normalizerRows", "normalizer", example.contract.normalizers);
         renderRows("sideEffectRows", "side-effect", example.contract.side_effects);
@@ -649,6 +673,21 @@ get_order -&gt; get_shipping</textarea></div>
           if (rawArguments) item.arguments = parseValue(rawArguments);
           return item;
         }).filter((item) => item.tool);
+      }
+
+      function parseArgumentRules() {
+        return readRows("argumentRuleRows", "argument-rule").map((row) => {
+          const tool = row.querySelector('[data-key="tool"]').value.trim();
+          const path = row.querySelector('[data-key="path"]').value.trim();
+          const operator = row.querySelector('[data-key="operator"]').value;
+          const rhs = row.querySelector('[data-key="rhs"]').value.trim();
+          const message = row.querySelector('[data-key="message"]').value.trim();
+          const item = { tool, path, operator };
+          if (operator.endsWith("_path")) item.right_path = rhs;
+          else if (operator !== "exists" && operator !== "absent") item.value = parseValue(rhs);
+          if (message) item.message = message;
+          return item;
+        }).filter((item) => item.tool || item.path || item.operator);
       }
 
       function parseAssertions() {
@@ -702,7 +741,8 @@ get_order -&gt; get_shipping</textarea></div>
             normalizers: parseNormalizers(),
             max_steps: maxSteps === "" ? null : Number(maxSteps),
             path_rules: parsePathRules(),
-            side_effects: parseSideEffects()
+            side_effects: parseSideEffects(),
+            argument_rules: parseArgumentRules()
           }
         };
         if (ids("toolAllowlistEnabled").checked) config.contract.tool_allowlist = parseToolAllowlist();
@@ -716,6 +756,8 @@ get_order -&gt; get_shipping</textarea></div>
         if (Number.isInteger(config.contract.max_steps) && config.contract.max_steps < 0) errors.push("max_steps 必须是非负整数");
         config.contract.must_call.forEach((rule, index) => { if (!rule.tool) errors.push(`must_call 第 ${index + 1} 行缺少工具名`); if (rule.arguments !== undefined && (typeof rule.arguments !== "object" || rule.arguments === null || Array.isArray(rule.arguments))) errors.push(`must_call 第 ${index + 1} 行的 arguments 必须是 JSON 对象`); });
         if (config.contract.tool_allowlist !== undefined) config.contract.tool_allowlist.forEach((rule, index) => { if (!rule.tool) errors.push(`tool_allowlist 第 ${index + 1} 行缺少工具名`); if (rule.arguments !== undefined && (typeof rule.arguments !== "object" || rule.arguments === null || Array.isArray(rule.arguments))) errors.push(`tool_allowlist 第 ${index + 1} 行的 arguments 必须是 JSON 对象`); });
+        const pathOperators = ["equals_path", "not_equals_path", "less_than_path", "less_or_equal_path", "greater_than_path", "greater_or_equal_path"];
+        config.contract.argument_rules.forEach((rule, index) => { if (!rule.tool) errors.push(`argument_rules 第 ${index + 1} 行缺少工具名`); if (!rule.path) errors.push(`argument_rules 第 ${index + 1} 行缺少参数路径`); if (!rule.operator) errors.push(`argument_rules 第 ${index + 1} 行缺少运算符`); if (pathOperators.includes(rule.operator) && !rule.right_path) errors.push(`argument_rules 第 ${index + 1} 行缺少参考路径`); if (!pathOperators.includes(rule.operator) && !["exists", "absent"].includes(rule.operator) && rule.value === "") errors.push(`argument_rules 第 ${index + 1} 行缺少固定值`); });
         config.contract.assertions.forEach((rule, index) => { if (!rule.path) errors.push(`assertions 第 ${index + 1} 行缺少路径`); });
         config.contract.normalizers.forEach((rule, index) => { if (!rule.path) errors.push(`normalizers 第 ${index + 1} 行缺少路径`); if (!["timestamp", "sort"].includes(rule.type)) errors.push(`normalizers 第 ${index + 1} 行类型不支持`); });
         config.contract.side_effects.forEach((rule, index) => { if (!rule.path) errors.push(`side_effects 第 ${index + 1} 行缺少路径`); if (!rule.from && !rule.to) errors.push(`side_effects 第 ${index + 1} 行至少需要 from 或 to`); });
@@ -727,6 +769,7 @@ get_order -&gt; get_shipping</textarea></div>
         ids("summaryMustNotCall").textContent = String(config.contract.must_not_call.length);
         ids("summaryAssertions").textContent = String(config.contract.assertions.length);
         ids("summaryAllowlist").textContent = config.contract.tool_allowlist === undefined ? "—" : String(config.contract.tool_allowlist.length);
+        ids("summaryArgumentRules").textContent = String(config.contract.argument_rules.length);
         ids("summaryPaths").textContent = String(config.contract.path_rules.any_of ? config.contract.path_rules.any_of.length : 0);
         ids("summaryIgnore").textContent = String(config.contract.ignore_paths.length);
         ids("summaryEffects").textContent = String(config.contract.side_effects.length);
@@ -744,10 +787,22 @@ get_order -&gt; get_shipping</textarea></div>
         if (config.final_answer_mode === "claims-only") command.push("  --final-answer-mode claims-only");
         config.allow_categories.forEach((category) => command.push(`  --allow-category ${category}`));
         config.allow_paths.forEach((path) => command.push(`  --allow-path ${path}`));
-        return command.join(" \\\n+");
+        return command.join(" \\\n");
+      }
+
+      function syncArgumentRuleRows() {
+        const pathOperators = ["equals_path", "not_equals_path", "less_than_path", "less_or_equal_path", "greater_than_path", "greater_or_equal_path"];
+        readRows("argumentRuleRows", "argument-rule").forEach((row) => {
+          const operator = row.querySelector('[data-key="operator"]').value;
+          const rhs = row.querySelector('[data-key="rhs"]');
+          const pathOperator = pathOperators.includes(operator);
+          rhs.disabled = operator === "exists" || operator === "absent";
+          rhs.placeholder = pathOperator ? "参考路径，例如 metadata.input.tenant_id" : rhs.disabled ? "该操作符不需要值" : "固定值或 JSON，例如 88";
+        });
       }
 
       function render() {
+        syncArgumentRuleRows();
         const config = buildConfig();
         const errors = validateConfig(config);
         ids("jsonPreview").textContent = JSON.stringify(config, null, 2);
@@ -780,6 +835,7 @@ get_order -&gt; get_shipping</textarea></div>
         const configuredAllowlist = config.contract && Object.prototype.hasOwnProperty.call(config.contract, "tool_allowlist") ? config.contract.tool_allowlist : undefined;
         ids("toolAllowlistEnabled").checked = configuredAllowlist !== undefined;
         renderRows("toolAllowlistRows", "tool-allowlist", (configuredAllowlist || []).map((rule) => typeof rule === "string" ? { tool: rule } : rule));
+        renderRows("argumentRuleRows", "argument-rule", (config.contract && config.contract.argument_rules) || []);
         renderRows("mustCallRows", "must-call", (config.contract && config.contract.must_call) || []);
         renderRows("mustNotCallRows", "must-not-call", ((config.contract && config.contract.must_not_call) || []).map((tool) => typeof tool === "string" ? { tool } : tool));
         renderRows("assertionRows", "assertion", ((config.contract && config.contract.assertions) || []).map((item) => {
@@ -819,7 +875,7 @@ get_order -&gt; get_shipping</textarea></div>
         const add = event.target.closest("[data-add]");
         if (add) {
           const type = add.dataset.add;
-          const map = { "must-call": ["mustCallRows", "must-call"], "must-not-call": ["mustNotCallRows", "must-not-call"], "tool-allowlist": ["toolAllowlistRows", "tool-allowlist"], assertion: ["assertionRows", "assertion"], normalizer: ["normalizerRows", "normalizer"], "side-effect": ["sideEffectRows", "side-effect"] };
+          const map = { "must-call": ["mustCallRows", "must-call"], "must-not-call": ["mustNotCallRows", "must-not-call"], "tool-allowlist": ["toolAllowlistRows", "tool-allowlist"], "argument-rule": ["argumentRuleRows", "argument-rule"], assertion: ["assertionRows", "assertion"], normalizer: ["normalizerRows", "normalizer"], "side-effect": ["sideEffectRows", "side-effect"] };
           const [containerId, rowType] = map[type];
           const container = ids(containerId);
           const empty = container.querySelector(".row-empty");
@@ -855,6 +911,7 @@ get_order -&gt; get_shipping</textarea></div>
         blank.contract.must_call = [];
         blank.contract.must_not_call = [];
         blank.contract.tool_allowlist = undefined;
+        blank.contract.argument_rules = [];
         blank.contract.assertions = [];
         blank.contract.ignore_paths = [];
         blank.contract.normalizers = [];

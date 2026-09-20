@@ -32,6 +32,13 @@ class ViewerTests(unittest.TestCase):
         self.assertIn('tool_allowlist', config)
         self.assertIn('unauthorized_tool_call', config)
 
+    def test_config_viewer_can_generate_v4_10_argument_rules(self):
+        config = (ROOT / "viewer" / "config.html").read_text(encoding="utf-8")
+        self.assertIn('id="argumentRuleRows"', config)
+        self.assertIn('data-add="argument-rule"', config)
+        self.assertIn('argument_rules', config)
+        self.assertIn('tool_argument_policy', config)
+
     def test_missing_viewer_directory_has_actionable_error(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ViewerNotFoundError, "viewer assets were not found"):

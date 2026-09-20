@@ -24,11 +24,19 @@ from agent_regression import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BEHAVIORS = {"normal", "wrong-order", "wrong-amount", "skip-eligibility", "duplicate-refund"}
+BEHAVIORS = {
+    "normal",
+    "wrong-order",
+    "wrong-tenant",
+    "wrong-amount",
+    "skip-eligibility",
+    "duplicate-refund",
+}
 INITIAL_STATE = {
     "orders": {
         "123": {
             "customer_id": "customer-7",
+            "tenant_id": "tenant-a",
             "status": "not_shipped",
             "paid_amount": 88,
             "refund_eligible": True,
@@ -37,6 +45,7 @@ INITIAL_STATE = {
         },
         "456": {
             "customer_id": "customer-9",
+            "tenant_id": "tenant-a",
             "status": "shipped",
             "paid_amount": 40,
             "refund_eligible": False,
@@ -56,6 +65,12 @@ def get_order(world, arguments):
             is_error=True,
             error="order_not_found",
         )
+    if str(arguments.get("tenant_id")) != order["tenant_id"]:
+        return ToolExecutionResult(
+            {"order_id": order_id, "found": False},
+            is_error=True,
+            error="tenant_access_denied",
+        )
     return {"order_id": order_id, "found": True, **deepcopy(order)}
 
 
@@ -67,6 +82,12 @@ def check_refund_eligibility(world, arguments):
             {"order_id": order_id, "eligible": False, "max_refund_amount": 0},
             is_error=True,
             error="order_not_found",
+        )
+    if str(arguments.get("tenant_id")) != order["tenant_id"]:
+        return ToolExecutionResult(
+            {"order_id": order_id, "eligible": False, "max_refund_amount": 0},
+            is_error=True,
+            error="tenant_access_denied",
         )
     return {
         "order_id": order_id,
@@ -84,6 +105,12 @@ def refund_order(world, arguments):
             {"order_id": order_id, "refunded": False, "refunded_amount": 0},
             is_error=True,
             error="order_not_found",
+        )
+    if str(arguments.get("tenant_id")) != order["tenant_id"]:
+        return ToolExecutionResult(
+            {"order_id": order_id, "refunded": False, "refunded_amount": 0},
+            is_error=True,
+            error="tenant_access_denied",
         )
     if amount > order["paid_amount"]:
         return ToolExecutionResult(
@@ -133,8 +160,13 @@ class RefundAgent:
 
     def run(self, request: Any, context) -> None:
         requested_order_id = str(request["order_id"])
+        requested_tenant_id = str(request.get("tenant_id", "tenant-a"))
         lookup_order_id = "456" if self.behavior == "wrong-order" else requested_order_id
-        order = context.call_tool("get_order", {"order_id": lookup_order_id})
+        lookup_tenant_id = "tenant-b" if self.behavior == "wrong-tenant" else requested_tenant_id
+        order = context.call_tool(
+            "get_order",
+            {"order_id": lookup_order_id, "tenant_id": lookup_tenant_id},
+        )
         if not order.get("found"):
             context.final_answer(
                 f"未找到订单 {requested_order_id}。",
@@ -150,15 +182,26 @@ class RefundAgent:
         eligibility = {"eligible": False, "max_refund_amount": 0}
         if self.behavior != "skip-eligibility":
             eligibility = context.call_tool(
-                "check_refund_eligibility", {"order_id": lookup_order_id}
+                "check_refund_eligibility",
+                {"order_id": lookup_order_id, "tenant_id": lookup_tenant_id},
             )
         amount = 880 if self.behavior == "wrong-amount" else order["paid_amount"]
         refund = context.call_tool(
-            "refund_order", {"order_id": lookup_order_id, "amount": amount}
+            "refund_order",
+            {
+                "order_id": lookup_order_id,
+                "tenant_id": lookup_tenant_id,
+                "amount": amount,
+            },
         )
         if self.behavior == "duplicate-refund":
             refund = context.call_tool(
-                "refund_order", {"order_id": lookup_order_id, "amount": amount}
+                "refund_order",
+                {
+                    "order_id": lookup_order_id,
+                    "tenant_id": lookup_tenant_id,
+                    "amount": amount,
+                },
             )
 
         successful = bool(refund.get("refunded"))
@@ -231,33 +274,59 @@ def build_contract() -> ContractPolicy:
                 {"path": "orders.123.refunded_amount", "from": 0, "to": 88},
                 {"path": "orders.123.status", "from": "not_shipped", "to": "refunded"},
             ],
-            "relations": [
+            "argument_rules": [
                 {
-                    "left": "tool_calls[0].arguments.order_id",
+                    "tool": "get_order",
+                    "path": "order_id",
                     "operator": "equals",
                     "value": "123",
                     "message": "退款必须先查询用户请求中的订单",
                 },
                 {
-                    "left": "tool_calls[1].arguments.order_id",
+                    "tool": "get_order",
+                    "path": "tenant_id",
                     "operator": "equals_path",
-                    "right_path": "tool_results[0].result.order_id",
+                    "right_path": "metadata.input.tenant_id",
+                    "message": "查询不得跨租户",
+                },
+                {
+                    "tool": "check_refund_eligibility",
+                    "path": "order_id",
+                    "operator": "equals_path",
+                    "right_path": "metadata.input.order_id",
                     "message": "资格检查必须使用订单查询返回的订单号",
                 },
                 {
-                    "left": "tool_calls[2].arguments.order_id",
+                    "tool": "check_refund_eligibility",
+                    "path": "tenant_id",
                     "operator": "equals_path",
-                    "right_path": "tool_results[0].result.order_id",
+                    "right_path": "metadata.input.tenant_id",
+                    "message": "资格检查不得跨租户",
+                },
+                {
+                    "tool": "refund_order",
+                    "path": "order_id",
+                    "operator": "equals_path",
+                    "right_path": "metadata.input.order_id",
                     "message": "退款必须使用订单查询返回的订单号",
                 },
                 {
-                    "left": "tool_calls[2].arguments.amount",
+                    "tool": "refund_order",
+                    "path": "tenant_id",
+                    "operator": "equals_path",
+                    "right_path": "metadata.input.tenant_id",
+                    "message": "退款不得跨租户",
+                },
+                {
+                    "tool": "refund_order",
+                    "path": "amount",
                     "operator": "less_or_equal_path",
                     "right_path": "tool_results[0].result.paid_amount",
                     "message": "退款金额不得超过订单实付金额",
                 },
                 {
-                    "left": "tool_calls[2].arguments.amount",
+                    "tool": "refund_order",
+                    "path": "amount",
                     "operator": "equals_path",
                     "right_path": "tool_results[1].result.max_refund_amount",
                     "message": "退款金额必须遵守资格检查给出的上限",
@@ -276,7 +345,11 @@ def write_json(path: Path, value: Dict[str, Any]) -> None:
 def run(behavior: str, out: Path, compare_to: Path | None = None, report: Path | None = None) -> int:
     trace = record_run(
         RefundAgent(behavior),
-        {"order_id": "123", "request": "请退掉订单 123"},
+        {
+            "order_id": "123",
+            "tenant_id": "tenant-a",
+            "request": "请退掉订单 123",
+        },
         build_tools(),
         run_id=f"refund-{behavior}",
         metadata={"case": "order-refund", "behavior": behavior},

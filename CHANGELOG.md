@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.10.0 - 2026-09-20
+
+- Add scenario-level `contract.argument_rules` for deterministic tool-argument policies.
+- Check every call of a named tool against literal values, Trace reference paths, `exists` and `absent` rules.
+- Report violations with `tool_argument_policy`, the concrete call index and the observed/reference values.
+- Add tenant/resource-boundary coverage to the refund business case, a bilingual v4.10 acceptance contract and configuration-center support.
+
 ## 4.9.0 - 2026-09-20
 
 - Add scenario-level `contract.tool_allowlist` with explicit omission versus deny-all semantics.

@@ -31,6 +31,7 @@ The contract contains four kinds of checks:
 - `must_call` and `path_rules`: required tools and their order;
 - `tool_limits`: minimum/maximum calls per tool, preventing duplicate refunds and runaway loops;
 - `tool_allowlist`: the complete tool catalog this scenario permits; an unknown tool or argument scope produces `unauthorized_tool_call`;
+- `argument_rules`: checks every matching call's order, tenant or amount arguments; violations produce `tool_argument_policy`;
 - `side_effects`: the expected before/after state;
 - `relations`: values carried between steps, such as “refund amount <= paid amount”。
 
@@ -38,8 +39,8 @@ The contract contains four kinds of checks:
 跨步骤的业务关系。`tool_limits` 能把“退款只能执行一次”写成明确的最小/最大次数；
 `tool_allowlist` 则把“这个场景根本不能调用哪些工具”写成安全边界，未知工具会产生
 `unauthorized_tool_call`，而不是等到最终答案错误才发现；
-`relations` 是本案例的重点之一：它能检查 Agent 是否把前一步工具结果正确传给后一步，
-而不是只检查工具名称。
+`argument_rules` 是本案例的重点之一：它能对每一次工具调用检查订单号和金额边界，
+而不是只检查工具名称；更通用的跨步骤 claims、结果和状态关系仍可以使用 `relations`。
 
 ## Run it / 运行
 
@@ -65,7 +66,7 @@ The comparison should exit with `0` and write a Markdown report to
 Each behavior below represents a bug that a business Agent can introduce:
 
 ```bash
-for behavior in wrong-order wrong-amount skip-eligibility duplicate-refund; do
+for behavior in wrong-order wrong-tenant wrong-amount skip-eligibility duplicate-refund; do
   python examples/refund_business_case.py \
     --behavior "$behavior" \
     --out "work/refund-business-case/$behavior.trace.json" \
@@ -76,8 +77,9 @@ done
 
 | Behavior | Injected defect | Main gate that catches it |
 | --- | --- | --- |
-| `wrong-order` | looks up order `456` | relation, path, state and claims |
-| `wrong-amount` | requests `880` when paid amount is `88` | amount relations and tool error |
+| `wrong-order` | looks up order `456` | argument policy, path, state and claims |
+| `wrong-tenant` | sends `tenant-b` while the request belongs to `tenant-a` | tenant argument policy, required tools and path |
+| `wrong-amount` | requests `880` when paid amount is `88` | argument policy and tool error |
 | `skip-eligibility` | refunds without the eligibility check | required tool and path |
 | `duplicate-refund` | calls the refund operation twice | `tool_count`, path and step limit |
 

@@ -11,7 +11,11 @@ from examples.refund_business_case import (
 def record_refund(behavior):
     return record_run(
         RefundAgent(behavior),
-        {"order_id": "123", "request": "请退掉订单 123"},
+        {
+            "order_id": "123",
+            "tenant_id": "tenant-a",
+            "request": "请退掉订单 123",
+        },
         build_tools(),
         run_id=f"test-refund-{behavior}",
     )
@@ -31,8 +35,9 @@ class RefundBusinessCaseTests(unittest.TestCase):
     def test_each_injected_business_error_is_blocked(self):
         baseline = record_refund("normal")
         expected_categories = {
-            "wrong-order": {"contract_relation", "behavior_path"},
-            "wrong-amount": {"contract_relation", "tool_error_state"},
+            "wrong-order": {"tool_argument_policy", "behavior_path"},
+            "wrong-tenant": {"tool_argument_policy", "required_tool", "behavior_path"},
+            "wrong-amount": {"tool_argument_policy", "tool_error_state"},
             "skip-eligibility": {"required_tool", "behavior_path"},
             "duplicate-refund": {"behavior_path", "step_limit", "tool_count"},
         }
