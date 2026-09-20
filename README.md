@@ -14,7 +14,7 @@
 
 改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
-当前版本：[v4.6.1](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.6.1)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+当前版本：[v4.7.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.7.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
 
 ### 已验证的真实 Agent
 
@@ -30,7 +30,7 @@
 
 DeepSeek 多工具实测证据为 `get_order → result → check_refund_eligibility → result → final_answer`。模型必须把第一步返回的状态和金额传入第二步；三次请求共使用 1,118 个输入 tokens 和 132 个输出 tokens。工具顺序由测试策略固定，因此这里证明的是跨步骤数据传递，不夸大为自主规划。框架还会验证工具名、参数、结果与四个结构化 claims，并在上传产物前检查密钥没有进入 Trace 或报告。
 
-这些结果证明当前框架能够统一接收不同 Agent 运行时的证据、发现真实参数回归，并把在线模型行为放进 CI；它们还不能证明所有模型、所有多 Agent 协作或长期生产负载都已覆盖。完整边界见 [v4.6 验收说明](docs/v4.6-acceptance.md)。
+这些结果证明当前框架能够统一接收不同 Agent 运行时的证据、发现真实参数回归，并把在线模型行为放进 CI；它们还不能证明所有模型、所有多 Agent 协作或长期生产负载都已覆盖。完整边界见 [v4.7 验收说明](docs/v4.7-acceptance.md)。
 
 ### 从这里开始
 
@@ -40,6 +40,7 @@ DeepSeek 多工具实测证据为 `get_order → result → check_refund_eligibi
 | 配置检查项、断言和噪声过滤 | [策略配置](docs/user-manual.zh-CN.md#4-配置断言噪声过滤与比较范围) |
 | 看一个完整业务案例 | [退款业务案例](examples/refund-business-case/README.md) |
 | 允许安全的额外查询 | [路径变化案例](examples/path-variation/README.md) |
+| 收紧额外调用白名单 | [v4.7 验收说明](docs/v4.7-acceptance.md) |
 | 接入自己的 Agent | [接入步骤](docs/user-manual.zh-CN.md#5-接入自己的-agent) |
 | 接入 PydanticAI / OpenAI Agents / LangGraph | [真实框架集成](docs/framework-integrations.md) |
 | 用最低成本 DeepSeek 做真实供应商检查 | [DeepSeek 真实检查](docs/deepseek-live.md) |
@@ -47,7 +48,7 @@ DeepSeek 多工具实测证据为 `get_order → result → check_refund_eligibi
 | 理解架构、实现和边界 | [技术方案](docs/technical-design.zh-CN.md) |
 | 验证发布包来源、校验和与 SBOM | [发布完整性](docs/supply-chain.md) |
 | 查 API 与高级场景 | [API](docs/api.md) · [高级指南](docs/usage-guide.zh-CN.md) |
-| 了解 v4.6 验收与升级 | [v4.6 验收](docs/v4.6-acceptance.md) · [升级说明](UPGRADING.md) |
+| 了解 v4.7 验收与升级 | [v4.7 验收](docs/v4.7-acceptance.md) · [v4.6 验收](docs/v4.6-acceptance.md) · [升级说明](UPGRADING.md) |
 | 阅读 HTML 讲解 | [HTML 文档](docs/agent-regression-kit-guide.html)，下载后本地打开 |
 
 ### 工作方式
@@ -69,7 +70,7 @@ Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际�
 macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
 
 ```bash
-git clone --branch v4.6.1 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.7.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -130,7 +131,7 @@ agent-regression ui
 
 ### 验证与维护
 
-v4.6.1 的发布验收：
+v4.7.0 的发布验收：
 
 | 检查 | 证据 |
 | --- | --- |
@@ -141,7 +142,8 @@ v4.6.1 的发布验收：
 | 发布完整性 | SHA-256、SPDX 2.3 SBOM 与 GitHub 签名证明，见[验证说明](docs/supply-chain.md) |
 | 业务回归案例 | [v4.5 验收契约](docs/v4.5-acceptance.md) |
 | 路径变化与误报控制 | [v4.6 验收契约](docs/v4.6-acceptance.md) · [路径变化案例](examples/path-variation/README.md) |
-| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.6.1) |
+| 额外调用白名单 | [v4.7 验收契约](docs/v4.7-acceptance.md) · `extra_tool_call` 诊断 |
+| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.7.0) |
 
 这些验证覆盖已实现路径，生产接入仍需要自己的业务用例。官方 MCP 检查是独立的[可选工作流](.github/workflows/mcp-compatibility.yml)，不等于完整协议认证。文档更新以 main 为准，发布 tag 内容固定。
 
@@ -153,7 +155,7 @@ v4.6.1 的发布验收：
 
 After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
 
-Release: [v4.6.1](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.6.1). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+Release: [v4.7.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.7.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
 
 ### Verified real Agents
 
@@ -181,7 +183,7 @@ the active credential before upload.
 This evidence proves that the current kit can normalize different Agent
 runtimes, detect a real argument regression and gate a hosted model in CI. It
 does not claim coverage of every model, multi-Agent topology or long-running
-production workload. See the [v4.6 acceptance contract](docs/v4.6-acceptance.md).
+production workload. See the [v4.7 acceptance contract](docs/v4.7-acceptance.md).
 
 ### Documentation
 
@@ -191,6 +193,7 @@ production workload. See the [v4.6 acceptance contract](docs/v4.6-acceptance.md)
 | Configure assertions and noise filtering | [Comparison policy](docs/user-manual.en.md#4-configure-assertions-and-noise-filtering) |
 | See a complete business case | [Refund business case](examples/refund-business-case/README.md) |
 | Allow a safe extra query | [Path variation example](examples/path-variation/README.md) |
+| Constrain tolerant extra calls | [v4.7 acceptance](docs/v4.7-acceptance.md) |
 | Connect your own Agent | [Integration](docs/user-manual.en.md#5-integrate-your-own-agent) |
 | Connect PydanticAI / OpenAI Agents / LangGraph | [Real framework integrations](docs/framework-integrations.md) |
 | Run a low-cost live DeepSeek provider check | [DeepSeek live check](docs/deepseek-live.md) |
@@ -198,14 +201,14 @@ production workload. See the [v4.6 acceptance contract](docs/v4.6-acceptance.md)
 | Understand architecture and boundaries | [Technical design](docs/technical-design.en.md) |
 | Verify release provenance, checksums and SBOM | [Release integrity](docs/supply-chain.md) |
 | Explore advanced APIs | [API reference](docs/api.md) · [Advanced guide](docs/usage-guide.en.md) |
-| Read the v4.6 acceptance and upgrade contract | [v4.6 acceptance](docs/v4.6-acceptance.md) · [Upgrade guide](UPGRADING.md) |
+| Read the v4.7 acceptance and upgrade contract | [v4.7 acceptance](docs/v4.7-acceptance.md) · [v4.6 acceptance](docs/v4.6-acceptance.md) · [Upgrade guide](UPGRADING.md) |
 
 ### Quick start
 
 Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
 
 ```bash
-git clone --branch v4.6.1 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.7.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -258,7 +261,7 @@ Use **compare --config** for custom contracts in CI, or pass `config` to the v3.
 
 ### Verification and maintenance
 
-Recorded v4.6.1 evidence is maintained by the main regression, framework compatibility, path-variation, live-provider and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
+Recorded v4.7.0 evidence is maintained by the main regression, framework compatibility, path-variation, live-provider and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
 
 Tagged releases additionally publish SHA-256 checksums, an SPDX 2.3 release
 SBOM, and GitHub-signed provenance/SBOM attestations. See the

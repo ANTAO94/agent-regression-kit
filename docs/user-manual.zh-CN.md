@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.6.1。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.7.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.6.1 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.7.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -172,6 +172,7 @@ baseline 保存预期证据；检查规则放在独立 config 中，便于代码
 | allow_paths | 放行比较报告中某个完整差异路径，不是嵌套通配过滤 |
 | path_rules.any_of | 显式声明允许的多条工具调用路径，详见技术方案和 API |
 | path_rules.mode | 路径匹配模式：`exact`、`ordered_subsequence` 或 `unordered_subset`；省略时为严格 `exact` |
+| path_rules.extra_calls | 放宽模式下允许的额外调用白名单；省略保持 v4.6 兼容，`[]` 表示不允许额外调用 |
 | side_effects | 检查 world_state 的初始/最终状态，要求先录制快照 |
 | relations | 检查跨步骤字段关系，例如退款金额不超过查询结果中的 paid_amount |
 
@@ -211,7 +212,10 @@ tool_calls、tool_results、final_answer 是比较器提供的投影视图，不
 {
   "path_rules": {
     "mode": "ordered_subsequence",
-    "any_of": [["get_order", "get_payment_status"]]
+    "any_of": [["get_order", "get_payment_status"]],
+    "extra_calls": [
+      {"tool": "get_shipping", "is_error": false}
+    ]
   },
   "must_not_call": ["delete_order"],
   "max_steps": 3
@@ -225,6 +229,12 @@ tool_calls、tool_results、final_answer 是比较器提供的投影视图，不
 | `exact` | 默认；候选工具路径必须完整匹配，旧的 `ordered` 行为继续兼容 |
 | `ordered_subsequence` | 列出的规则必须按顺序出现，前后或中间可以有额外调用 |
 | `unordered_subset` | 列出的规则都必须出现，但顺序和额外调用不作为路径条件 |
+
+v4.7 可以用 `path_rules.extra_calls` 把放宽模式收紧成显式白名单。省略该字段会保持
+v4.6 兼容行为，所有未匹配的额外调用都允许；配置 `extra_calls: []` 表示不允许任何
+额外调用。白名单规则可以进一步检查 `arguments`、`result` 和 `is_error`。未知额外调用
+会报告 `extra_tool_call`，并同时报告整体的 `behavior_path` 失败；`extra_calls` 不能
+和默认 `exact` 模式组合。
 
 放宽路径不等于放宽业务约束。额外调用仍可能泄露数据或产生副作用，所以应同时
 使用 `must_not_call`、`max_steps`、结果/is_error 条件、`assertions`、`relations`、
@@ -245,7 +255,7 @@ agent-regression compare --config examples/refund-business-case/compare.config.j
 
 路径规则：配置放在 .agent-regression/ 下时相对项目根目录解析；放在其他位置时相对配置文件所在目录解析。命令行参数优先于文件配置。
 
-可运行的比较策略示例位于 v4.6.1 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
+可运行的比较策略示例位于 v4.7.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -339,7 +349,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.6.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.7.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -362,7 +372,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.6.1
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.7.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -427,7 +437,7 @@ agent-regression validate --trace work/order-123.v4.trace.json
 ```
 
 迁移报告只记录迁移状态和 schema 版本，不复制 Trace 事件。完整的 v4 验收
-清单见 [v4.6 验收说明](v4.6-acceptance.md)。
+清单见 [v4.7 验收说明](v4.7-acceptance.md)；路径白名单边界见 [v4.6 验收说明](v4.6-acceptance.md)。
 
 ## 9. 排错与维护
 

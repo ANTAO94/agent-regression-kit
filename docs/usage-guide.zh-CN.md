@@ -261,7 +261,7 @@ v2.8 在完整 AgentTrace 之上提供了可执行的 Agent Contract。你可以
 }
 ```
 
-`allow_categories` / `allow_paths` 是**放宽 baseline 差异的阻断规则**，所有差异仍会出现在报告里。`contract` 才是候选行为约束：它可以要求必须调用某个工具、禁止调用某个工具、断言 Trace 字段、忽略动态字段、归一化时间戳/排序，并限制最大工具步骤数。`path_rules.any_of` 默认表示多条都合法的完整工具调用路径，候选 Trace 必须完整匹配其中一条；字符串工具规则只检查工具名，对参数不设限。若使用 `path_rules.mode=ordered_subsequence`，列出的规则必须按顺序出现但允许额外调用；`unordered_subset` 允许额外调用和乱序，必须确认业务确实允许。放宽模式仍应配合 `must_not_call`、`max_steps`、断言、relations 和副作用约束。`side_effects` 检查候选运行前后的业务状态，例如订单必须从 `paid` 变成 `cancelled`。`relations` 检查跨步骤字段关系，例如后续退款金额不得超过前一步查询到的实付金额。`secret_values` 只负责敏感信息脱敏。
+`allow_categories` / `allow_paths` 是**放宽 baseline 差异的阻断规则**，所有差异仍会出现在报告里。`contract` 才是候选行为约束：它可以要求必须调用某个工具、禁止调用某个工具、断言 Trace 字段、忽略动态字段、归一化时间戳/排序，并限制最大工具步骤数。`path_rules.any_of` 默认表示多条都合法的完整工具调用路径，候选 Trace 必须完整匹配其中一条；字符串工具规则只检查工具名，对参数不设限。若使用 `path_rules.mode=ordered_subsequence`，列出的规则必须按顺序出现但允许额外调用；`unordered_subset` 允许额外调用和乱序，必须确认业务确实允许。v4.7 可用 `path_rules.extra_calls` 将额外调用限制为显式白名单；省略保持 v4.6 兼容，`extra_calls: []` 拒绝全部额外调用，未知调用会生成 `extra_tool_call`。放宽模式仍应配合 `must_not_call`、`max_steps`、断言、relations 和副作用约束。`side_effects` 检查候选运行前后的业务状态，例如订单必须从 `paid` 变成 `cancelled`。`relations` 检查跨步骤字段关系，例如后续退款金额不得超过前一步查询到的实付金额。`secret_values` 只负责敏感信息脱敏。
 
 `allow-path` 匹配比较器已经产生的完整差异路径；`contract.ignore_paths` 才支持深入嵌套 JSON，并支持 `[*]` 通配。例如 `tool_results[*].result.request_id` 可以忽略每个工具结果里的 request ID，而不会放宽整个工具结果。
 
@@ -526,7 +526,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.6.1
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.7.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

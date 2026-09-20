@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.6.1. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.7.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.6.1 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.7.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -168,6 +168,7 @@ Store expected evidence in baseline files and policy in a separate config. Examp
 | allow_paths | Permit exact reported difference paths; not wildcard filtering |
 | path_rules.any_of | Explicit alternatives for allowed tool sequences |
 | path_rules.mode | `exact`, `ordered_subsequence` or `unordered_subset`; omitted means strict `exact` |
+| path_rules.extra_calls | Allowlist for unmatched calls in tolerant modes; omitted preserves v4.6, `[]` rejects all extras |
 | side_effects | Constraints on recorded initial/final world snapshots |
 | relations | Cross-step field rules such as refund amount <= the paid amount returned by lookup |
 
@@ -207,7 +208,10 @@ legitimate read-only query, opt into an explicit tolerant mode:
 {
   "path_rules": {
     "mode": "ordered_subsequence",
-    "any_of": [["get_order", "get_payment_status"]]
+    "any_of": [["get_order", "get_payment_status"]],
+    "extra_calls": [
+      {"tool": "get_shipping", "is_error": false}
+    ]
   },
   "must_not_call": ["delete_order"],
   "max_steps": 3
@@ -219,6 +223,14 @@ legitimate read-only query, opt into an explicit tolerant mode:
 | `exact` | Default; the complete candidate path must match. Legacy `ordered` behavior remains compatible. |
 | `ordered_subsequence` | Listed rules must appear in order; extra calls may occur before, between or after them. |
 | `unordered_subset` | Every listed rule must appear; order and extra calls are not path conditions. |
+
+In v4.7, `path_rules.extra_calls` turns a tolerant mode into an explicit
+allowlist. Omitting the field preserves v4.6 compatibility and accepts all
+unmatched extra calls; `extra_calls: []` rejects every extra call. An allowlist
+rule may also constrain `arguments`, `result` and `is_error`. An unknown extra
+call produces an `extra_tool_call` diagnostic as well as the overall
+`behavior_path` failure. `extra_calls` cannot be combined with default
+`exact` mode.
 
 Tolerant path matching is not a business safety policy. Keep `must_not_call`,
 `max_steps`, result/is_error constraints, assertions, relations, side effects
@@ -238,7 +250,7 @@ The case also includes four controlled defects: `wrong-order`, `wrong-amount`, `
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v4.6.1. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.7.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -327,7 +339,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.6.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.7.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -350,7 +362,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.6.1
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.7.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -420,8 +432,8 @@ agent-regression validate --trace work/order-123.v4.trace.json
 ```
 
 The migration report contains status and schema versions only; it does not copy
-Trace events. See the [v4.6 acceptance contract](v4.6-acceptance.md) for the
-complete release checklist.
+Trace events. See the [v4.7 acceptance contract](v4.7-acceptance.md) for the
+current release checklist; the v4.6 contract documents the path-mode boundary.
 
 ## 9. Troubleshooting and maintenance
 

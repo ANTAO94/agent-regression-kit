@@ -99,6 +99,9 @@ def build_contract() -> ContractPolicy:
                     {"tool": "get_order", "is_error": False},
                     {"tool": "get_payment_status", "is_error": False},
                 ]],
+                "extra_calls": [
+                    {"tool": "get_shipping", "is_error": False},
+                ],
             },
             "max_steps": 3,
         }

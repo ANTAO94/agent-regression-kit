@@ -10,7 +10,10 @@
     "any_of": [[
       {"tool": "get_order", "is_error": false},
       {"tool": "get_payment_status", "is_error": false}
-    ]]
+    ]],
+    "extra_calls": [
+      {"tool": "get_shipping", "is_error": false}
+    ]
   },
   "max_steps": 3
 }

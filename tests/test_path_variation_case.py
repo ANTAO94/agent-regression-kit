@@ -40,6 +40,11 @@ class PathVariationCaseTests(unittest.TestCase):
                 report = compare_traces(baseline, record_path_variation(behavior), policy)
                 self.assertFalse(report["passed"])
                 self.assertIn(category, {item["category"] for item in report["differences"]})
+                if behavior == "forbidden":
+                    self.assertIn(
+                        "extra_tool_call",
+                        {item["category"] for item in report["differences"]},
+                    )
 
 
 if __name__ == "__main__":

@@ -4,6 +4,34 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.6.1 → v4.7.0
+
+This feature release adds the optional `contract.path_rules.extra_calls`
+allowlist for `ordered_subsequence` and `unordered_subset`. Existing tolerant
+Contracts that omit the field keep v4.6 behavior, so no migration is required.
+Add the field when a project wants to allow only named observational calls; use
+`extra_calls: []` to reject every unmatched extra call. Each rule can constrain
+the tool name, arguments, result and error state. Unknown calls produce an
+`extra_tool_call` diagnostic in addition to the overall `behavior_path` failure.
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "mode": "ordered_subsequence",
+      "any_of": [["get_order", "get_payment_status"]],
+      "extra_calls": [
+        {"tool": "get_shipping", "is_error": false}
+      ]
+    }
+  }
+}
+```
+
+`extra_calls` cannot be combined with the default `exact` mode. See the
+[v4.7 acceptance contract](docs/v4.7-acceptance.md) and the [path variation
+example](examples/path-variation/README.md) before enabling it.
+
 ## v4.6.0 → v4.6.1
 
 This patch release corrects the release-integrity verification commands. No

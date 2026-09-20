@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.7.0 - 2026-09-20
+
+- Add optional `contract.path_rules.extra_calls` allowlists for tolerant path modes.
+- Preserve v4.6 compatibility when `extra_calls` is omitted; support explicit `extra_calls: []` to reject all unmatched calls.
+- Add `extra_tool_call` diagnostics with the observed call index and the configured allowlist.
+- Add validation, bilingual acceptance documentation and a path-variation CI example for fail-closed extra-call checks.
+
 ## 4.6.1 - 2026-09-20
 
 - Correct release-integrity instructions to verify wheel provenance and SPDX attestations with `gh attestation verify`.

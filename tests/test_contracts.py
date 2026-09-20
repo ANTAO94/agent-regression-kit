@@ -307,6 +307,137 @@ class ContractTests(unittest.TestCase):
                 }
             )
 
+    def test_extra_calls_allowlist_is_explicit_and_fail_closed(self):
+        baseline = make_path_trace(["get_order", "get_payment_status"])
+        candidate = make_path_trace(
+            ["get_order", "get_shipping", "get_payment_status"],
+            run_id="path-extra-allowlist",
+        )
+
+        legacy_policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "ordered_subsequence",
+                        "any_of": [["get_order", "get_payment_status"]],
+                    }
+                }
+            ),
+        )
+        self.assertTrue(
+            compare_traces(baseline, candidate, legacy_policy)["passed"],
+            "v4.6 tolerant paths must remain open when extra_calls is omitted",
+        )
+
+        allowlisted_policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "ordered_subsequence",
+                        "any_of": [["get_order", "get_payment_status"]],
+                        "extra_calls": [
+                            {
+                                "tool": "get_shipping",
+                                "result": {"tool": "get_shipping", "ok": True},
+                                "is_error": False,
+                            }
+                        ],
+                    }
+                }
+            ),
+        )
+        allowed = compare_traces(baseline, candidate, allowlisted_policy)
+        self.assertTrue(allowed["passed"], allowed["differences"])
+
+        closed_policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "ordered_subsequence",
+                        "any_of": [["get_order", "get_payment_status"]],
+                        "extra_calls": [],
+                    }
+                }
+            ),
+        )
+        blocked = compare_traces(baseline, candidate, closed_policy)
+        self.assertFalse(blocked["passed"])
+        extra = next(
+            item
+            for item in blocked["differences"]
+            if item["category"] == "extra_tool_call"
+        )
+        self.assertEqual("tool_calls[1]", extra["path"])
+        self.assertEqual("get_shipping", extra["candidate"]["tool"])
+
+        unknown = compare_traces(
+            baseline,
+            make_path_trace(
+                ["get_order", "delete_order", "get_payment_status"],
+                run_id="path-extra-unknown",
+            ),
+            allowlisted_policy,
+        )
+        self.assertFalse(unknown["passed"])
+        self.assertTrue(
+            any(item["category"] == "extra_tool_call" for item in unknown["differences"])
+        )
+
+    def test_extra_calls_are_validated_and_serialized(self):
+        policy = ContractPolicy.from_dict(
+            {
+                "path_rules": {
+                    "mode": "unordered_subset",
+                    "any_of": [["get_order"]],
+                    "extra_calls": [],
+                }
+            }
+        )
+        self.assertEqual([], policy.to_dict()["path_rules"]["extra_calls"])
+
+        with self.assertRaisesRegex(ValueError, "requires a tolerant"):
+            ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "any_of": [["get_order"]],
+                        "extra_calls": [],
+                    }
+                }
+            )
+        with self.assertRaisesRegex(ValueError, "unsupported extra call rule fields"):
+            ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "ordered_subsequence",
+                        "any_of": [["get_order"]],
+                        "extra_calls": [{"tool": "get_shipping", "reslt": {}}],
+                    }
+                }
+            )
+        with self.assertRaisesRegex(ValueError, "extra_calls must be an array"):
+            ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "ordered_subsequence",
+                        "any_of": [["get_order"]],
+                        "extra_calls": {"tool": "get_shipping"},
+                    }
+                }
+            )
+        with self.assertRaisesRegex(ValueError, "extra call rule is_error must be a boolean"):
+            ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "ordered_subsequence",
+                        "any_of": [["get_order"]],
+                        "extra_calls": [{"tool": "get_shipping", "is_error": "false"}],
+                    }
+                }
+            )
+
     def test_ordered_subsequence_allows_extra_observational_queries(self):
         baseline = make_path_trace(["get_order", "get_payment_status"])
         candidate = make_path_trace(

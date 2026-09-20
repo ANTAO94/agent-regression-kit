@@ -180,33 +180,43 @@ class ContractPolicy:
             raise ValueError("contract.path_rules must be an object")
         _reject_unknown_fields(
             self.path_rules,
-            {"any_of", "ordered", "mode"},
+            {"any_of", "ordered", "mode", "extra_calls"},
             "path_rules",
         )
         alternatives = self.path_rules.get("any_of", [])
         if not isinstance(alternatives, list) or not alternatives:
             if self.path_rules:
                 raise ValueError("contract.path_rules.any_of must be a non-empty array")
+
+        def validate_path_rule(raw_rule: Any, label: str = "path rule") -> None:
+            rule = {"tool": raw_rule} if isinstance(raw_rule, str) else raw_rule
+            if not isinstance(rule, dict) or not isinstance(rule.get("tool"), str) or not rule["tool"]:
+                raise ValueError(f"{label}s must contain tool names")
+            _reject_unknown_fields(
+                rule,
+                {"tool", "arguments", "result", "is_error"},
+                label,
+            )
+            if "arguments" in rule and not isinstance(rule["arguments"], dict):
+                raise ValueError(f"{label} arguments must be an object")
+            if "result" in rule and not isinstance(
+                rule["result"], (dict, list, str, int, float, bool, type(None))
+            ):
+                raise ValueError(f"{label} result must be JSON-compatible")
+            if "is_error" in rule and not isinstance(rule["is_error"], bool):
+                raise ValueError(f"{label} is_error must be a boolean")
+
         for path in alternatives:
             if not isinstance(path, list) or not path:
                 raise ValueError("each contract path alternative must be a non-empty array")
             for raw_rule in path:
-                rule = {"tool": raw_rule} if isinstance(raw_rule, str) else raw_rule
-                if not isinstance(rule, dict) or not isinstance(rule.get("tool"), str) or not rule["tool"]:
-                    raise ValueError("path rules must contain tool names")
-                _reject_unknown_fields(
-                    rule,
-                    {"tool", "arguments", "result", "is_error"},
-                    "path rule",
-                )
-                if "arguments" in rule and not isinstance(rule["arguments"], dict):
-                    raise ValueError("path rule arguments must be an object")
-                if "result" in rule and not isinstance(
-                    rule["result"], (dict, list, str, int, float, bool, type(None))
-                ):
-                    raise ValueError("path rule result must be JSON-compatible")
-                if "is_error" in rule and not isinstance(rule["is_error"], bool):
-                    raise ValueError("path rule is_error must be a boolean")
+                validate_path_rule(raw_rule)
+        extra_calls = self.path_rules.get("extra_calls", [])
+        if "extra_calls" in self.path_rules:
+            if not isinstance(extra_calls, list):
+                raise ValueError("contract.path_rules.extra_calls must be an array")
+            for raw_rule in extra_calls:
+                validate_path_rule(raw_rule, "extra call rule")
         if "ordered" in self.path_rules and not isinstance(self.path_rules["ordered"], bool):
             raise ValueError("contract.path_rules.ordered must be a boolean")
         mode = self.path_rules.get("mode", "exact")
@@ -218,6 +228,10 @@ class ContractPolicy:
         if mode != "exact" and "ordered" in self.path_rules:
             raise ValueError(
                 "contract.path_rules.ordered is only valid when mode is 'exact'"
+            )
+        if mode == "exact" and "extra_calls" in self.path_rules:
+            raise ValueError(
+                "contract.path_rules.extra_calls requires a tolerant path mode"
             )
         for effect in self.side_effects:
             if not isinstance(effect, dict) or not isinstance(effect.get("path"), str):
@@ -502,7 +516,8 @@ class ContractPolicy:
                         "message": "forbidden tool call was observed",
                     }
                 )
-        if self.has_path_rules and not self._path_matches(candidate_calls, candidate_results):
+        path_details = self._path_match_details(candidate_calls, candidate_results)
+        if self.has_path_rules and not path_details["passed"]:
             differences.append(
                 {
                     "category": "behavior_path",
@@ -515,6 +530,16 @@ class ContractPolicy:
                     "message": "observed tool path is not one of the allowed paths",
                 }
             )
+            for index, event in path_details["disallowed_extra_calls"]:
+                differences.append(
+                    {
+                        "category": "extra_tool_call",
+                        "path": f"tool_calls[{index}]",
+                        "baseline": deepcopy(self.path_rules.get("extra_calls", [])),
+                        "candidate": deepcopy(event),
+                        "message": "extra tool call is not allowed by path_rules.extra_calls",
+                    }
+                )
         for effect in self.side_effects:
             initial_values = _lookup(
                 candidate_data.get("world_state", {}).get("initial", {}),
@@ -565,6 +590,13 @@ class ContractPolicy:
         candidate_calls: Sequence[Mapping[str, Any]],
         candidate_results: Mapping[str, Mapping[str, Any]],
     ) -> bool:
+        return bool(self._path_match_details(candidate_calls, candidate_results)["passed"])
+
+    def _path_match_details(
+        self,
+        candidate_calls: Sequence[Mapping[str, Any]],
+        candidate_results: Mapping[str, Mapping[str, Any]],
+    ) -> Dict[str, Any]:
         observed = []
         for event in candidate_calls:
             observed_event = {
@@ -578,6 +610,12 @@ class ContractPolicy:
             observed.append(observed_event)
         mode = self.path_rules.get("mode", "exact")
         ordered = self.path_rules.get("ordered", True)
+        has_extra_allowlist = "extra_calls" in self.path_rules
+        extra_rules = [
+            {"tool": rule} if isinstance(rule, str) else rule
+            for rule in self.path_rules.get("extra_calls", [])
+        ]
+        first_disallowed_extra_calls: List[tuple[int, Dict[str, Any]]] = []
         for alternative in self.path_rules.get("any_of", []):
             expected = [
                 {"tool": rule}
@@ -585,36 +623,65 @@ class ContractPolicy:
                 else rule
                 for rule in alternative
             ]
-            if mode == "ordered_subsequence":
-                observed_index = 0
-                for rule in expected:
-                    match_index = next(
-                        (
-                            index
-                            for index, event in enumerate(observed[observed_index:], observed_index)
-                            if self._path_rule_matches(rule, event)
-                        ),
-                        None,
-                    )
-                    if match_index is None:
-                        break
-                    observed_index = match_index + 1
-                else:
-                    return True
-            elif mode == "unordered_subset":
-                if self._unordered_path_rules_match(expected, observed):
-                    return True
-            elif ordered:
-                if len(expected) == len(observed) and all(
-                    self._path_rule_matches(rule, event)
-                    for rule, event in zip(expected, observed)
-                ):
-                    return True
-            else:
-                if len(expected) == len(observed):
-                    if self._unordered_path_rules_match(expected, observed):
-                        return True
-        return False
+            matched_indexes = self._path_match_indexes(
+                expected, observed, mode=mode, ordered=ordered
+            )
+            if matched_indexes is None:
+                continue
+            if not has_extra_allowlist:
+                return {"passed": True, "disallowed_extra_calls": []}
+            disallowed = [
+                (index, event)
+                for index, event in enumerate(observed)
+                if index not in matched_indexes
+                and not any(self._path_rule_matches(rule, event) for rule in extra_rules)
+            ]
+            if not disallowed:
+                return {"passed": True, "disallowed_extra_calls": []}
+            if not first_disallowed_extra_calls:
+                first_disallowed_extra_calls = disallowed
+        return {
+            "passed": False,
+            "disallowed_extra_calls": first_disallowed_extra_calls,
+        }
+
+    def _path_match_indexes(
+        self,
+        expected: Sequence[Mapping[str, Any]],
+        observed: Sequence[Mapping[str, Any]],
+        *,
+        mode: str,
+        ordered: bool,
+    ) -> set[int] | None:
+        if mode == "ordered_subsequence":
+            matched: set[int] = set()
+            observed_index = 0
+            for rule in expected:
+                match_index = next(
+                    (
+                        index
+                        for index, event in enumerate(observed[observed_index:], observed_index)
+                        if self._path_rule_matches(rule, event)
+                    ),
+                    None,
+                )
+                if match_index is None:
+                    return None
+                matched.add(match_index)
+                observed_index = match_index + 1
+            return matched
+        if mode == "unordered_subset":
+            return self._unordered_path_rule_indexes(expected, observed)
+        if ordered:
+            if len(expected) == len(observed) and all(
+                self._path_rule_matches(rule, event)
+                for rule, event in zip(expected, observed)
+            ):
+                return set(range(len(observed)))
+            return None
+        if len(expected) != len(observed):
+            return None
+        return self._unordered_path_rule_indexes(expected, observed)
 
     def _unordered_path_rules_match(
         self,
@@ -622,8 +689,16 @@ class ContractPolicy:
         observed: Sequence[Mapping[str, Any]],
     ) -> bool:
         """Match each rule to a distinct event without greedy false negatives."""
+        return self._unordered_path_rule_indexes(expected, observed) is not None
+
+    def _unordered_path_rule_indexes(
+        self,
+        expected: Sequence[Mapping[str, Any]],
+        observed: Sequence[Mapping[str, Any]],
+    ) -> set[int] | None:
+        """Return a deterministic distinct-event assignment for unordered rules."""
         if len(expected) > len(observed):
-            return False
+            return None
         candidates = [
             [
                 index
@@ -633,7 +708,7 @@ class ContractPolicy:
             for rule in expected
         ]
         if any(not matches for matches in candidates):
-            return False
+            return None
         order = sorted(range(len(expected)), key=lambda index: len(candidates[index]))
 
         matched_events: Dict[int, int] = {}
@@ -649,7 +724,9 @@ class ContractPolicy:
                     return True
             return False
 
-        return all(assign(rule_index, set()) for rule_index in order)
+        if not all(assign(rule_index, set()) for rule_index in order):
+            return None
+        return set(matched_events)
 
     @staticmethod
     def _tool_rule_matches(rule: Mapping[str, Any], event: Mapping[str, Any]) -> bool:

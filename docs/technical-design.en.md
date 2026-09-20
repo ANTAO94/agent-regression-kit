@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.6.1 source. Package version 4.6.1, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.7.0 source. Package version 4.7.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -98,6 +98,7 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | max_steps | Maximum number of tool calls |
 | path_rules.any_of | Explicit accepted tool paths, optionally constraining result and is_error |
 | path_rules.mode | `exact`, `ordered_subsequence` or `unordered_subset`; omitted means strict complete-path matching |
+| path_rules.extra_calls | Explicit allowlist for unmatched calls in tolerant modes; omitted preserves v4.6, an empty list rejects all extras |
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | relations | Cross-step field constraints; missing or false relations block |
@@ -107,10 +108,14 @@ Path modes are explicit candidate-path constraints, not fuzzy string matching.
 `exact` requires the complete path length and every rule to match;
 `ordered_subsequence` scans forward so extra calls may appear around the
 required rules; `unordered_subset` consumes one distinct candidate event per
-rule and permits extra calls and reordering. When a candidate has extra calls,
-the comparator does not force those events into baseline result positions, so
-business-significant extra results must be declared with path-rule
-`result`/`is_error`, assertions, relations or side effects.
+rule and permits extra calls and reordering. In v4.7, `extra_calls` can constrain
+those unmatched calls with an explicit allowlist; omitting it preserves v4.6
+compatibility, while an empty list rejects every unmatched call. Rules can
+constrain the tool, arguments, result and error state. A rejected call produces
+an `extra_tool_call` diagnostic in addition to the overall `behavior_path`
+failure. The comparator does not force extra events into baseline result
+positions, so business-significant extra results should still be declared with
+path-rule `result`/`is_error`, assertions, relations or side effects.
 
 `relations` covers business constraints that a single-field assertion cannot
 express. It resolves JSON paths in the candidate `tool_calls`, `tool_results`,
@@ -202,6 +207,6 @@ compatibility and migration commands, workspace manifest checks and Viewer
 asset checks. This demonstrates covered paths, not years of production usage or
 automatic support for every Agent.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.6.1) · [v4.6 acceptance](v4.6-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.7.0) · [v4.7 acceptance](v4.7-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

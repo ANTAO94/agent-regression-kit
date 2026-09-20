@@ -267,7 +267,7 @@ In v2.8, a complete AgentTrace can be combined with an executable Agent Contract
 }
 ```
 
-`allow_categories` and `allow_paths` **relax baseline blocking rules**; every detected difference remains in the report. `contract` constrains candidate behavior: it can require or forbid tool calls, assert Trace fields, ignore dynamic fields, normalize timestamps/lists, and cap tool-call steps. `path_rules.any_of` declares multiple valid complete tool paths by default; the candidate must match one of them. With `path_rules.mode=ordered_subsequence`, listed rules must remain ordered while extra calls are allowed; `unordered_subset` also allows reordering and should only be used when the domain permits it. Tolerant modes still need `must_not_call`, `max_steps`, assertions, relations and side-effect constraints. A string tool rule checks only the tool name. `side_effects` checks a business-state transition such as an order changing from `paid` to `cancelled`. `relations` checks cross-step fields, such as requiring a later refund amount to stay within the paid amount returned by an earlier lookup. `secret_values` only provides redaction.
+`allow_categories` and `allow_paths` **relax baseline blocking rules**; every detected difference remains in the report. `contract` constrains candidate behavior: it can require or forbid tool calls, assert Trace fields, ignore dynamic fields, normalize timestamps/lists, and cap tool-call steps. `path_rules.any_of` declares multiple valid complete tool paths by default; the candidate must match one of them. With `path_rules.mode=ordered_subsequence`, listed rules must remain ordered while extra calls are allowed; `unordered_subset` also allows reordering and should only be used when the domain permits it. In v4.7, `path_rules.extra_calls` turns tolerant extras into an explicit allowlist; omitting it preserves v4.6 compatibility, `extra_calls: []` rejects all unmatched calls, and unknown calls produce `extra_tool_call`. Tolerant modes still need `must_not_call`, `max_steps`, assertions, relations and side-effect constraints. A string tool rule checks only the tool name. `side_effects` checks a business-state transition such as an order changing from `paid` to `cancelled`. `relations` checks cross-step fields, such as requiring a later refund amount to stay within the paid amount returned by an earlier lookup. `secret_values` only provides redaction.
 
 `allow-path` matches a complete difference path already produced by the comparator. `contract.ignore_paths` is the nested JSON filter and supports `[*]`; for example, `tool_results[*].result.request_id` ignores each result's request ID without allowing the entire tool result to change.
 
@@ -571,7 +571,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.6.1
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.7.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
