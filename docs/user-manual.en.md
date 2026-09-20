@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.11.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.12.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.11.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.12.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -362,7 +362,7 @@ The case also includes four controlled defects: `wrong-order`, `wrong-amount`, `
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v4.11.0. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.12.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.11.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.12.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.11.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.12.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -514,7 +514,7 @@ history follows the last recognized point's status; report-index requires all in
 
 ### Validate against an independent Agent project
 
-The v4.11 release includes a reproducible adapter for the published retail
+The v4.12 release includes a reproducible adapter for the published retail
 trajectories of [tau2-bench](https://github.com/sierra-research/tau2-bench). It
 is useful when you want evidence beyond the repository's own toy fixtures:
 

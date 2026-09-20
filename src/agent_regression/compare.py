@@ -194,6 +194,12 @@ def compare_traces(
     diffs: List[Dict[str, Any]] = []
     active_policy = policy or ComparisonPolicy()
     contract = active_policy.contract
+    state_mode = contract._state_equivalence_mode() if contract else "exact"
+    declared_outcome_paths = bool(
+        contract
+        and state_mode == "outcome"
+        and (contract.state_equivalence or {}).get("paths")
+    )
     baseline_calls = _events(baseline, "tool_call")
     candidate_calls = _events(candidate, "tool_call")
     baseline_call_ordinals = {
@@ -221,7 +227,7 @@ def compare_traces(
             baseline_call_ordinals,
             candidate_call_ordinals,
         )
-    elif same_call_shape:
+    elif same_call_shape and not declared_outcome_paths:
         _compare_event_list(
             diffs,
             _events(baseline, "tool_result"),
@@ -260,7 +266,7 @@ def compare_traces(
         )
     baseline_world = baseline.metadata.get("world_state")
     candidate_world = candidate.metadata.get("world_state")
-    if baseline_world is not None or candidate_world is not None:
+    if (baseline_world is not None or candidate_world is not None) and not declared_outcome_paths:
         left_world = baseline_world or {}
         right_world = candidate_world or {}
         if contract:

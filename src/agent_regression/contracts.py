@@ -31,6 +31,7 @@ _ARGUMENT_POLICY_OPERATORS = {
     "greater_than_path",
     "greater_or_equal_path",
 }
+_STATE_EQUIVALENCE_MODES = {"exact", "outcome", "hybrid"}
 
 
 def _reject_unknown_fields(
@@ -164,6 +165,9 @@ class ContractPolicy:
     # Rules are evaluated against every candidate call for the named tool. The
     # argument path is relative to that call's arguments object.
     argument_rules: List[Dict[str, Any]] = field(default_factory=list)
+    # Outcome-mode comparison can declare equivalent intents without changing
+    # the positional ordering of the original public constructor fields.
+    state_equivalence: Dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.max_steps is not None and (
@@ -353,6 +357,63 @@ class ContractPolicy:
             raise ValueError(
                 "contract.path_rules.extra_calls requires a tolerant path mode"
             )
+        if self.state_equivalence is not None:
+            if not isinstance(self.state_equivalence, dict):
+                raise ValueError("contract.state_equivalence must be an object")
+            _reject_unknown_fields(
+                self.state_equivalence,
+                {
+                    "mode",
+                    "paths",
+                    "ignore_argument_paths",
+                    "tool_aliases",
+                    "allow_failed_expected",
+                    "idempotent_tools",
+                },
+                "state equivalence",
+            )
+            equivalence_mode = self.state_equivalence.get("mode", "exact")
+            if equivalence_mode not in _STATE_EQUIVALENCE_MODES:
+                raise ValueError(
+                    "contract.state_equivalence.mode must be one of: "
+                    + ", ".join(sorted(_STATE_EQUIVALENCE_MODES))
+                )
+            for key in ("paths", "ignore_argument_paths", "idempotent_tools"):
+                values = self.state_equivalence.get(key, [])
+                if not isinstance(values, list) or not all(
+                    isinstance(item, str) and item.strip() for item in values
+                ):
+                    raise ValueError(
+                        f"contract.state_equivalence.{key} must be an array of non-empty strings"
+                    )
+                if key != "idempotent_tools":
+                    for path in values:
+                        _tokens(path)
+            aliases = self.state_equivalence.get("tool_aliases", [])
+            if not isinstance(aliases, list) or not all(
+                isinstance(group, list)
+                and len(group) >= 2
+                and all(isinstance(tool, str) and tool.strip() for tool in group)
+                for group in aliases
+            ):
+                raise ValueError(
+                    "contract.state_equivalence.tool_aliases must contain tool groups"
+                )
+            if any(len(set(group)) != len(group) for group in aliases):
+                raise ValueError(
+                    "contract.state_equivalence.tool_aliases cannot repeat a tool"
+                )
+            alias_tools = [tool for group in aliases for tool in group]
+            if len(set(alias_tools)) != len(alias_tools):
+                raise ValueError(
+                    "contract.state_equivalence.tool_aliases cannot overlap groups"
+                )
+            if not isinstance(
+                self.state_equivalence.get("allow_failed_expected", False), bool
+            ):
+                raise ValueError(
+                    "contract.state_equivalence.allow_failed_expected must be a boolean"
+                )
         for effect in self.side_effects:
             if not isinstance(effect, dict) or not isinstance(effect.get("path"), str):
                 raise ValueError("contract.side_effects must contain path objects")
@@ -418,6 +479,7 @@ class ContractPolicy:
             "must_call",
             "must_not_call",
             "path_rules",
+            "state_equivalence",
             "side_effects",
             "relations",
             "max_steps",
@@ -456,6 +518,9 @@ class ContractPolicy:
         path_rules = value.get("path_rules", {})
         if not isinstance(path_rules, dict):
             raise ValueError("contract.path_rules must be an object")
+        state_equivalence = value.get("state_equivalence")
+        if state_equivalence is not None and not isinstance(state_equivalence, dict):
+            raise ValueError("contract.state_equivalence must be an object")
         side_effects = value.get("side_effects", [])
         if not isinstance(side_effects, list) or not all(isinstance(item, dict) for item in side_effects):
             raise ValueError("contract.side_effects must be an array of objects")
@@ -498,6 +563,7 @@ class ContractPolicy:
             must_call=rules("must_call"),
             must_not_call=forbidden_rules,
             path_rules=deepcopy(path_rules),
+            state_equivalence=deepcopy(state_equivalence),
             side_effects=[dict(item) for item in side_effects],
             relations=[dict(item) for item in relations],
             max_steps=value.get("max_steps"),
@@ -528,6 +594,8 @@ class ContractPolicy:
             "tool_limits": deepcopy(self.tool_limits),
             "argument_rules": deepcopy(self.argument_rules),
         }
+        if self.state_equivalence is not None:
+            result["state_equivalence"] = deepcopy(self.state_equivalence)
         if self.tool_allowlist is not None:
             result["tool_allowlist"] = tool_rules(self.tool_allowlist)
         return result
@@ -547,24 +615,48 @@ class ContractPolicy:
             return _IGNORED
         return _normalize(normalized, _tokens(path), self.normalizers)
 
+    def _state_equivalence_mode(self) -> str:
+        if not self.state_equivalence:
+            return "exact"
+        return str(self.state_equivalence.get("mode", "exact"))
+
+    def _trace_data(self, trace: AgentTrace) -> Dict[str, Any]:
+        data = trace.to_dict()
+        data.update(
+            {
+                "tool_calls": [
+                    event for event in trace.events if event["type"] == "tool_call"
+                ],
+                "tool_results": [
+                    event for event in trace.events if event["type"] == "tool_result"
+                ],
+                "final_answer": next(
+                    event for event in trace.events if event["type"] == "final_answer"
+                ),
+                "world_state": trace.metadata.get("world_state", {}),
+            }
+        )
+        return data
+
     def check(self, baseline: AgentTrace, candidate: AgentTrace) -> List[Dict[str, Any]]:
         """Return blocking contract differences for a candidate trace."""
         differences: List[Dict[str, Any]] = []
-        candidate_data = candidate.to_dict()
-        candidate_data.update(
-            {
-                "tool_calls": [
-                    event for event in candidate.events if event["type"] == "tool_call"
-                ],
-                "tool_results": [
-                    event for event in candidate.events if event["type"] == "tool_result"
-                ],
-                "final_answer": next(
-                    event for event in candidate.events if event["type"] == "final_answer"
-                ),
-                "world_state": candidate.metadata.get("world_state", {}),
-            }
-        )
+        baseline_data = self._trace_data(baseline)
+        candidate_data = self._trace_data(candidate)
+
+        for path in (self.state_equivalence or {}).get("paths", []):
+            baseline_values = _lookup(baseline_data, _tokens(path))
+            candidate_values = _lookup(candidate_data, _tokens(path))
+            if not baseline_values or not candidate_values or baseline_values != candidate_values:
+                differences.append(
+                    {
+                        "category": "state_equivalence",
+                        "path": path,
+                        "baseline": baseline_values or None,
+                        "candidate": candidate_values or None,
+                        "message": "declared outcome state is not equivalent",
+                    }
+                )
         for assertion in self.assertions:
             path = assertion["path"]
             values = _lookup(candidate_data, _tokens(path))
@@ -872,18 +964,33 @@ class ContractPolicy:
                 else rule
                 for rule in alternative
             ]
-            matched_indexes = self._path_match_indexes(
-                expected, observed, mode=mode, ordered=ordered
-            )
+            state_mode = self._state_equivalence_mode()
+            if state_mode in {"outcome", "hybrid"}:
+                matched_indexes = self._state_equivalent_path_indexes(
+                    expected,
+                    observed,
+                    ordered=state_mode == "hybrid" and ordered,
+                    grouped=state_mode == "outcome",
+                )
+            else:
+                matched_indexes = self._path_match_indexes(
+                    expected, observed, mode=mode, ordered=ordered
+                )
             if matched_indexes is None:
                 continue
-            if not has_extra_allowlist:
+            state_mode = self._state_equivalence_mode()
+            enforce_state_extras = (
+                state_mode in {"outcome", "hybrid"} and mode == "exact"
+            )
+            if not has_extra_allowlist and not enforce_state_extras:
                 return {"passed": True, "disallowed_extra_calls": []}
             disallowed = [
                 (index, event)
                 for index, event in enumerate(observed)
                 if index not in matched_indexes
                 and not any(self._path_rule_matches(rule, event) for rule in extra_rules)
+                and not self._is_allowed_idempotent_extra(expected, event)
+                and not self._is_allowed_failed_expected_extra(expected, event)
             ]
             if not disallowed:
                 return {"passed": True, "disallowed_extra_calls": []}
@@ -893,6 +1000,143 @@ class ContractPolicy:
             "passed": False,
             "disallowed_extra_calls": first_disallowed_extra_calls,
         }
+
+    def _state_equivalence_config(self) -> Mapping[str, Any]:
+        return self.state_equivalence or {}
+
+    def _equivalent_tools(self, left: str, right: str) -> bool:
+        if left == right:
+            return True
+        for group in self._state_equivalence_config().get("tool_aliases", []):
+            if left in group and right in group:
+                return True
+        return False
+
+    def _equivalent_rule_matches(
+        self, rule: Mapping[str, Any], event: Mapping[str, Any]
+    ) -> bool:
+        if not self._equivalent_tools(str(rule.get("tool")), str(event.get("tool"))):
+            return False
+        if "arguments" in rule and event.get("arguments") != rule["arguments"]:
+            return False
+        if "result" in rule and event.get("result") != rule["result"]:
+            return False
+        return "is_error" not in rule or event.get("is_error", False) == rule["is_error"]
+
+    def _intent_key(self, rule: Mapping[str, Any]) -> tuple[str, str]:
+        arguments = deepcopy(rule.get("arguments", {}))
+        patterns = [
+            _tokens(path)
+            for path in self._state_equivalence_config().get(
+                "ignore_argument_paths", []
+            )
+        ]
+        normalized = _prune(arguments, [], patterns)
+        if normalized is _IGNORED:
+            normalized = {}
+        tool = str(rule.get("tool"))
+        for group in self._state_equivalence_config().get("tool_aliases", []):
+            if tool in group:
+                tool = "alias:" + "|".join(sorted(group))
+                break
+        return tool, repr(normalized)
+
+    def _state_equivalent_path_indexes(
+        self,
+        expected: Sequence[Mapping[str, Any]],
+        observed: Sequence[Mapping[str, Any]],
+        *,
+        ordered: bool,
+        grouped: bool,
+    ) -> set[int] | None:
+        if grouped:
+            groups: List[List[Mapping[str, Any]]] = []
+            by_key: Dict[tuple[str, str], List[Mapping[str, Any]]] = {}
+            for rule in expected:
+                by_key.setdefault(self._intent_key(rule), []).append(rule)
+            groups = list(by_key.values())
+        else:
+            groups = [[rule] for rule in expected]
+
+        allow_failed = bool(
+            self._state_equivalence_config().get("allow_failed_expected", False)
+        )
+
+        def candidates(rules: Sequence[Mapping[str, Any]]) -> List[int]:
+            matches = [
+                index
+                for index, event in enumerate(observed)
+                if any(
+                    (
+                        (allow_failed or not event.get("is_error", False) or rule.get("is_error") is True)
+                        and (
+                            self._path_rule_matches(rule, event)
+                            if grouped
+                            else self._equivalent_rule_matches(rule, event)
+                        )
+                    )
+                    for rule in rules
+                )
+            ]
+            if not ordered:
+                matches.sort(key=lambda index: bool(observed[index].get("is_error", False)))
+            return matches
+
+        possible = [candidates(group) for group in groups]
+        if any(not indexes for indexes in possible):
+            return None
+        if ordered:
+            matched: set[int] = set()
+            cursor = 0
+            for indexes in possible:
+                match = next((index for index in indexes if index >= cursor), None)
+                if match is None:
+                    return None
+                matched.add(match)
+                cursor = match + 1
+            return matched
+
+        matched_events: Dict[int, int] = {}
+        order = sorted(range(len(possible)), key=lambda index: len(possible[index]))
+
+        def assign(group_index: int, visited: set[int]) -> bool:
+            for event_index in possible[group_index]:
+                if event_index in visited:
+                    continue
+                visited.add(event_index)
+                previous_group = matched_events.get(event_index)
+                if previous_group is None or assign(previous_group, visited):
+                    matched_events[event_index] = group_index
+                    return True
+            return False
+
+        if not all(assign(group_index, set()) for group_index in order):
+            return None
+        return set(matched_events)
+
+    def _is_allowed_idempotent_extra(
+        self, expected: Sequence[Mapping[str, Any]], event: Mapping[str, Any]
+    ) -> bool:
+        if self._state_equivalence_mode() not in {"outcome", "hybrid"}:
+            return False
+        if event.get("is_error", False):
+            return False
+        if event.get("tool") not in self._state_equivalence_config().get(
+            "idempotent_tools", []
+        ):
+            return False
+        return any(self._equivalent_rule_matches(rule, event) for rule in expected)
+
+    def _is_allowed_failed_expected_extra(
+        self, expected: Sequence[Mapping[str, Any]], event: Mapping[str, Any]
+    ) -> bool:
+        if self._state_equivalence_mode() not in {"outcome", "hybrid"}:
+            return False
+        if not self._state_equivalence_config().get("allow_failed_expected", False):
+            return False
+        if not event.get("is_error", False):
+            return False
+        return any(self._path_rule_matches(rule, event) for rule in expected)
 
     def _path_match_indexes(
         self,

@@ -39,6 +39,20 @@ class ViewerTests(unittest.TestCase):
         self.assertIn('argument_rules', config)
         self.assertIn('tool_argument_policy', config)
 
+    def test_config_viewer_can_generate_v4_12_state_equivalence(self):
+        config = (ROOT / "viewer" / "config.html").read_text(encoding="utf-8")
+        for field in (
+            'id="stateEquivalenceEnabled"',
+            'id="stateEquivalenceMode"',
+            'id="stateOutcomePaths"',
+            'id="stateIgnoreArguments"',
+            'id="stateToolAliases"',
+            'id="stateAllowFailed"',
+            'id="stateIdempotentTools"',
+        ):
+            self.assertIn(field, config)
+        self.assertIn("state_equivalence", config)
+
     def test_missing_viewer_directory_has_actionable_error(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ViewerNotFoundError, "viewer assets were not found"):

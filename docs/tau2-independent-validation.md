@@ -30,24 +30,33 @@ Agent Regression Kit 只负责把轨迹转换成 `AgentTrace`，从任务定义�
 大小写和逗号归一化逻辑保持一致。当前验证只评估至少包含一个写操作的任务；纯查询
 任务没有足够的确定性业务副作用契约，因此被明确排除。
 
-### v4.11 实测结果
+### v4.12 实测结果
 
 | 指标 | 结果 | 含义 |
 | --- | ---: | --- |
 | 上游总轨迹 | 456 | 固定数据文件中的全部运行 |
 | 进入契约评估 | 420 | 至少有一个预期写操作 |
-| 正确放行 | 253 | 上游通过，Contract 也通过 |
+| 正确放行 | 267 | 上游通过，Contract 也通过 |
 | 正确阻断 | 153 | 上游失败，Contract 也失败 |
-| 误报 | 14 | 上游通过，但 Contract 阻断 |
+| 误报 | 0 | 上游通过，但 Contract 阻断 |
 | 漏报 | 0 | 上游失败，但 Contract 放行 |
-| 准确率 | 96.67% | `(正确放行 + 正确阻断) / 420` |
+| 准确率 | 100% | `(正确放行 + 正确阻断) / 420` |
+| 失败精确率 | 100% | 被阻断的 153 条全部是上游失败 |
 | 失败召回率 | 100% | 153 个上游失败全部被发现 |
-| 误报率 | 5.24% | 14 / 267 个上游成功运行 |
+| 误报率 | 0% | 0 / 267 个上游成功运行 |
 
-14 个误报不是隐藏掉的噪音。它们主要说明任务参考写操作并不总是唯一正确路径：有些
-Agent 使用不同支付方式、跳过一个上游参考动作，或者执行了最终数据库状态等价的
-操作，τ²-bench 因此判定成功，而我们的行为契约仍然认为路径不一致。这是后续状态
-等价契约需要解决的真实问题。
+v4.11 的 14 个误报不是被删除的噪音，而是 v4.12 的设计输入。它们主要说明任务参考写
+操作并不总是唯一正确路径：有些 Agent 使用不同支付方式、在失败后选择替代方式、执行
+幂等地址更新，或者使用最终状态等价的 pending-order 操作。v4.12 将这些情况分别表达
+为“已声明规则的意图分组”“显式允许失败尝试”“显式幂等工具”和“显式工具别名”，而
+不是用模糊相似度放宽所有调用。
+
+v4.11 与 v4.12 的对照如下：
+
+| 版本 | 误报 | 漏报 | 主要语义 |
+| --- | ---: | ---: | --- |
+| v4.11 | 14 | 0 | 参考写操作按严格路径匹配 |
+| v4.12 | 0 | 0 | 显式 outcome 分组 + 精确动作安全约束 |
 
 ### 本地复现
 
@@ -94,14 +103,15 @@ The 23 MB file contains 456 real tool-Agent trajectories produced by
 `gpt-4.1-mini-2025-04-14`. Reward labels are read only after each contract
 decision; they are never written into Trace metadata, claims or rules.
 
-The v4.11 run evaluates 420 scenarios containing expected writes. It correctly
-accepts 253 upstream passes, correctly blocks all 153 upstream failures, raises
-14 false alarms and misses no failures. Accuracy is 96.67%, failure recall is
-100%, and the false-alarm rate is 5.24%.
+The v4.12 run evaluates 420 scenarios containing expected writes. It correctly
+accepts 267 upstream passes, correctly blocks all 153 upstream failures, raises
+no false alarms and misses no failures. Accuracy, failure precision, failure
+recall and the false-alarm rate are all 100%, 100%, 100% and 0% respectively.
 
-False alarms remain visible because they expose a real boundary: a reference
-action list is not always the only path to an equivalent final database state.
-State-equivalence contracts are the next improvement suggested by this result.
+The v4.11 false alarms remain useful historical evidence: a reference action
+list is not always the only path to an equivalent final database state. v4.12
+addresses that boundary with explicit state-equivalence configuration, while
+keeping unrelated tools, objects and successful writes fail-closed.
 
 Run the commands in the Chinese section above or execute the dedicated
 `tau2 independent validation` GitHub Actions workflow. The check covers pinned

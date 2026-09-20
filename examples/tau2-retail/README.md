@@ -18,7 +18,9 @@ python examples/tau2_retail_validation.py \
   --traces-dir work/tau2/sample-traces
 ```
 
-The expected v4.11 matrix is 253 true passes, 153 true blocks, 14 false alarms
-and zero missed failures across 420 eligible write scenarios. See the
+The expected v4.12 matrix is 267 true passes, 153 true blocks, zero false alarms
+and zero missed failures across 420 eligible write scenarios. The v4.12
+contract uses explicit outcome equivalence for reviewed alternatives while
+keeping object arguments and unexpected successful writes fail-closed. See the
 [bilingual validation guide](../../docs/tau2-independent-validation.md) for
 terminology, provenance, interpretation and limitations.

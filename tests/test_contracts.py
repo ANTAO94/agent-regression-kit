@@ -134,6 +134,51 @@ def make_path_trace(tools, *, run_id="path-mode-test"):
     )
 
 
+def make_outcome_trace(calls, *, final_state=None, run_id="outcome-mode-test"):
+    events = []
+    for index, call in enumerate(calls, start=1):
+        tool, arguments, result, is_error = call
+        call_id = f"call-{index}"
+        events.extend(
+            [
+                {
+                    "sequence": len(events) + 1,
+                    "type": "tool_call",
+                    "call_id": call_id,
+                    "tool": tool,
+                    "arguments": arguments,
+                },
+                {
+                    "sequence": len(events) + 2,
+                    "type": "tool_result",
+                    "call_id": call_id,
+                    "result": result,
+                    "is_error": is_error,
+                },
+            ]
+        )
+    events.append(
+        {
+            "sequence": len(events) + 1,
+            "type": "final_answer",
+            "text": "订单已处理。",
+            "claims": {"order_id": "123", "status": "paid"},
+        }
+    )
+    metadata = {}
+    if final_state is not None:
+        metadata["world_state"] = {"final": final_state}
+    return AgentTrace.from_dict(
+        {
+            "schema_version": "0.1",
+            "run_id": run_id,
+            "agent": {"name": "outcome-mode-test"},
+            "events": events,
+            "metadata": metadata,
+        }
+    )
+
+
 class ContractTests(unittest.TestCase):
     def test_ignore_paths_and_timestamp_normalizer_remove_known_noise(self):
         baseline = make_trace(
@@ -863,6 +908,291 @@ class ContractTests(unittest.TestCase):
         report = compare_traces(baseline, candidate, policy)
         self.assertFalse(report["passed"])
         self.assertIn("behavior_path", {item["category"] for item in report["differences"]})
+
+    def test_outcome_mode_groups_selection_arguments_but_preserves_exact_action_safety(self):
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "unordered_subset",
+                        "any_of": [
+                            [
+                                {
+                                    "tool": "charge_order",
+                                    "arguments": {
+                                        "order_id": "123",
+                                        "payment_method_id": "card-a",
+                                    },
+                                },
+                                {
+                                    "tool": "charge_order",
+                                    "arguments": {
+                                        "order_id": "123",
+                                        "payment_method_id": "card-b",
+                                    },
+                                },
+                            ]
+                        ],
+                    },
+                    "state_equivalence": {
+                        "mode": "outcome",
+                        "ignore_argument_paths": ["payment_method_id"],
+                        "allow_failed_expected": True,
+                    },
+                }
+            ),
+        )
+        baseline = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"charged": True},
+                    False,
+                )
+            ]
+        )
+        alternative = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-b"},
+                    {"charged": True},
+                    False,
+                )
+            ],
+            run_id="outcome-alternative",
+        )
+        passed = compare_traces(baseline, alternative, policy)
+        self.assertTrue(passed["passed"], passed["differences"])
+
+        failed_attempt_then_success = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"error": "insufficient_funds"},
+                    True,
+                ),
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-b"},
+                    {"charged": True},
+                    False,
+                ),
+            ],
+            run_id="outcome-retry",
+        )
+        passed = compare_traces(baseline, failed_attempt_then_success, policy)
+        self.assertTrue(passed["passed"], passed["differences"])
+
+        wrong_order = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "999", "payment_method_id": "card-b"},
+                    {"charged": True},
+                    False,
+                )
+            ],
+            run_id="outcome-wrong-order",
+        )
+        blocked = compare_traces(baseline, wrong_order, policy)
+        self.assertFalse(blocked["passed"])
+        self.assertIn("behavior_path", {item["category"] for item in blocked["differences"]})
+
+    def test_outcome_mode_checks_declared_final_state_and_skips_raw_result_noise(self):
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "any_of": [[
+                            {
+                                "tool": "update_order",
+                                "arguments": {"order_id": "123", "status": "paid"},
+                            }
+                        ]]
+                    },
+                    "state_equivalence": {
+                        "mode": "outcome",
+                        "paths": ["world_state.final.orders.123.status"],
+                    },
+                }
+            ),
+        )
+        baseline = make_outcome_trace(
+            [
+                (
+                    "update_order",
+                    {"order_id": "123", "status": "paid"},
+                    {"request_id": "req-1", "updated": True},
+                    False,
+                )
+            ],
+            final_state={"orders": {"123": {"status": "paid"}}},
+            run_id="outcome-state-baseline",
+        )
+        candidate = make_outcome_trace(
+            [
+                (
+                    "update_order",
+                    {"order_id": "123", "status": "paid"},
+                    {"request_id": "req-2", "updated": "yes"},
+                    False,
+                )
+            ],
+            final_state={"orders": {"123": {"status": "paid"}}},
+            run_id="outcome-state-candidate",
+        )
+        passed = compare_traces(baseline, candidate, policy)
+        self.assertTrue(passed["passed"], passed["differences"])
+
+        changed_state = make_outcome_trace(
+            [
+                (
+                    "update_order",
+                    {"order_id": "123", "status": "paid"},
+                    {"request_id": "req-3", "updated": True},
+                    False,
+                )
+            ],
+            final_state={"orders": {"123": {"status": "cancelled"}}},
+            run_id="outcome-state-changed",
+        )
+        blocked = compare_traces(baseline, changed_state, policy)
+        self.assertFalse(blocked["passed"])
+        self.assertIn(
+            "state_equivalence",
+            {item["category"] for item in blocked["differences"]},
+        )
+
+    def test_outcome_mode_allows_configured_idempotent_extra_call(self):
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "unordered_subset",
+                        "any_of": [[
+                            {
+                                "tool": "modify_pending_order_address",
+                                "arguments": {"order_id": "123", "address": "A"},
+                            }
+                        ]],
+                        "extra_calls": [],
+                    },
+                    "state_equivalence": {
+                        "mode": "outcome",
+                        "idempotent_tools": ["modify_pending_order_address"],
+                    },
+                }
+            ),
+        )
+        trace = make_outcome_trace(
+            [
+                (
+                    "modify_pending_order_address",
+                    {"order_id": "123", "address": "A"},
+                    {"updated": True},
+                    False,
+                ),
+                (
+                    "modify_pending_order_address",
+                    {"order_id": "123", "address": "A"},
+                    {"updated": True},
+                    False,
+                ),
+            ],
+            run_id="outcome-idempotent",
+        )
+        report = compare_traces(trace, trace, policy)
+        self.assertTrue(report["passed"], report["differences"])
+
+    def test_outcome_mode_keeps_strict_paths_closed_to_unknown_extra_calls(self):
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "any_of": [[
+                            {
+                                "tool": "charge_order",
+                                "arguments": {
+                                    "order_id": "123",
+                                    "payment_method_id": "card-a",
+                                },
+                            },
+                            {
+                                "tool": "charge_order",
+                                "arguments": {
+                                    "order_id": "123",
+                                    "payment_method_id": "card-b",
+                                },
+                            },
+                        ]]
+                    },
+                    "state_equivalence": {
+                        "mode": "outcome",
+                        "ignore_argument_paths": ["payment_method_id"],
+                        "allow_failed_expected": True,
+                    },
+                }
+            ),
+        )
+        candidate = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"error": "declined"},
+                    True,
+                ),
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-b"},
+                    {"charged": True},
+                    False,
+                ),
+                (
+                    "delete_order",
+                    {"order_id": "123"},
+                    {"deleted": True},
+                    False,
+                ),
+            ],
+            run_id="outcome-unknown-extra",
+        )
+        report = compare_traces(candidate, candidate, policy)
+        self.assertFalse(report["passed"])
+        self.assertIn("extra_tool_call", {item["category"] for item in report["differences"]})
+
+    def test_state_equivalence_schema_is_validated_and_round_trips(self):
+        policy = ContractPolicy.from_dict(
+            {
+                "state_equivalence": {
+                    "mode": "hybrid",
+                    "paths": ["world_state.final.orders.*.status"],
+                    "ignore_argument_paths": ["payment_method_id"],
+                    "tool_aliases": [["tool_a", "tool_b"]],
+                    "allow_failed_expected": True,
+                    "idempotent_tools": ["update_address"],
+                }
+            }
+        )
+        self.assertEqual("hybrid", policy.to_dict()["state_equivalence"]["mode"])
+        invalid = [
+            {"mode": "fuzzy"},
+            {"paths": [""]},
+            {"tool_aliases": [["tool_a", "tool_a"]]},
+            {"tool_aliases": [["tool_a", "tool_b"], ["tool_b", "tool_c"]]},
+            {"allow_failed_expected": "true"},
+        ]
+        for value in invalid:
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    ContractPolicy.from_dict({"state_equivalence": value})
 
 
 if __name__ == "__main__":

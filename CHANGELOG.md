@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 4.12.0 - 2026-09-20
+
+- Add explicit `contract.state_equivalence` modes: `exact`, `outcome` and `hybrid`.
+- Allow outcome contracts to group documented alternative intents, ignore selected
+  routing/selection arguments, tolerate failed attempts when explicitly configured,
+  and recognize configured idempotent repeats without weakening exact action matching.
+- Compare declared final-state paths as business outcomes and avoid treating
+  transport result noise as a regression in outcome mode.
+- Re-run the pinned independent τ²-bench retail dataset: 420 eligible write
+  scenarios, 267 true passes, 153 true blocks, 0 false alarms and 0 missed failures.
+- Add bilingual state-equivalence guidance, v4.12 acceptance evidence and upgrade notes.
+
 ## 4.11.0 - 2026-09-20
 
 - Add a dependency-free importer and deterministic Contract builder for published τ²-bench retail trajectories.

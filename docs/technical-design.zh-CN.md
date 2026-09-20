@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.11.0 源码整理；产品版本 4.11.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.12.0 源码整理；产品版本 4.12.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
 
 ## 1. 目标和适用场景
 
@@ -102,6 +102,7 @@ ContractPolicy 提供投影路径 tool_calls、tool_results、final_answer、wor
 | tool_limits | 按工具和可选参数约束最小/最大调用次数；失败生成 `tool_count` |
 | tool_allowlist | 约束场景允许调用的工具目录，可按参数精确匹配；失败生成 `unauthorized_tool_call` |
 | argument_rules | 对指定工具的每一次调用检查相对参数路径、固定值/Trace 参考值以及存在性；失败生成 `tool_argument_policy` |
+| state_equivalence | `exact`、`outcome`、`hybrid` 三种状态/意图等价模式；失败生成 `state_equivalence` |
 | result_alignment | 默认按 call_id 关联工具结果；`order` 是旧的按事件位置对齐模式 |
 | side_effects | 约束已录制状态的 from/to 变化 |
 | required_claims | 要求 candidate 的结构化业务结论路径必须存在 |
@@ -188,6 +189,13 @@ side_effects 单独声明。
 所有调用，应迁移为 `argument_rules`；`relations` 继续负责 claims、工具结果和
 world state 之间的通用关系。生产 Tool Gateway 仍必须自行执行租户隔离和权限控制，
 框架只验证 Trace 中暴露的行为证据。
+
+`state_equivalence` 解决“参考动作不是唯一正确路径”的误报，但不把比较器变成模糊匹配器。
+`outcome` 模式只会把 `any_of` 中经过 `ignore_argument_paths` 归并后的**已声明规则**视为
+同一个意图；candidate 仍需精确命中组内某条规则的工具名、未忽略参数、显式结果和错误状态。
+`allow_failed_expected`、`tool_aliases` 和 `idempotent_tools` 都是显式开关，默认关闭。
+`paths` 用于比较 baseline 与 candidate 的最终业务状态，缺失或变化都会生成
+`state_equivalence` 阻断差异。完整字段、算法和负向用例见[状态等价契约说明](state-equivalence.md)。
 
 `relations` 解决单字段断言无法表达的业务约束。它从 candidate 的
 `tool_calls`、`tool_results`、`final_answer` 和 `world_state` 投影视图解析
@@ -291,7 +299,7 @@ manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等
 
 ### 独立项目验证：tau2-bench
 
-v4.11 增加了一个可复现的独立项目验证：接入独立维护的
+v4.12 在 v4.11 独立验证的基础上增加状态等价契约：接入独立维护的
 [tau2-bench](https://github.com/sierra-research/tau2-bench) 零售场景结果集。
 仓库固定了上游 `v1.0.1` tag、tag commit、原始数据 URL 和 SHA-256 校验和。
 验证器把已发布的轨迹导入 `AgentTrace`，从每个任务的期望写操作和通信要求
@@ -300,11 +308,12 @@ published reward 计算混淆矩阵。因此 reward 只是独立测量 oracle，
 Trace、claims 或 Contract，也不会帮助 Agent 通过检查。
 
 固定数据集共 456 次 simulation，其中 420 个包含写操作的场景纳入契约覆盖
-（另有 36 个只读场景单独报告）。结果为：253 个 true pass、153 个 true block、
-14 个 false alarm、0 个 missed failure；准确率 96.67%，失败精确率 91.62%，
-失败召回率 100%，误报率 5.24%，漏报率 0%。这 14 个误报不会被隐藏：精确的
-动作/参数契约可能拒绝最终状态等价、但路径或参数不同的成功轨迹，这是 v4.11
-适配器当前的已知边界，不是声称 tau2-bench 上游已经采用本项目。
+（另有 36 个只读场景单独报告）。v4.11 的严格契约结果为 253 个 true pass、153 个
+true block、14 个 false alarm、0 个 missed failure；这些误报被保留作为 v4.12 的
+设计输入。v4.12 使用显式 `state_equivalence` 将已声明的替代意图归组，同时仍精确
+检查订单/资源参数，在同一数据上得到 267 个 true pass、153 个 true block、0 个
+false alarm、0 个 missed failure；准确率、失败精确率、失败召回率均为 100%，误报率
+和漏报率均为 0%。这不是声称 tau2-bench 上游已经采用本项目。
 
 本地复现：
 
@@ -318,9 +327,9 @@ PYTHONPATH=src python examples/tau2_retail_validation.py \
   --traces-dir work/tau2/traces
 ```
 
-字段映射、限制、样例 Trace 和 CI 行为见[完整方法说明](tau2-independent-validation.md)
-与 [v4.11 验收记录](v4.11-acceptance.md)。
+字段映射、限制、样例 Trace 和 CI 行为见[完整方法说明](tau2-independent-validation.md)、
+[状态等价契约](state-equivalence.md)与 [v4.12 验收记录](v4.12-acceptance.md)。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.11.0) · [v4.11 验收](v4.11-acceptance.md) · [v4.10 验收](v4.10-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [状态等价契约](state-equivalence.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.12.0) · [v4.12 验收](v4.12-acceptance.md) · [v4.11 验收](v4.11-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

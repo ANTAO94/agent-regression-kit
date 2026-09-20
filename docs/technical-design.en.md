@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.11.0 source. Package version 4.11.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.12.0 source. Package version 4.12.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
 
 ## 1. Purpose and ownership
 
@@ -102,6 +102,7 @@ ContractPolicy exposes tool_calls, tool_results, final_answer and world_state pr
 | tool_limits | Per-tool, optionally argument-scoped minimum/maximum counts; failures produce `tool_count` |
 | tool_allowlist | Scenario-level permitted tool catalog with optional exact arguments; failures produce `unauthorized_tool_call` |
 | argument_rules | Per-tool rules for every call's relative argument paths, literal/Trace references and presence; failures produce `tool_argument_policy` |
+| state_equivalence | `exact`, `outcome` and `hybrid` intent/outcome modes; failures produce `state_equivalence` |
 | result_alignment | Associate results by call_id by default; `order` preserves positional alignment |
 | side_effects | Expected from/to state transitions |
 | relations | Cross-step field constraints; missing or false relations block |
@@ -198,6 +199,17 @@ tool results and world state. A production Tool Gateway must still enforce
 tenant isolation and authorization; the kit verifies only behavior exposed in
 the Trace.
 
+`state_equivalence` addresses false alarms where a reviewed action list is not
+the only valid path to a business outcome. It is not fuzzy matching. In
+`outcome` mode, only rules already declared inside `any_of` can be grouped by
+`ignore_argument_paths`; a candidate must still exactly match one group's tool
+name, non-ignored arguments, explicit result and error constraints.
+`allow_failed_expected`, `tool_aliases` and `idempotent_tools` are opt-in and
+default to closed. `paths` compares selected final-state values between
+baseline and candidate; missing or changed values produce a blocking
+`state_equivalence` difference. See the [state-equivalence guide](state-equivalence.md)
+for the full algorithm, configuration and negative cases.
+
 `relations` covers business constraints that a single-field assertion cannot
 express. It resolves JSON paths in the candidate `tool_calls`, `tool_results`,
 `final_answer` and `world_state` projections. For example, it can require
@@ -290,7 +302,7 @@ automatic support for every Agent.
 
 ### Independent project validation
 
-v4.11 adds a reproducible integration against the independently maintained
+v4.12 extends the v4.11 reproducible integration against the independently maintained
 [tau2-bench](https://github.com/sierra-research/tau2-bench) retail result set.
 The repository pins upstream tag `v1.0.1`, the exact source commit, the raw
 dataset URL and its SHA-256 checksum. The validation imports published
@@ -301,13 +313,14 @@ made. Reward is therefore an oracle for measurement, not input to the Trace,
 claims or contract.
 
 The pinned 456-simulation run contains 420 write scenarios (36 read-only cases
-are reported separately). It achieved 253 true passes, 153 true blocks, 14
-false alarms and 0 missed failures: 96.67% accuracy, 91.62% failure precision,
-100% failure recall, 5.24% false-alarm rate and 0% missed-failure rate. The
-false alarms are deliberately retained as evidence: an exact action/argument
-contract can reject a semantically equivalent successful trajectory. This is a
-known boundary of the v4.11 adapter, not a claim that the upstream benchmark
-adopted this project.
+are reported separately). The v4.11 strict contract achieved 253 true passes,
+153 true blocks, 14 false alarms and 0 missed failures; those false alarms are
+retained as v4.12 design input. v4.12 adds explicit `state_equivalence` grouping
+for declared alternative intents while retaining exact object/resource
+arguments. On the same data it achieves 267 true passes, 153 true blocks, 0
+false alarms and 0 missed failures: 100% accuracy, failure precision and
+failure recall, with 0% false-alarm and missed-failure rates. This does not
+claim upstream benchmark adoption.
 
 Reproduce it with:
 
@@ -321,10 +334,11 @@ PYTHONPATH=src python examples/tau2_retail_validation.py \
   --traces-dir work/tau2/traces
 ```
 
-See [the full methodology](tau2-independent-validation.md) and the
-[v4.11 acceptance record](v4.11-acceptance.md) for field mappings, limitations,
-sample traces and CI behavior.
+See [the full methodology](tau2-independent-validation.md), the
+[state-equivalence guide](state-equivalence.md) and the [v4.12 acceptance
+record](v4.12-acceptance.md) for field mappings, limitations, sample traces and
+CI behavior.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.11.0) · [v4.11 acceptance](v4.11-acceptance.md) · [v4.10 acceptance](v4.10-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [State-equivalence guide](state-equivalence.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.12.0) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

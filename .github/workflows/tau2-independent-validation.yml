@@ -4,17 +4,23 @@ on:
   pull_request:
     paths:
       - "src/agent_regression/tau2.py"
+      - "src/agent_regression/contracts.py"
+      - "src/agent_regression/compare.py"
       - "examples/tau2_retail_validation.py"
       - "examples/tau2-retail/**"
       - "tests/test_tau2.py"
+      - "tests/test_contracts.py"
       - ".github/workflows/tau2-independent-validation.yml"
   push:
     branches: [main]
     paths:
       - "src/agent_regression/tau2.py"
+      - "src/agent_regression/contracts.py"
+      - "src/agent_regression/compare.py"
       - "examples/tau2_retail_validation.py"
       - "examples/tau2-retail/**"
       - "tests/test_tau2.py"
+      - "tests/test_contracts.py"
       - ".github/workflows/tau2-independent-validation.yml"
   workflow_dispatch:
 

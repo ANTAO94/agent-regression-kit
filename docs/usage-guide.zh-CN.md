@@ -309,6 +309,40 @@ v4.10 增加 `argument_rules`，用于把工具参数安全边界写成可执行
 }
 ```
 
+### v4.12：状态等价与受控替代路径
+
+如果业务允许 Agent 在同一个意图下选择不同支付方式、重试一次失败调用，或重复执行
+一个幂等更新，可以使用 `state_equivalence`。它只对 `path_rules.any_of` 中已经写出的
+规则做归并；`ignore_argument_paths` 不会把任意订单号、租户号或金额变成通配符。
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "mode": "unordered_subset",
+      "any_of": [[
+        {"tool": "charge_order", "arguments": {"order_id": "123", "payment_method_id": "card-a"}},
+        {"tool": "charge_order", "arguments": {"order_id": "123", "payment_method_id": "card-b"}}
+      ]],
+      "extra_calls": []
+    },
+    "state_equivalence": {
+      "mode": "outcome",
+      "paths": ["world_state.final.orders.123.status"],
+      "ignore_argument_paths": ["payment_method_id"],
+      "allow_failed_expected": true,
+      "idempotent_tools": ["modify_pending_order_address"]
+    }
+  }
+}
+```
+
+`exact` 保持旧的严格行为；`outcome` 把被忽略字段归并后的已声明规则看作同一个意图，
+但 candidate 仍需精确命中组内工具名和其他参数；`hybrid` 保留每条规则，同时允许显式
+配置的工具别名。`paths` 比较 baseline 与 candidate 的最终状态，变化会生成
+`state_equivalence`。失败尝试、工具别名和幂等重复默认都不允许，必须逐项打开并配套
+错误订单/越权资源的负向测试。完整字段说明见[状态等价契约](state-equivalence.md)。
+
 ### 有状态场景和副作用检查
 
 普通 Trace 只能说明 Agent 调用了什么工具；有状态场景还要说明这些调用有没有把订单、库存或权限状态改坏。实现一个带 `snapshot()` 的工具执行器即可让录制器自动写入：
@@ -570,7 +604,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.11.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.12.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -653,7 +687,7 @@ Action 会生成 JUnit 和 Markdown 报告，并把 Markdown 追加到 GitHub Jo
 
 ### 用独立项目验证
 
-为了避免只用项目自带的 toy fixture，v4.11 增加了固定版本的 tau2-bench
+为了避免只用项目自带的 toy fixture，v4.12 继续使用固定版本的 tau2-bench
 零售场景接入。`source.json` 记录上游 tag、commit、原始数据 URL、MIT 许可和
 SHA-256 校验和。适配器把发布的半双工轨迹转换为 `AgentTrace`，从任务推导
 写操作/通信 Contract，最后才读取 published reward 做独立测量。

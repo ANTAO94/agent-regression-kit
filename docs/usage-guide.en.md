@@ -321,6 +321,46 @@ state relationships.
 }
 ```
 
+### v4.12: outcome equivalence and controlled alternatives
+
+When a business allows different payment methods for one order, a reviewed
+retry after a failed call, or a repeated idempotent update, use
+`state_equivalence`. It groups only rules already written inside
+`path_rules.any_of`; `ignore_argument_paths` is not a wildcard for order IDs,
+tenant IDs or amounts.
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "mode": "unordered_subset",
+      "any_of": [[
+        {"tool": "charge_order", "arguments": {"order_id": "123", "payment_method_id": "card-a"}},
+        {"tool": "charge_order", "arguments": {"order_id": "123", "payment_method_id": "card-b"}}
+      ]],
+      "extra_calls": []
+    },
+    "state_equivalence": {
+      "mode": "outcome",
+      "paths": ["world_state.final.orders.123.status"],
+      "ignore_argument_paths": ["payment_method_id"],
+      "allow_failed_expected": true,
+      "idempotent_tools": ["modify_pending_order_address"]
+    }
+  }
+}
+```
+
+`exact` keeps the old strict behavior. `outcome` groups declared rules after
+removing ignored fields, but the candidate must still exactly match a tool name
+and all other arguments in the group. `hybrid` keeps each rule separate while
+allowing explicitly configured aliases. `paths` compares the baseline and
+candidate final state and emits `state_equivalence` when it changes. Failed
+attempts, aliases and idempotent repeats are closed by default; enable each
+one deliberately and add negative cases for wrong objects and unauthorized
+resources. See the [state-equivalence guide](state-equivalence.md) for the
+complete field reference.
+
 ### Stateful scenarios and side effects
 
 A normal Trace says which tools the Agent called. A stateful scenario also proves that those calls did not corrupt an order, inventory, or permission state. Give the tool executor a `snapshot()` method and the recorder automatically stores the state before and after the run:
@@ -621,7 +661,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.11.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.12.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund
@@ -708,7 +748,7 @@ The Action writes JUnit and Markdown reports and appends the Markdown report to 
 
 ### Independent project validation
 
-To validate the framework against a project it does not own, v4.11 includes a
+To validate the framework against a project it does not own, v4.12 continues to include a
 pinned tau2-bench retail integration. The source manifest records the upstream
 tag, commit, raw dataset URL, MIT license and SHA-256 checksum. The adapter
 converts each published half-duplex trajectory into `AgentTrace`, derives a

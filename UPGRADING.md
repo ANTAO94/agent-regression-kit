@@ -4,6 +4,52 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.11.0 → v4.12.0
+
+v4.12 is additive. Existing Trace, Contract and comparison policies keep their
+behavior when `state_equivalence` is absent; no Trace or baseline migration is
+required. The new field is useful when a business outcome can be reached through
+documented alternative actions, such as trying another payment method, while
+the action arguments that identify the business object must remain exact.
+
+```json
+{
+  "contract": {
+    "path_rules": {
+      "mode": "unordered_subset",
+      "any_of": [[
+        {"tool": "charge_order", "arguments": {"order_id": "123", "payment_method_id": "card-a"}},
+        {"tool": "charge_order", "arguments": {"order_id": "123", "payment_method_id": "card-b"}}
+      ]]
+    },
+    "state_equivalence": {
+      "mode": "outcome",
+      "paths": ["world_state.final.orders.123.status"],
+      "ignore_argument_paths": ["payment_method_id"],
+      "allow_failed_expected": true,
+      "idempotent_tools": ["modify_pending_order_address"]
+    }
+  }
+}
+```
+
+`ignore_argument_paths` is used only to group rules that describe one intent;
+it does not make an arbitrary candidate argument valid. Candidate tool names
+and non-ignored arguments still have to match one of the documented rules.
+`allow_failed_expected` and `idempotent_tools` are opt-in, and `tool_aliases`
+must be declared explicitly. Start with `hybrid` or `exact` when the business
+does not have a reviewed equivalence relation. See
+[`docs/state-equivalence.md`](docs/state-equivalence.md) and the
+[v4.12 acceptance contract](docs/v4.12-acceptance.md).
+
+v4.12 是增量版本。未配置 `state_equivalence` 的旧 Trace、Contract 和比较策略保持原有
+行为，不需要迁移。新字段用于表达“动作路径可能不同但业务结果等价”的场景；被忽略的
+参数只用于把已声明的规则归并为同一个意图，不会让任意参数自动通过。失败尝试、幂等
+重复和工具别名都必须显式配置，并建议先用 `hybrid` 或 `exact`。
+
+详见[状态等价契约说明](docs/state-equivalence.md)和
+[v4.12 验收说明](docs/v4.12-acceptance.md)。
+
 ## v4.10.0 → v4.11.0
 
 v4.11 is additive. Existing Trace, Contract, config and baseline files require

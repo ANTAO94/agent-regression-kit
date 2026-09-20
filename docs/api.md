@@ -50,7 +50,7 @@ and tools. Set `isolate=True` when the tools or state backend implements
 
 ## Independent project validation
 
-v4.11 exposes a small, dependency-free bridge for validating a published
+v4.12 exposes a small, dependency-free bridge for validating a published
 external Agent trajectory set without turning the external score into a test
 input:
 
@@ -530,7 +530,7 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   `equals`/`contains`/`exists`, `ignore_paths`, `normalizers` (`timestamp` and
   `sort`), `must_call`, `must_not_call`, `path_rules.any_of`,
   `path_rules.mode`, `path_rules.extra_calls`, `tool_limits`, `tool_allowlist`, `argument_rules`, `side_effects`,
-  `relations`, and `max_steps`. Path mode `exact` is the default; `ordered_subsequence` allows
+  `relations`, `state_equivalence`, and `max_steps`. Path mode `exact` is the default; `ordered_subsequence` allows
   extra calls while preserving required order, and `unordered_subset` allows
   extra calls and reordering. In tolerant modes, omit `extra_calls` for v4.6
   compatibility, configure an explicit list to allow only matching extras, or
@@ -545,6 +545,11 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   tool. Literal operators use `value`, path operators use `right_path`, and
   `exists`/`absent` express required or forbidden arguments. Violations produce
   `tool_argument_policy`; a missing named tool does not replace `must_call`.
+  `state_equivalence` supports `exact`, `outcome` and `hybrid` modes. In
+  `outcome` mode, `ignore_argument_paths` groups only explicitly declared
+  alternative rules; `paths` compares selected baseline/candidate outcome
+  values, while `allow_failed_expected`, `tool_aliases` and `idempotent_tools`
+  remain opt-in. See `docs/state-equivalence.md` for the safety model.
   A relation compares a candidate JSON path with
   another candidate path or a fixed value using a finite operator set; missing
   evidence and false comparisons block. Put it under the

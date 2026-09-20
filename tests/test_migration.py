@@ -82,6 +82,19 @@ class MigrationTests(unittest.TestCase):
         self.assertTrue(result["ok"], result)
         self.assertEqual("agent_compatibility", result["report_type"])
 
+    def test_compatibility_detects_state_equivalence_contract(self):
+        result = build_compatibility_report(
+            config={
+                "state_equivalence": {
+                    "mode": "outcome",
+                    "paths": ["world_state.final.orders.123.status"],
+                }
+            },
+            public_api_version="4",
+        )
+        self.assertTrue(result["ok"], result)
+        self.assertEqual("agent_compatibility", result["report_type"])
+
     def test_compatibility_rejects_unsupported_schema_and_accepts_session(self):
         trace = self._trace()
         session = {

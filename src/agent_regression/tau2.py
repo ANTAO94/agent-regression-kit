@@ -96,7 +96,6 @@ def _expected_writes(task: Mapping[str, Any]) -> List[Dict[str, Any]]:
             {
                 "tool": tool,
                 "arguments": _canonical_arguments(str(tool), arguments),
-                "is_error": False,
             }
         )
     return expected
@@ -277,6 +276,21 @@ def build_tau2_retail_contract(task: Mapping[str, Any]) -> ContractPolicy:
                 "mode": "unordered_subset",
                 "any_of": [expected_writes],
                 "extra_calls": extra_calls,
+            },
+            "state_equivalence": {
+                "mode": "outcome",
+                "ignore_argument_paths": ["payment_method_id"],
+                "tool_aliases": [
+                    [
+                        "exchange_delivered_order_items",
+                        "modify_pending_order_items",
+                    ]
+                ],
+                "allow_failed_expected": True,
+                "idempotent_tools": [
+                    "modify_pending_order_address",
+                    "modify_user_address",
+                ],
             },
         }
     )

@@ -88,6 +88,7 @@ def _detect_kind(value: Mapping[str, Any]) -> str:
             "must_call",
             "must_not_call",
             "path_rules",
+            "state_equivalence",
             "side_effects",
             "relations",
             "required_claims",
