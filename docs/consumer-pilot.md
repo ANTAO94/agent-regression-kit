@@ -1,11 +1,13 @@
 # Independent consumer pilot / 独立消费项目验证
 
-v4.15 adds an end-to-end consumer repository that is separate from the core
-checkout:
+v4.15 introduced an end-to-end consumer repository that is separate from the
+core checkout. After the v4.16 release, that consumer was upgraded and
+re-verified against the v4.16 wheel:
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-v4.15 增加一个与核心仓库分离的端到端消费项目：
+v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.16 发布后，消费项目又升级到
+v4.16 wheel 并重新验收：
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
@@ -14,8 +16,8 @@ v4.15 增加一个与核心仓库分离的端到端消费项目：
 The pilot installs exactly this immutable Release asset:
 
 ```text
-https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.15.0/agent_regression_kit-4.15.0-py3-none-any.whl
-sha256: 8b12b4c2d8267e119e4b024db433c2bc04c1070bff35a8e88334094d46a33ddb
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.16.0/agent_regression_kit-4.16.0-py3-none-any.whl
+sha256: ca1fe6d4a9461b68f0992042fc6519d8664250360b07e4f84efbca0ac08c3233
 ```
 
 The pilot does not import the producer checkout, add the producer `src/`
@@ -46,7 +48,7 @@ Agent 的真实消费流程是两步依赖：先查订单，再使用订单返�
 
 ## Injected regressions / 注入回归
 
-The consumer workflow ran on the fixed upgrade commit `8ebc38f` and passed:
+The consumer workflow ran on the v4.16 upgrade commit `69028e5` and passed:
 
 | Case / 用例 | Expected / 预期 | Observed / 实测 |
 | --- | --- | --- |
@@ -58,8 +60,9 @@ The consumer workflow ran on the fixed upgrade commit `8ebc38f` and passed:
 CI run: [Consumer Agent regression workflow](https://github.com/ANTAO94/agent-regression-pilot/actions/workflows/regression.yml)
 
 The original v4.15 acceptance snapshot used the v4.14.0 wheel at commit
-`d231df3`; v4.16 repeats the same consumer evidence after upgrading to the
-v4.15.0 Release wheel.
+`d231df3`; the v4.16 release snapshot used the v4.15.0 wheel at commit
+`8ebc38f`; the current post-release verification uses the v4.16.0 wheel at
+`69028e5`.
 
 消费仓库的 CI 已验证正常场景返回 0，三类注入均返回 1。报告会保留在 workflow artifact 中，
 baseline 由人工审核后提交，CI 不会自动覆盖 baseline。
