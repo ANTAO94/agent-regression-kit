@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Surface real PydanticAI, OpenAI Agents, LangGraph, LangChain Core and hosted DeepSeek evidence prominently in the bilingual README.
+- Distinguish deterministic real-framework runs from paid live-provider runs and document the verified negative regression boundary.
+
 ## 4.2.0 - 2026-09-20
 
 - Add a dependency-free `deepseek-flash` tool-Agent runner with strict Trace evidence.

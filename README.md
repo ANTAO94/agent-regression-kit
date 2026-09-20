@@ -1,6 +1,8 @@
 # Agent Regression Kit
 
 [![CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml)
+[![Framework compatibility](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml)
+[![DeepSeek live](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/deepseek-live.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/deepseek-live.yml)
 [![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression-kit)](https://github.com/ANTAO94/agent-regression-kit/releases)
 [![License](https://img.shields.io/github/license/ANTAO94/agent-regression-kit)](LICENSE)
 
@@ -13,6 +15,22 @@
 改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
 
 当前版本：[v4.2.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.2.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+
+### 已验证的真实 Agent
+
+这里的“真实”分成两层：真实框架测试使用官方框架运行时和确定性本地模型，验证接入边界可复现；真实供应商测试会付费调用在线模型，验证当前模型仍能遵守工具和业务契约。
+
+| 测试对象 | 实际执行的 Agent 场景 | 已验证结果 | 可核验证据 |
+| --- | --- | --- | --- |
+| PydanticAI | `Agent + FunctionModel + get_order` 完整工具循环 | 生成合法三事件 Trace | [框架工作流](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [示例](examples/pydantic_ai_agent_example.py) |
+| OpenAI Agents SDK | `Runner + Agent + function_tool` 完整工具循环 | 与 PydanticAI 跨框架比较，0 差异 | [框架工作流](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [示例](examples/openai_agents_agent_example.py) |
+| LangGraph | `StateGraph + ToolNode + get_order` 完整图执行 | 正常路径通过；把订单 `123` 错传成 `456` 时被 CI 阻断 | [反例门禁](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [示例](examples/langgraph_agent_example.py) |
+| LangChain Core | 真实 `RunnableLambda` 回调与事件摄取 | Python 3.9/3.11/3.13 矩阵通过 | [兼容矩阵](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
+| DeepSeek 在线模型 | 真实 `deepseek-flash` 先调用 `get_order`，再读取结果生成 claims | 真实 API 调用、Trace 校验、baseline 比较均通过，0 差异 | [已通过的真实运行](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35482261151) · [接入说明](docs/deepseek-live.md) |
+
+DeepSeek 实测证据为 `tool_call → tool_result → final_answer`，一次运行使用 458 个输入 tokens 和 46 个输出 tokens。框架还会验证工具名、订单参数、工具结果与结构化 claims，并在上传产物前检查密钥没有进入 Trace 或报告。
+
+这些结果证明当前框架能够统一接收不同 Agent 运行时的证据、发现真实参数回归，并把在线模型行为放进 CI；它们还不能证明所有模型、所有多 Agent 协作或长期生产负载都已覆盖。完整边界见 [v4.2 验收说明](docs/v4.2-acceptance.md)。
 
 ### 从这里开始
 
@@ -114,6 +132,7 @@ v4.2.0 的发布验收：
 | --- | --- |
 | 核心测试 | 本地完整测试 + [Python 3.9/3.11/3.13 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml) |
 | 框架兼容 | [PydanticAI、OpenAI Agents、LangGraph 与 LangChain Core](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
+| 真实在线 Agent | [DeepSeek live provider：工具调用、比较与密钥扫描](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35482261151) |
 | 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/release.yml) |
 | 兼容与迁移 | [v4.2 验收契约](docs/v4.2-acceptance.md) |
 | 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.2.0) |
@@ -129,6 +148,31 @@ v4.2.0 的发布验收：
 After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
 
 Release: [v4.2.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.2.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
+
+### Verified real Agents
+
+“Real” has two explicit levels. Real-framework tests execute the official
+framework runtime with deterministic local models so integration behavior is
+reproducible. The live-provider test makes a paid request to a hosted model and
+checks whether that current model still follows the tool and business contract.
+
+| Target | Agent run actually executed | Verified result | Evidence |
+| --- | --- | --- | --- |
+| PydanticAI | `Agent + FunctionModel + get_order` tool loop | Valid three-event Trace | [Framework workflow](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [Example](examples/pydantic_ai_agent_example.py) |
+| OpenAI Agents SDK | `Runner + Agent + function_tool` tool loop | Cross-framework comparison with PydanticAI: 0 differences | [Framework workflow](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [Example](examples/openai_agents_agent_example.py) |
+| LangGraph | `StateGraph + ToolNode + get_order` graph execution | Normal path passes; changing order `123` to `456` is blocked | [Negative gate](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [Example](examples/langgraph_agent_example.py) |
+| LangChain Core | Real `RunnableLambda` callback and event ingestion | Python 3.9/3.11/3.13 matrix passes | [Compatibility matrix](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
+| Hosted DeepSeek | Real `deepseek-flash` calls `get_order`, reads its result and emits claims | Live API call, Trace validation and baseline comparison pass with 0 differences | [Passing live run](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35482261151) · [Guide](docs/deepseek-live.md) |
+
+The recorded DeepSeek path is `tool_call → tool_result → final_answer`, using
+458 input and 46 output tokens. The gate keeps tool name, order arguments, tool
+result and structured claims strict, and scans artifacts to ensure the active
+credential is absent before upload.
+
+This evidence proves that the current kit can normalize different Agent
+runtimes, detect a real argument regression and gate a hosted model in CI. It
+does not claim coverage of every model, multi-Agent topology or long-running
+production workload. See the [v4.2 acceptance contract](docs/v4.2-acceptance.md).
 
 ### Documentation
 
