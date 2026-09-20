@@ -1,24 +1,24 @@
 # Independent consumer pilot / 独立消费项目验证
 
 v4.15 introduced an end-to-end consumer repository that is separate from the
-core checkout. After the v4.29 release, that consumer was upgraded and
-re-verified against the immutable v4.29 wheel:
+core checkout. After the v4.30 release, that consumer was upgraded and
+re-verified against the immutable v4.30 wheel:
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.29 发布后，消费项目又升级到
-v4.29 wheel 并重新验收：
+v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.30 发布后，消费项目又升级到
+v4.30 wheel 并重新验收：
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
 ## Consumer boundary / 消费边界
 
 The pilot installs exactly this immutable Release asset for the current
-v4.29 evidence:
+v4.30 evidence:
 
 ```text
-https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.29.0/agent_regression_kit-4.29.0-py3-none-any.whl
-sha256: 2a692d5db9cdebc5c69fea69eeb04a715e05c4bdf573c51605513d89de530165
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.30.0/agent_regression_kit-4.30.0-py3-none-any.whl
+sha256: 9ecf2ae6871130963672c5ea8cb9afbf042ffb8510151b0440aa4aafc40fa5d9
 ```
 
 The pilot does not import the producer checkout, add the producer `src/`
@@ -49,8 +49,8 @@ Agent 的真实消费流程是两步依赖：先查订单，再使用订单返�
 
 ## Injected regressions / 注入回归
 
-The consumer workflow ran on the v4.29 upgrade commit `1c7a151` and passed
-(GitHub Actions run [`35543025395`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35543025395)):
+The consumer workflow ran on the v4.30 upgrade commit `d378564` and passed
+(GitHub Actions run [`35544440919`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35544440919)):
 
 | Case / 用例 | Expected / 预期 | Observed / 实测 |
 | --- | --- | --- |
@@ -60,6 +60,15 @@ The consumer workflow ran on the v4.29 upgrade commit `1c7a151` and passed
 | report `shipped` for a `not_shipped` result | exit 1 | blocked; Contract assertion and result-interpretation evidence |
 
 CI run: [Consumer Agent regression workflow](https://github.com/ANTAO94/agent-regression-pilot/actions/workflows/regression.yml)
+
+The v4.30 consumer also imports the public `sha256_file` helper from the
+released wheel, hashes its reviewed baseline and asserts `__version__ ==
+4.30.0` before exercising the Agent boundary. This confirms that the new API
+is available through the published artifact, not only from the core checkout.
+
+v4.30 消费项目还从发布 wheel 导入公开的 `sha256_file`，对审核过的 baseline 计算哈希，并在
+运行 Agent 边界前断言 `__version__ == 4.30.0`。这证明新 API 确实随发布包可用，而不是只在
+核心仓库源码路径中可用。
 
 The v4.29 evidence binding is recorded in consumer follow-up commit `9660c8b`
 and its CI run is
@@ -94,10 +103,14 @@ v4.25.0 wheel at `36d3852` (metadata recorded in follow-up commit `b32d6bc`).
 The v4.27 post-release verification uses the v4.27.0 wheel at `5dfab07`
 (metadata recorded in follow-up commit `a2bb7fa`). The v4.28 post-release
 verification uses the v4.28.0 wheel at `491c33c` (metadata recorded in follow-up
-commit `47a6300`). The current v4.29 post-release verification uses the v4.29.0
+commit `47a6300`). The current v4.30 post-release verification uses the v4.30.0
+wheel at `d378564` (metadata recorded in the same consumer commit) and CI run
+`35544440919`. The previous v4.29 post-release verification uses the v4.29.0
 wheel at `1c7a151` (metadata recorded in follow-up commit `9660c8b`).
 
-消费仓库的 v4.29 CI（run `35543025395`）已验证正常场景返回 0，三类注入均返回 1。报告会保留在
+消费仓库的 v4.30 CI（run `35544440919`）已验证正常场景返回 0，三类注入均返回 1，并验证
+公开 `sha256_file` API。报告会保留在 workflow artifact 中，baseline 由人工审核后提交，CI 不会自动覆盖 baseline。
+v4.29 以前的消费 CI（run `35543025395`）也已验证正常场景返回 0，三类注入均返回 1。报告会保留在
 workflow artifact 中，baseline 由人工审核后提交，CI 不会自动覆盖 baseline。
 
 ## Reproduce / 复现
