@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.28.0 - 2026-09-21
+
+- Add Wilson 95% intervals and explicit finite-sample warnings to repeated-run
+  stability reports.
+- Add `StabilityPolicy.min_runs` and the `stability --min-runs` CLI gate so a
+  project can reject under-sampled evidence without changing the default
+  compatibility behavior.
+- Run a 30-repeat sampling-boundary smoke in the core CI and keep the boundary
+  explicit: this is uncertainty reporting over observed runs, not an online
+  model-quality or population-reliability claim.
+
 ## 4.27.0 - 2026-09-21
 
 - Add a four-suite AgentDojo matrix from the independent

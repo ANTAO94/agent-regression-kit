@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v4.27 · Usage &amp; Technical Guide</small>
+          <small>v4.28 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -251,7 +251,7 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v4.27.0</span>
+            <span class="badge">v4.28.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
             <span class="badge orange">v4 compatibility gate</span>
@@ -276,6 +276,7 @@
             <a class="badge" href="v4.21-acceptance.md">v4.21 AgentDojo 独立来源验收 →</a>
             <a class="badge" href="v4.22-acceptance.md">v4.22 AgentDojo 独立来源矩阵 →</a>
             <a class="badge" href="v4.23-acceptance.md">v4.23 AgentDojo 跨模型攻击矩阵 →</a>
+            <a class="badge" href="v4.28-acceptance.md">v4.28 采样证据验收 →</a>
             <a class="badge" href="v4.27-acceptance.md">v4.27 Claude 模型族验收 →</a>
             <a class="badge" href="v4.26-acceptance.md">v4.26 独立攻击族验收 →</a>
             <a class="badge" href="v4.25-acceptance.md">v4.25 决策重复性验收 →</a>
@@ -387,7 +388,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -1070,11 +1071,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.27.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.28.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1315,6 +1316,7 @@ jobs:
               <tr><td><strong>v4.23</strong></td><td>所有样本都“通过”无法证明框架能识别应阻断的攻击轨迹。</td><td>双模型八样本跨模型攻击矩阵、显式 <code>expected_contract_passed</code>、4 条预期阻断和 CI artifact。</td></tr>
               <tr><td><strong>v4.24</strong></td><td>评测规则可能在看到结果后被悄悄调整，无法证明决策边界没有漂移。</td><td>canonical Contract JSON 的 <code>contract_sha256</code>、<code>frozen_before_oracle</code> 声明和篡改 fail-closed gate。</td></tr>
               <tr><td><strong>v4.27</strong></td><td>只有一个模型 pipeline 时，不能说明模型族变化下的规则边界仍然可审计。</td><td>Claude 3.5 Sonnet 四 suite <code>important_instructions</code> 模型族矩阵，3 条通过、1 条预期阻断，外加三次重复性 CI。</td></tr>
+              <tr><td><strong>v4.28</strong></td><td>仅看重复运行通过率，容易把小样本结果误读成可靠性结论。</td><td>Wilson 95% 区间、<code>small_sample_warning</code>、<code>min_runs</code> 门禁和 30 次核心 CI sampling evidence。</td></tr>
               <tr><td><strong>v4.26</strong></td><td>只覆盖一种攻击类型时，不能说明不同攻击族都能进入同一审计边界。</td><td>四 suite <code>ignore_previous</code> 攻击族矩阵，2 条通过、2 条预期阻断，外加三次重复性 CI。</td></tr>
               <tr><td><strong>v4.25</strong></td><td>固定输入下重复生成的报告和 Trace 是否真的稳定，不能只靠口头保证。</td><td>三次决策重复、aggregate/case/Trace SHA-256 稳定性检查和独立 CI artifact；明确不等于在线模型方差研究。</td></tr>
             </tbody>
@@ -1374,7 +1376,7 @@ agent-regression migrate trace \
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v4.27.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a>、<a href="v4.13-acceptance.md">v4.13 契约安全验收</a>、<a href="v4.14-acceptance.md">v4.14 Benchmark 治理验收</a>、<a href="v4.16-acceptance.md">v4.16 首用与性能验收</a>、<a href="v4.17-acceptance.md">v4.17 评测可追溯性验收</a>、<a href="v4.18-acceptance.md">v4.18 路径噪音与航空域验收</a>、<a href="v4.19-acceptance.md">v4.19 电信域与 actor 边界验收</a>、<a href="v4.20-acceptance.md">v4.20 task-disjoint holdout 验收</a>、<a href="v4.21-acceptance.md">v4.21 AgentDojo 独立来源验收</a>、<a href="v4.22-acceptance.md">v4.22 AgentDojo 独立来源矩阵验收</a>、<a href="v4.23-acceptance.md">v4.23 AgentDojo 跨模型攻击矩阵验收</a>、<a href="v4.24-acceptance.md">v4.24 Contract 预注册验收</a>、<a href="v4.25-acceptance.md">v4.25 决策重复性验收</a>、<a href="v4.26-acceptance.md">v4.26 独立攻击族验收</a>、<a href="v4.27-acceptance.md">v4.27 Claude 模型族验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
+          <p>本文档面向 Agent Regression Kit v4.28.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a>、<a href="v4.13-acceptance.md">v4.13 契约安全验收</a>、<a href="v4.14-acceptance.md">v4.14 Benchmark 治理验收</a>、<a href="v4.16-acceptance.md">v4.16 首用与性能验收</a>、<a href="v4.17-acceptance.md">v4.17 评测可追溯性验收</a>、<a href="v4.18-acceptance.md">v4.18 路径噪音与航空域验收</a>、<a href="v4.19-acceptance.md">v4.19 电信域与 actor 边界验收</a>、<a href="v4.20-acceptance.md">v4.20 task-disjoint holdout 验收</a>、<a href="v4.21-acceptance.md">v4.21 AgentDojo 独立来源验收</a>、<a href="v4.22-acceptance.md">v4.22 AgentDojo 独立来源矩阵验收</a>、<a href="v4.23-acceptance.md">v4.23 AgentDojo 跨模型攻击矩阵验收</a>、<a href="v4.24-acceptance.md">v4.24 Contract 预注册验收</a>、<a href="v4.25-acceptance.md">v4.25 决策重复性验收</a>、<a href="v4.26-acceptance.md">v4.26 独立攻击族验收</a>、<a href="v4.27-acceptance.md">v4.27 Claude 模型族验收</a>、<a href="v4.28-acceptance.md">v4.28 采样证据验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

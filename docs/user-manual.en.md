@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.27.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.28.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.27.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.28.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.27.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.28.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -745,6 +745,30 @@ PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
 See the [v4.27 acceptance](v4.27-acceptance.md) for the source, Contract
 hashes, oracle separation and boundaries. This adds model-family evidence; it
 is not online sampling-variance research or universal generalization.
+
+### v4.28: repeated-run sampling evidence
+
+v4.28 adds Wilson 95% intervals to the existing stability report and records
+the finite-sample boundary in JSON and Markdown. The default remains backward
+compatible; projects that require at least 30 repeats can make under-sampling
+fail the CI gate with `--min-runs 30`:
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/candidate-ok.scenario.json \
+  --repeats 30 \
+  --workers 4 \
+  --min-runs 30 \
+  --format markdown \
+  --out work/reports/order-123.sampling.md
+```
+
+`uncertainty.pass_rate`, `claims_match_rate` and `tool_error_rate` expose 95%
+intervals over the finite observed repeats; `sample_size.small_sample_warning`
+is true below 30 runs. This quantifies uncertainty in observed runs, not online
+model quality, population reliability or universal generalization. See the
+[v4.28 acceptance](v4.28-acceptance.md) for the full boundary.
 
 ### v4.21: independent AgentDojo source intake
 

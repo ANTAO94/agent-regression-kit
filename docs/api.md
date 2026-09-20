@@ -237,6 +237,7 @@ report = record_stability(
         min_claims_match_rate=1.0,
         max_tool_error_rate=0.05,
         max_path_variants=1,
+        min_runs=30,
     ),
 )
 assert report.passed
@@ -249,20 +250,28 @@ failed repeat instead of hiding it. `evaluate_stability` performs the same
 aggregation for traces that were already recorded.
 
 `StabilityReport.to_dict()` contains `pass_rate`, `claims_match_rate`,
-`tool_error_rate`, `path_variant_count`, the active policies, and one result
-per repeat. The CLI equivalent is:
+`tool_error_rate`, `path_variant_count`, the active policies, one result per
+repeat, and an `uncertainty` object with Wilson 95% intervals. The
+`sample_size` object records the repeat count, the recommended 30-run
+threshold and `small_sample_warning`. `min_runs` is an opt-in gate; its default
+is 1 for backward compatibility. The CLI equivalent is:
 
 ```bash
 agent-regression stability \
   --baseline baselines/order-123.trace.json \
   --scenario examples/order-123/baseline.scenario.json \
-  --repeats 10 --workers 4 --format markdown \
+  --repeats 30 --workers 4 --min-runs 30 --format markdown \
   --out outputs/stability.md
 ```
 
 Use `--final-answer-mode claims-only` only when final prose is intentionally
 allowed to vary. The stability evaluator remains structural and deterministic;
-it does not call a model to judge semantic similarity.
+it does not call a model to judge semantic similarity. The intervals quantify
+finite observed repeats; they are not a population reliability guarantee.
+
+`wilson_interval(successes, total, confidence=0.95)` is also exported as a
+small dependency-free helper for consumers that need the same bounded interval
+calculation in their own evidence summaries.
 
 ## Async and parallel events
 

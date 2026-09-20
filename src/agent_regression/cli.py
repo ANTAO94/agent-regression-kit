@@ -498,6 +498,12 @@ def build_parser() -> argparse.ArgumentParser:
     stability.add_argument("--max-tool-error-rate", type=float, default=0.0)
     stability.add_argument("--max-path-variants", type=int, default=1)
     stability.add_argument(
+        "--min-runs",
+        type=int,
+        default=1,
+        help="minimum completed repeats required for a passing stability gate",
+    )
+    stability.add_argument(
         "--final-answer-mode",
         choices=["exact", "claims-only"],
         default="exact",
@@ -890,6 +896,7 @@ def main(argv: list[str] | None = None) -> int:
                     min_claims_match_rate=args.min_claims_match_rate,
                     max_tool_error_rate=args.max_tool_error_rate,
                     max_path_variants=args.max_path_variants,
+                    min_runs=args.min_runs,
                 ),
                 redaction_policy=redaction_policy,
             )

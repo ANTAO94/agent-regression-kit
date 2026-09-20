@@ -61,6 +61,30 @@ def make_trace(run_id, *, text="paid", path=None):
 
 
 class StabilityTests(unittest.TestCase):
+    def test_report_exposes_finite_sample_uncertainty_and_warning(self):
+        report = evaluate_stability(
+            make_trace("baseline"),
+            [make_trace("run-1"), make_trace("run-2")],
+        )
+
+        value = report.to_dict()
+        self.assertEqual(0.95, value["uncertainty"]["confidence_level"])
+        self.assertEqual(1.0, value["uncertainty"]["pass_rate"]["high"])
+        self.assertLess(value["uncertainty"]["pass_rate"]["low"], 1.0)
+        self.assertEqual(2, value["sample_size"]["run_count"])
+        self.assertEqual(30, value["sample_size"]["recommended_minimum_runs"])
+        self.assertTrue(value["sample_size"]["small_sample_warning"])
+
+    def test_minimum_run_policy_blocks_under_sampled_evidence(self):
+        report = evaluate_stability(
+            make_trace("baseline"),
+            [make_trace("run-1")],
+            policy=StabilityPolicy(min_runs=2),
+        )
+
+        self.assertFalse(report.passed)
+        self.assertEqual(2, report.policy.min_runs)
+
     def test_claims_metric_uses_the_same_contract_normalization_as_comparison(self):
         baseline = make_trace("baseline")
         candidate = make_trace("candidate")
@@ -193,6 +217,8 @@ class StabilityTests(unittest.TestCase):
                         "2",
                         "--workers",
                         "2",
+                        "--min-runs",
+                        "2",
                         "--format",
                         "markdown",
                         "--out",
@@ -203,6 +229,8 @@ class StabilityTests(unittest.TestCase):
             rendered = output.read_text(encoding="utf-8")
             self.assertIn("Agent Stability Evaluation", rendered)
             self.assertIn("`PASS`", rendered)
+            self.assertIn("Pass rate 95% interval", rendered)
+            self.assertIn("small finite sample", rendered)
 
 
 if __name__ == "__main__":

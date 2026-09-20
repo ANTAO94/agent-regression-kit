@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.27 deliberately stays small. The local Viewer
+Agent Regression Kit v4.28 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -142,3 +142,6 @@ is a read-only presentation layer, not a hosted management service.
   one pinned Claude 3.5 Sonnet pipeline. It expands model-family evidence, but
   is not online sampling-variance research, a security rate or universal
   generalization result; its one expected block depends on a reviewed Contract.
+- v4.28 adds Wilson 95% intervals and `min_runs` to stability reports. These
+  quantify uncertainty over the finite repeats that actually ran; they do not
+  establish online model quality, population reliability or generalization.

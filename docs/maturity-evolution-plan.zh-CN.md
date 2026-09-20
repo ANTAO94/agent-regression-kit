@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.27）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.28）
 
 > 状态：v4.27 已落地，继续扩展在线随机性和真实用户验证
-> 当前基线版本：v4.27.0
+> 当前基线版本：v4.28.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.27 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.28 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.27 目标 |
+| 维度 | v4.12 现状 | v4.28 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -45,6 +45,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
 | 跨任务域证据 | 只有 retail 结果 | airline 和 telecom 分别记录域内误报、漏报、actor 边界和样本不足限制 |
 | 任务级留出 | 没有任务级分区 | 只按 task ID 哈希生成互斥 holdout，记录集合摘要并在 CI 独立验收 |
 | 独立来源接入 | 只有 tau² 任务族 | 外部 AgentDojo 四 suite、五条样本可导入，来源/任务身份/Contract/oracle 与 Trace 隔离；模型级泛化仍待补齐 |
+| 重复运行不确定性 | 只有通过率和固定重复性 | stability 报告输出 Wilson 95% 区间，`min_runs` 可阻断样本不足；仍不等于在线模型质量 |
 
 ### 最终通过条件
 
@@ -626,6 +627,19 @@ v4.27 把“更多模型族”从待办推进为一个固定的 AgentDojo manife
 - [ ] 一个固定 Claude pipeline 仍不等于在线采样方差、更多模型族的安全率或通用泛化，也不能替代
   未参与实现用户的 30/60/90 分钟接入研究。
 
+### 7.16 v4.28：重复运行采样证据（已落地）
+
+v4.28 把“重复运行结果”从单纯的通过率升级为带有限样本不确定性说明的证据。它不读取
+外部标签，也不调用模型服务；真实模型仍由接入方通过 `ScenarioCase` 工厂提供。
+
+- [x] 新增无第三方依赖的 `wilson_interval`，并复用到 benchmark 与 stability 报告。
+- [x] `StabilityReport` 输出 pass、claims match、tool error 的 Wilson 95% 区间和
+  `sample_size.small_sample_warning`。
+- [x] `StabilityPolicy.min_runs` 与 CLI `stability --min-runs` 支持把最低重复数变成门禁，默认值
+  保持为 1，不破坏旧配置。
+- [x] 核心 CI 增加 30 次重复、`--min-runs 30` 和 required sampling report；本地测试达到 271 项。
+- [ ] 这仍然不是在线模型采样方差、总体可靠性、更多模型族安全率或未参与实现用户研究。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -655,6 +669,8 @@ v4.27 把“更多模型族”从待办推进为一个固定的 AgentDojo manife
 | `examples/agentdojo_repeatability_validation.py` | 固定矩阵的三次决策、aggregate/case/Trace hash 重复性 gate |
 | `examples/agentdojo/matrix-v4.26.json` | 四条 ignore_previous 攻击族样本的来源、Contract hash、oracle 和 expected outcome |
 | `examples/agentdojo/matrix-v4.27.json` | 四条 Claude 模型族 important_instructions 样本的来源、Contract hash、oracle 和 expected outcome |
+| `statistics.py` | Wilson 区间计算，供 benchmark 和稳定性报告复用 |
+| `docs/v4.28-acceptance.md` | 重复运行采样证据、30 次 CI 门禁和边界 |
 
 ## 9. CI 结构
 
@@ -676,6 +692,7 @@ v4.27 把“更多模型族”从待办推进为一个固定的 AgentDojo manife
 | agentdojo-repeatability | matrix validator、重复性脚本或 v4.24 manifest 改动时 | 三次固定输入决策的 aggregate/case/Trace hash 必须稳定 |
 | agentdojo-attack-family | v4.26 attack-family manifest、matrix validator 或 adapter 改动时 | 四条 ignore_previous 样本的 Contract/oracle/Trace 边界、expected outcome 和三次重复性必须通过 |
 | agentdojo-claude-model | v4.27 model-family manifest、matrix validator 或 adapter 改动时 | 四条 Claude pipeline 样本的模型身份、Contract/oracle/Trace 边界、expected outcome 和三次重复性必须通过 |
+| core-regression sampling | stability、statistics 或报告格式改动时 | 30 次重复、`--min-runs 30`、Wilson 区间和 required sampling report 必须通过 |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
 | release | tag 推送时 | 是 |
 
@@ -684,7 +701,7 @@ v4.27 把“更多模型族”从待办推进为一个固定的 AgentDojo manife
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.27 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.28 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -712,7 +729,7 @@ v4.27 把“更多模型族”从待办推进为一个固定的 AgentDojo manife
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.27 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.28 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -733,6 +750,7 @@ v4.27 把“更多模型族”从待办推进为一个固定的 AgentDojo manife
 13. **v4.25**：固定 AgentDojo 矩阵三次决策重复性、aggregate/case/Trace hash 稳定性和 CI artifact。
 14. **v4.26**：四 suite `ignore_previous` 攻击族矩阵、显式 expected outcome、Contract provenance 和重复性 CI。
 15. **v4.27**：Claude 3.5 Sonnet 四 suite `important_instructions` 模型族矩阵、显式 expected outcome、Contract provenance 和重复性 CI。
+16. **v4.28**：重复运行稳定性 Wilson 95% 区间、有限样本提醒、`min_runs` 门禁和 30 次核心 CI sampling evidence。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布

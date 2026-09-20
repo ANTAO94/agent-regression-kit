@@ -22,6 +22,7 @@ from typing import Any, Dict, Iterable, List, Mapping
 from .compare import ComparisonPolicy, compare_traces
 from .contracts import ContractPolicy
 from .model import AgentTrace
+from .statistics import wilson_interval
 from .version import __version__
 
 
@@ -431,19 +432,10 @@ def _labels(path: Path) -> Dict[str, bool]:
 
 
 def _wilson(successes: int, total: int) -> Dict[str, float] | None:
-    if total == 0:
+    interval = wilson_interval(successes, total)
+    if interval is None:
         return None
-    z = 1.959963984540054
-    proportion = successes / total
-    denominator = 1 + (z * z / total)
-    center = (proportion + (z * z / (2 * total))) / denominator
-    margin = (
-        z
-        * ((proportion * (1 - proportion) / total) + (z * z / (4 * total * total)))
-        ** 0.5
-        / denominator
-    )
-    return {"low": max(0.0, center - margin), "high": min(1.0, center + margin)}
+    return {"low": interval["low"], "high": interval["high"]}
 
 
 def score_benchmark(

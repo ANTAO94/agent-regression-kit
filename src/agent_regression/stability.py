@@ -11,6 +11,10 @@ from .coverage import trace_tool_path
 from .contracts import _IGNORED
 from .model import AgentTrace
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
+from .statistics import wilson_interval
+
+
+RECOMMENDED_STABILITY_RUNS = 30
 
 
 @dataclass(frozen=True)
@@ -21,6 +25,7 @@ class StabilityPolicy:
     min_claims_match_rate: float = 1.0
     max_tool_error_rate: float = 0.0
     max_path_variants: int = 1
+    min_runs: int = 1
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -32,6 +37,8 @@ class StabilityPolicy:
                 raise ValueError(f"{name} must be between 0 and 1")
         if self.max_path_variants < 1:
             raise ValueError("max_path_variants must be at least 1")
+        if self.min_runs < 1:
+            raise ValueError("min_runs must be at least 1")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -39,6 +46,7 @@ class StabilityPolicy:
             "min_claims_match_rate": self.min_claims_match_rate,
             "max_tool_error_rate": self.max_tool_error_rate,
             "max_path_variants": self.max_path_variants,
+            "min_runs": self.min_runs,
         }
 
 
@@ -177,7 +185,7 @@ class StabilityReport:
     @property
     def passed(self) -> bool:
         return (
-            self.run_count > 0
+            self.run_count >= self.policy.min_runs
             and self.pass_rate >= self.policy.min_pass_rate
             and self.claims_match_rate >= self.policy.min_claims_match_rate
             and self.tool_error_rate <= self.policy.max_tool_error_rate
@@ -202,6 +210,27 @@ class StabilityReport:
             "tool_error_rate": self.tool_error_rate,
             "path_variant_count": len(self.path_variants),
             "path_variants": self.path_variants,
+            "uncertainty": {
+                "confidence_level": 0.95,
+                "pass_rate": wilson_interval(self.pass_count, self.run_count),
+                "claims_match_rate": wilson_interval(
+                    self.claims_match_count,
+                    self.run_count,
+                ),
+                "tool_error_rate": wilson_interval(
+                    self.tool_error_count,
+                    self.tool_result_count,
+                ),
+            },
+            "sample_size": {
+                "run_count": self.run_count,
+                "recommended_minimum_runs": RECOMMENDED_STABILITY_RUNS,
+                "small_sample_warning": self.run_count < RECOMMENDED_STABILITY_RUNS,
+                "message": (
+                    "finite repeated-run evidence; collect at least 30 runs before "
+                    "interpreting the interval as a useful sampling estimate"
+                ),
+            },
             "runs": [
                 run.to_dict(self.baseline, self.comparison_policy) for run in self.runs
             ],

@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.27.0 source. Package version 4.27.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
+Based on v4.28.0 source. Package version 4.28.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -260,7 +260,7 @@ Batch recording uses bounded threads and independent adapter/tool factories, the
 
 SnapshotBackend defines snapshot()/restore(). Integrators implement actual database, cache or emulator rollback. Unregistered writes and process-global state are not automatically isolated.
 
-record_stability aggregates pass rate, claims agreement, tool errors and path variants over fresh runs. Finite repeats are not a population reliability guarantee. CLI stability uses scripted scenarios; model-backed evaluation uses ScenarioCase factories through the Python API.
+record_stability aggregates pass rate, claims agreement, tool errors and path variants over fresh runs. v4.28 also emits Wilson 95% intervals and a small-sample warning; `StabilityPolicy.min_runs`/`stability --min-runs` can turn a minimum evidence count into a gate. Finite repeats are still not a population reliability guarantee. CLI stability uses scripted scenarios; model-backed evaluation uses ScenarioCase factories through the Python API.
 
 ## 8. MCP boundary
 
@@ -431,7 +431,12 @@ Slack is explicitly blocked for a missing required query. Pipeline identity,
 Contract hashes, external oracle labels and Trace evidence remain separate;
 see the [v4.27 acceptance record](v4.27-acceptance.md).
 
-Current release: [v4.27.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.27.0).
+v4.28 adds Wilson 95% intervals, a finite-sample warning and a `min_runs` gate
+to repeated-run stability. Core CI records a 30-repeat sampling artifact with
+`--min-runs 30`; this quantifies observed runs and does not claim online model
+quality or population reliability. See the [v4.28 acceptance record](v4.28-acceptance.md).
+
+Current release: [v4.28.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.28.0).
 
 See [the full methodology](tau2-independent-validation.md), the
 [state-equivalence guide](state-equivalence.md), the [v4.12 acceptance

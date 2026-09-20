@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.27.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.28.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.27.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.28.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.27.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.28.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -727,6 +727,27 @@ PYTHONPATH=src python examples/agentdojo_repeatability_validation.py \
 
 完整来源、Contract hash、外部 oracle 隔离和边界见[v4.27 验收](v4.27-acceptance.md)。它补充
 的是模型族证据，不是在线采样方差研究或通用泛化结论。
+
+### v4.28：重复运行采样证据
+
+v4.28 为现有 stability 报告增加 Wilson 95% 区间，并把有限样本边界直接写入 JSON/Markdown。
+默认行为保持兼容；如果项目要求至少采集 30 次重复，可以用 `--min-runs 30` 把样本不足变成
+CI 阻断：
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/candidate-ok.scenario.json \
+  --repeats 30 \
+  --workers 4 \
+  --min-runs 30 \
+  --format markdown \
+  --out work/reports/order-123.sampling.md
+```
+
+报告中的 `uncertainty.pass_rate`、`claims_match_rate` 和 `tool_error_rate` 是观察到的有限重复
+运行的 95% 区间；`sample_size.small_sample_warning` 会在少于 30 次时提醒。它量化的是已执行
+运行的不确定性，不是在线模型质量、总体可靠性或通用泛化证明。完整边界见[v4.28 验收](v4.28-acceptance.md)。
 
 ### v4.21：独立来源 AgentDojo 接入
 

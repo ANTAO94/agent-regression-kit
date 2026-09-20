@@ -84,12 +84,14 @@ from .report_index import build_report_index
 from .scenario import StatefulFixtureTools, WorldState
 from .session import AgentSession, check_session_state_continuity, compare_sessions
 from .stability import (
+    RECOMMENDED_STABILITY_RUNS,
     StabilityPolicy,
     StabilityReport,
     StabilityRun,
     evaluate_stability,
     record_stability,
 )
+from .statistics import wilson_interval
 from .sdk import AdapterSpec
 from .adapter_contract import check_adapter_contract, check_async_adapter_contract
 from .public_api import (
@@ -198,10 +200,12 @@ __all__ = [
     "compare_sessions",
     "check_session_state_continuity",
     "StabilityPolicy",
+    "RECOMMENDED_STABILITY_RUNS",
     "StabilityReport",
     "StabilityRun",
     "evaluate_stability",
     "record_stability",
+    "wilson_interval",
     "AdapterSpec",
     "check_adapter_contract",
     "check_async_adapter_contract",

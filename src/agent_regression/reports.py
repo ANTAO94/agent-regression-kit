@@ -261,6 +261,17 @@ def render_scenario_batch_junit(report: Dict[str, Any]) -> str:
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
 
 
+def _format_interval(report: Dict[str, Any], metric: str) -> str:
+    interval = (report.get("uncertainty") or {}).get(metric)
+    if not isinstance(interval, dict):
+        return "n/a"
+    low = interval.get("low")
+    high = interval.get("high")
+    if not isinstance(low, (int, float)) or not isinstance(high, (int, float)):
+        return "n/a"
+    return f"{low:.1%}–{high:.1%}"
+
+
 def render_stability_markdown(report: Dict[str, Any]) -> str:
     """Render repeated-run stability metrics for a CI summary."""
     status = "PASS" if report.get("passed") else "FAIL"
@@ -275,10 +286,27 @@ def render_stability_markdown(report: Dict[str, Any]) -> str:
         f"- Claims match rate: `{report.get('claims_match_rate', 0.0):.1%}`",
         f"- Tool error rate: `{report.get('tool_error_rate', 0.0):.1%}`",
         f"- Path variants: `{report.get('path_variant_count', 0)}`",
+        f"- Pass rate 95% interval: `{_format_interval(report, 'pass_rate')}`",
+        f"- Claims match 95% interval: `{_format_interval(report, 'claims_match_rate')}`",
+        f"- Tool error 95% interval: `{_format_interval(report, 'tool_error_rate')}`",
         "",
-        "| Status | Run | Path | Errors | Blocking differences |",
-        "| --- | --- | --- | ---: | ---: |",
     ]
+    sample_size = report.get("sample_size") or {}
+    if sample_size.get("small_sample_warning"):
+        lines.extend(
+            [
+                "> Warning: this is a small finite sample; collect at least "
+                f"{sample_size.get('recommended_minimum_runs', 30)} runs before "
+                "interpreting the interval as a useful sampling estimate.",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "| Status | Run | Path | Errors | Blocking differences |",
+            "| --- | --- | --- | ---: | ---: |",
+        ]
+    )
     for run in report.get("runs", []):
         run_status = "passed" if run.get("passed") else "failed"
         path = " -> ".join(run.get("tool_path", [])) or "(no tools)"

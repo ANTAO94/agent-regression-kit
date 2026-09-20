@@ -4,6 +4,40 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.27.0 → v4.28.0
+
+v4.28 is additive for existing Trace, Contract and baseline files. No data
+migration is required. Repeated-run stability reports now include Wilson 95%
+intervals and a `sample_size` section. Existing callers keep the default
+`min_runs=1`; projects that want a hard evidence minimum can add
+`--min-runs 30` to the CLI or `min_runs=30` to `StabilityPolicy`.
+
+The interval fields describe finite observed repeats. They do not change the
+comparison decision, read benchmark labels or prove online model quality. Run
+the existing stability check once after upgrading, review the new interval and
+warning fields, then decide whether your project should opt into a stricter
+minimum.
+
+```bash
+agent-regression stability \
+  --baseline baselines/order-123.trace.json \
+  --scenario examples/order-123/baseline.scenario.json \
+  --repeats 30 \
+  --min-runs 30 \
+  --format markdown \
+  --out work/stability-v428.md
+```
+
+## v4.27.0 → v4.28.0（中文）
+
+v4.28 对已有 Trace、Contract 和 baseline 保持增量兼容，不需要数据迁移。重复运行稳定性报告
+新增 Wilson 95% 区间和 `sample_size`。旧调用方仍使用默认 `min_runs=1`；如果希望设置最低
+证据量，可以在 CLI 增加 `--min-runs 30`，或在 `StabilityPolicy` 中设置 `min_runs=30`。
+
+区间描述的是已经执行的有限重复运行，不改变比较决策、不读取 benchmark 标签，也不证明在线模型
+质量。升级后先执行一次 stability，检查新增区间和提醒字段，再决定是否在项目中启用更严格的最低
+次数门禁。完整验收见[v4.28 验收记录](docs/v4.28-acceptance.md)。
+
 ## v4.17.0 → v4.18.0
 
 v4.18 is additive for existing Trace, Contract and baseline files. No migration

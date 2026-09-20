@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.27.0 源码整理；产品版本 4.27.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
+依据 v4.28.0 源码整理；产品版本 4.28.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance 另有独立 schema=0.1。
 
 ## 1. 目标和适用场景
 
@@ -256,7 +256,7 @@ ScriptedAgentAdapter 按固定 plan 执行，最终答案也可能是脚本预�
 - 批量场景使用有界线程，每个 ScenarioCase 的 adapter_factory/tools_factory 应生成独立对象；结果按 case_id 稳定排序。
 - 异步 API 支持同一轮的并行调用；call_id 在调用创建时分配，显式 parallel_group 记录分组。完成顺序不等于 Trace 输出顺序。
 - SnapshotBackend 仅定义 snapshot()/restore()。事务、Redis、外部服务回滚实现由接入方负责；不会自动隔离全局变量或未注册副作用。
-- record_stability 对重复运行的 Trace 计算通过率、claims 一致率、工具错误率和路径变体。重复次数有限，不是总体可靠性的统计保证。
+- record_stability 对重复运行的 Trace 计算通过率、claims 一致率、工具错误率和路径变体。v4.28 额外输出 Wilson 95% 区间和小样本提醒；`StabilityPolicy.min_runs`/`stability --min-runs` 可以把最低证据量变成门禁。重复次数有限，仍不是总体可靠性的统计保证。
 - CLI stability 使用脚本场景；连接真实模型请使用 Python API 的 ScenarioCase 工厂。
 
 ## 8. MCP 适配范围
@@ -397,7 +397,11 @@ v4.27 增加独立的 `claude-3-5-sonnet-20241022` 模型族矩阵，继续覆�
 必要查询按预期阻断；模型 pipeline、Contract hash、外部 oracle 和 Trace 仍分别校验，详见
 [v4.27 验收](v4.27-acceptance.md)。
 
-当前发布：[v4.27.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.27.0)。
+v4.28 为重复运行稳定性增加 Wilson 95% 区间、有限样本提醒和 `min_runs` 门禁。核心 CI 用 30 次
+重复和 `--min-runs 30` 生成 sampling evidence；它量化观察到的运行，不宣称在线模型质量或总体
+可靠性，详见[v4.28 验收](v4.28-acceptance.md)。
+
+当前发布：[v4.28.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.28.0)。
 
 字段映射、限制、样例 Trace 和 CI 行为见[完整方法说明](tau2-independent-validation.md)、
 [状态等价契约](state-equivalence.md)、[v4.12 验收记录](v4.12-acceptance.md)与

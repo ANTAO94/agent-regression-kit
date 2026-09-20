@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.27.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.28.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.27.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.27.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.28.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.27.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.28.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.27.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.28.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -342,7 +342,7 @@ agent-regression performance gate \
 
 ## 8. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.27 发布记录 **267 项测试通过**，并验证构建、干净环境安装、
+当前适合本地开发与团队 CI 试点。v4.28 发布记录 **271 项测试通过**，并验证构建、干净环境安装、
 首用模板、性能 smoke、独立消费仓库升级和多个任务域的公开/前瞻评测。
 
 | 验证类型 | 已有证据 | 能说明什么 |
@@ -363,12 +363,15 @@ agent-regression performance gate \
 | 决策重复性 | [AgentDojo v4.25 验收](docs/v4.25-acceptance.md)：同一固定矩阵重复 3 次，汇总报告、逐条报告和 Trace hash 全部稳定 | 证明固定输入下的决策产物可重复生成；不等于在线模型随机性或可靠性证明 |
 | 独立攻击族 | [AgentDojo v4.26 验收](docs/v4.26-acceptance.md)：新增 ignore_previous 四条样本，覆盖四个 suite，2 条通过、2 条按预期阻断 | 证明不同攻击类型可进入同一审计 gate；仍不是安全率或通用泛化 |
 | 模型族矩阵 | [AgentDojo v4.27 验收](docs/v4.27-acceptance.md)：Claude 3.5 Sonnet pipeline 的四 suite important_instructions 样本，3 条通过、1 条按预期阻断 | 补充独立模型族证据；仍不是在线方差研究或通用泛化 |
+| 重复运行采样证据 | [v4.28 验收](docs/v4.28-acceptance.md)：稳定性报告输出 Wilson 95% 区间，CI 用 30 次重复和 `--min-runs 30` 验证样本门槛 | 量化有限重复运行的不确定性；仍不是在线模型质量或总体可靠性结论 |
 
 τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
 框架只能检查已记录证据和已配置规则。真实数据库状态需要你提供快照；隐藏副作用、自然语言事实判断和外部权限执行不由 Trace 比较自动保证。详见[能力限制](docs/limitations.md)。
 
 ## 9. 常见问题与文档
+
+当前版本的采样证据：[v4.28 验收记录](docs/v4.28-acceptance.md)。
 
 | 问题 | 先检查 |
 | --- | --- |
