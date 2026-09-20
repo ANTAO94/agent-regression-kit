@@ -659,6 +659,10 @@ manifest 记录非敏感 provenance，Trace 记录实际行为，框架只对冻
 - [x] 报告复用 Stability 的逐次运行结果、Wilson 区间和退出码，不嵌入原始 Trace、Prompt 或 API Key。
 - [x] 增加确定性 study 示例、`agent_sampling_study` history 类型和核心 CI required report。
 - [x] 本地测试达到 275 项。
+- [x] v4.29.0 Release workflow（run `35542940402`）、wheel SHA-256、核心 3.9/3.11/3.13
+  回归（run `35542940338`）和框架兼容 CI（run `35542940431`）均有远程证据。
+- [x] 独立消费仓库在 `1c7a151` 安装 v4.29.0，CI（run `35543025395`）验证正常路径返回 0、
+  三类注入均返回 1；锁定提交 `9660c8b` 的 CI（run `35543057429`）再次通过。
 - [ ] 这仍不是在线供应商采样实验、总体可靠性、安全率或未参与实现用户研究；这些需要独立的
   provider 运行、抽样设计和真实接入者。
 
