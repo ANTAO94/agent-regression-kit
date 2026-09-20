@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 4.22.0 - 2026-09-21
+
+- Add a five-case AgentDojo independent-source matrix across workspace,
+  banking, slack and travel suites, including direct and ignore-previous paths.
+- Add per-case Contract, source metadata, result SHA-256, oracle-boundary checks,
+  redacted Trace/report artifacts and an aggregate matrix gate.
+- Run the matrix in CI without deriving Contracts from upstream utility/security
+  labels; keep the matrix explicitly scoped to exported-run integration evidence.
+- Add bilingual v4.22 acceptance documentation and focused matrix regression tests.
+
 ## 4.21.0 - 2026-09-21
 
 - Add an AgentDojo bridge that converts exported runs to validated AgentTrace

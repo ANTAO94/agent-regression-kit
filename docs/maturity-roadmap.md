@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.21 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.22 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -63,7 +63,8 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 路径噪音与跨域证据 | v4.18 | `path_rules.ignore_argument_paths` 的严格边界、airline 第二任务域和模型级前瞻结果；样本量与真实用户研究仍待补齐 |
 | actor-aware 电信跨域适配 | v4.19 | assistant/user 行为边界、有限环境断言、telecom 第三任务域和 prospective 结果；真正未见任务与真实用户研究仍待补齐 |
 | 任务级留出代理 | v4.20 | 只按 task ID 哈希分桶、校验任务集合摘要、公开与 prospective holdout CI；仍不是独立来源或通用未见域泛化 |
-| 独立来源接入 | v4.21 | AgentDojo 外部消息导入、两种工具调用格式、oracle 隔离、固定来源 hash 和 CI artifact；仍只是一条 smoke |
+| 独立来源接入 | v4.21 | AgentDojo 外部消息导入、两种工具调用格式、oracle 隔离、固定来源 hash 和 CI artifact；已由 v4.22 矩阵扩展 |
+| 独立来源矩阵 | v4.22 | 四个 AgentDojo suite、五条固定样本、逐样本 Contract/哈希/Trace、汇总 gate；仍不是完整上游重跑或通用泛化 |
 
 ## 迭代顺序
 
@@ -341,6 +342,19 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
   外部标签为 `utility=true/security=false`；本地测试目标为 257 项。
 - [ ] 目前只有一个 suite/task/attack 组合；需要扩展多 suite、多攻击类型和独立审查矩阵，
   仍需未参与实现用户完成 30/60/90 分钟接入研究。
+
+### v4.22：独立来源 AgentDojo 矩阵
+
+- [x] 增加 `agentdojo_matrix_validation.py`，按 matrix manifest 逐样本校验固定 revision、
+  结果 SHA-256、suite/task/attack 身份和人工 Contract。
+- [x] 固定 workspace、banking、slack、travel 四个 suite 的五条样本，覆盖
+  `direct` 和 `ignore_previous` 路径；本地矩阵结果为 5/5 通过。
+- [x] 每条样本输出脱敏报告和 Trace，汇总报告输出 `case_count`、逐样本 gate、oracle 隔离检查
+  和 aggregate gate；独立 CI 上传全部产物。
+- [x] 明确 Contract 与 `utility/security` 外部标签隔离，不用标签反推规则；manifest 自身也
+  绑定 revision 和摘要，便于审阅后增删样本。
+- [ ] 当前仍是一个固定 upstream revision/model pipeline 的导出结果矩阵，不是完整 AgentDojo
+  重跑或安全率；后续仍需更多模型/攻击组合、外部复核和未参与实现用户的 30/60/90 分钟研究。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

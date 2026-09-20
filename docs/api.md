@@ -157,6 +157,14 @@ the upstream result SHA-256, converts observable messages only, and checks
 required/forbidden tools without using `utility`/`security` to derive the
 Contract. See [`docs/v4.21-acceptance.md`](v4.21-acceptance.md).
 
+The v4.22 matrix validator is intentionally a reproducible example-layer
+runner rather than a new runtime dependency: `examples/agentdojo_matrix_validation.py`
+reads `examples/agentdojo/matrix.json`, validates each result against its own
+source hash and Contract, writes redacted per-case artifacts and emits an
+aggregate gate. This keeps matrix orchestration and upstream-specific metadata
+out of the core public API while reusing the public AgentDojo bridge functions.
+See [`docs/v4.22-acceptance.md`](v4.22-acceptance.md).
+
 ## Recording
 
 - `record_run(adapter, request, tools, *, run_id, metadata=None, redaction_policy=None, state_backend=None)` records any `AgentAdapter` with any `ToolExecutor`. When supplied, `state_backend.snapshot()` is used for the recorded initial/final world state instead of the tool executor.

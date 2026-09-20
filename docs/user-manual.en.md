@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.21.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.22.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.21.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.22.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.21.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.22.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.21.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.22.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -599,6 +599,32 @@ agent-regression performance gate \
 The default gate warns above 20% and blocks above 40% elapsed-time regression
 on like-for-like Python/OS/hardware. See the [performance guide](performance.md)
 and [v4.16 acceptance](v4.16-acceptance.md).
+
+### v4.22: independent AgentDojo source matrix
+
+v4.22 extends the AgentDojo bridge from one smoke sample to a five-case,
+checksum-pinned matrix across workspace, banking, Slack and travel. Each case
+has its own reviewed Contract, expected external oracle labels, result hash and
+redacted Trace/report artifact. The Contract is never generated from the
+upstream `utility` or `security` labels.
+
+```bash
+mkdir -p work/agentdojo-matrix/results work/agentdojo-matrix/traces
+jq -r '.cases[] | [.download_url, .result_file] | @tsv' \
+  examples/agentdojo/matrix.json | while IFS=$'\t' read -r url file; do
+    curl --fail --location --retry 3 "$url" \
+      -o "work/agentdojo-matrix/results/$file"
+  done
+PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
+  --manifest examples/agentdojo/matrix.json \
+  --results-dir work/agentdojo-matrix/results \
+  --out work/agentdojo-matrix/report.json \
+  --trace-dir work/agentdojo-matrix/traces
+```
+
+The v4.22 acceptance record documents the five cases and their limitations.
+This is cross-suite exported-run intake evidence, not a full AgentDojo rerun,
+security rate or universal generalization result.
 
 ### v4.21: independent AgentDojo source intake
 
