@@ -60,6 +60,38 @@ rate). The relaxed observation thresholds are recorded explicitly; they are
 not a general quality guarantee and do not convert a calibration file into
 unseen-task generalization evidence.
 
+## Task-disjoint holdout proxy
+
+v4.20 adds a reproducible task-level split. It hashes each task ID with
+SHA-256, assigns buckets modulo 100, and reserves buckets `0..19` for the
+holdout. The split definition contains only task-set counts and digests; reward
+labels are not consulted when selecting the partition.
+
+```bash
+python examples/tau2_telecom_holdout_validation.py \
+  --results work/tau2-telecom/results.json \
+  --source-manifest examples/tau2-telecom/source.json \
+  --split-definition examples/tau2-telecom/task-split.json \
+  --partition holdout \
+  --out work/tau2-telecom/holdout-report.json \
+  --min-eligible 80 \
+  --min-failures 30 \
+  --min-failure-recall 0.99 \
+  --max-false-alarm-rate 0.05 \
+  --max-missed-failure-rate 0.0
+```
+
+The published holdout contains 28 tasks, 100 eligible simulations, 47 true
+passes, 53 true blocks, 0 false alarms and 0 missed failures. The prospective
+o4-mini holdout contains the same 28 tasks and yields 50 true passes, 46 true
+blocks, 4 false alarms and 0 missed failures (100% failure recall and 7.41%
+false-alarm rate under the explicit 10% observation threshold).
+
+This is a task-disjoint holdout proxy over the same published task family, not
+an independent upstream task source or universal unseen-domain generalization
+claim. The split digest and limitations are recorded in
+[`docs/v4.20-acceptance.md`](../../docs/v4.20-acceptance.md).
+
 来源文件的 URL、tag、commit 和 SHA-256 记录在两个 manifest 中。电信域还
 验证了一个重要边界：模拟器的 user-owned tool call 不应被误当成 Agent 的
 assistant path；它们只作为环境证据参与断言。

@@ -121,6 +121,7 @@ from .tau2 import (
     evaluate_tau2_airline_results,
     evaluate_tau2_retail_results,
     evaluate_tau2_telecom_results,
+    split_tau2_payload_by_task,
     trace_from_tau2_simulation,
 )
 from .workspace import build_workspace_manifest
@@ -228,6 +229,7 @@ __all__ = [
     "evaluate_tau2_airline_results",
     "evaluate_tau2_retail_results",
     "evaluate_tau2_telecom_results",
+    "split_tau2_payload_by_task",
     "trace_from_tau2_simulation",
     "HistoryPoint",
     "HistoryReport",

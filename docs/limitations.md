@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.19 deliberately stays small. The local Viewer
+Agent Regression Kit v4.20 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -99,3 +99,12 @@ is a read-only presentation layer, not a hosted management service.
   false-alarm rate and 1.37% missed-failure rate under explicit 98%/10%/2%
   thresholds; this is not a universal quality guarantee or unseen-task
   generalization evidence.
+- The v4.20 telecom holdout is a task-disjoint proxy, not an independent
+  benchmark source. `split_tau2_payload_by_task` selects the 28 holdout tasks
+  from 114 task IDs using a SHA-256 bucket rule and records set digests before
+  evaluation; it does not read reward labels for selection. The published
+  holdout has 100 eligible scenarios and yields 47/53/0/0, while prospective
+  o4-mini yields 50/46/4/0 with a 7.41% false-alarm rate. Calibration and
+  holdout still share the same public τ²-bench task family, so this evidence
+  does not establish independent-source or universal unseen-domain
+  generalization.

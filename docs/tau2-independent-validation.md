@@ -131,6 +131,24 @@ MMS、数据加油和欠费账单提供有限的环境断言解析。
 [`v4.19 验收记录`](v4.19-acceptance.md) 与
 [`examples/tau2-telecom/README.md`](../examples/tau2-telecom/README.md)。
 
+### v4.20 任务级留出代理验证
+
+v4.20 在 telecom 适配器之上增加 task-disjoint holdout proxy。切分器只读取任务 ID：对
+任务 ID 做 SHA-256，将前 8 位十六进制值按 100 取模，桶值小于 20 的任务进入 holdout，
+其余任务进入 calibration。切分前会校验任务 ID 唯一性，切分后会把全量、calibration 和
+holdout 的任务集合摘要写入 provenance；reward 和 reward 解释不会参与分桶。
+
+固定切分包含 114 个任务，其中 86 个 calibration task、28 个 holdout task。holdout 中
+共有 112 条轨迹，100 条包含 assistant-owned 写操作并进入评估，12 条 user-only 轨迹
+明确排除。公开 `gpt-4.1-mini` 结果为 47 条正确放行、53 条正确阻断、0 条误报和 0 条
+漏报；prospective `o4-mini` 结果为 50/46/4/0，失败召回率 100%、误报率 7.41%、漏报率
+0%。
+
+这是一条“规则冻结后按任务 ID 留出”的可复现证据，不是独立数据来源，也不是跨任务族的
+通用泛化证明；两个分区仍来自同一份公开 `tau2-bench` 任务族。复现命令、manifest 摘要
+和 CI 门禁见 [`v4.20 验收记录`](v4.20-acceptance.md) 与
+[`examples/tau2-telecom/task-split.json`](../examples/tau2-telecom/task-split.json)。
+
 ## English
 
 This validation consumes published retail Agent results from the independent
@@ -224,9 +242,35 @@ See the [v4.19 acceptance record](v4.19-acceptance.md) and the
 [telecom example](../examples/tau2-telecom/README.md) for source manifests,
 reproduction commands, actor boundaries and limitations.
 
+### v4.20 task-disjoint holdout proxy
+
+v4.20 adds a task-disjoint holdout proxy on top of the telecom adapter. The
+splitter reads task IDs only: it hashes each ID with SHA-256, takes the first
+eight hexadecimal characters modulo 100, and assigns buckets below 20 to the
+holdout partition. All other tasks are calibration tasks. It validates unique
+task IDs and records digests for the full, calibration and holdout task sets;
+reward labels are not used to select the partition.
+
+The fixed split contains 114 tasks: 86 calibration tasks and 28 holdout tasks.
+The holdout has 112 trajectories, of which 100 contain assistant-owned writes
+and are eligible for evaluation; 12 user-only trajectories are explicitly
+excluded. The published `gpt-4.1-mini` result yields 47 true passes, 53 true
+blocks, 0 false alarms and 0 missed failures. The prospective `o4-mini` result
+yields 50/46/4/0: 100% failure recall, 7.41% false-alarm rate and 0% missed
+failures.
+
+This is reproducible evidence for a task-ID holdout after rule freezing. It is
+not an independent data source or universal cross-task-family generalization:
+both partitions remain from the same published `tau2-bench` task family. See
+the [v4.20 acceptance record](v4.20-acceptance.md) and the
+[`task-split.json`](../examples/tau2-telecom/task-split.json) manifest for the
+commands, digests and CI gates.
+
 Run the commands in the Chinese section above or execute the dedicated
 `tau2 independent validation` GitHub Actions workflow. The check covers pinned
 published half-duplex retail, airline and telecom trajectories, including the
-v4.17 retail, v4.18 airline and v4.19 telecom prospective o4-mini result files.
+v4.17 retail, v4.18 airline, v4.19 telecom and v4.20 task-disjoint telecom
+prospective o4-mini result files. It is not evidence of upstream adoption, voice
+coverage, every τ²-bench domain, every model, or production reliability.
 It is not evidence of upstream adoption, voice coverage, every τ²-bench domain,
 every model, or production reliability.

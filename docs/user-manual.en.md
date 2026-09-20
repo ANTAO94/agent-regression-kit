@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.19.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.20.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.19.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.20.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.19.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.20.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.19.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.20.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -599,6 +599,33 @@ agent-regression performance gate \
 The default gate warns above 20% and blocks above 40% elapsed-time regression
 on like-for-like Python/OS/hardware. See the [performance guide](performance.md)
 and [v4.16 acceptance](v4.16-acceptance.md).
+
+### v4.20: task-level holdout proxy
+
+To check whether the Contract only works on the original published
+trajectories, partition tasks by ID. The split reads task IDs only, never
+rewards; the script verifies the task-set digests before evaluating the same
+Contract on the holdout:
+
+```bash
+python3 examples/tau2_telecom_holdout_validation.py \
+  --results work/tau2-telecom/results.json \
+  --source-manifest examples/tau2-telecom/source.json \
+  --split-definition examples/tau2-telecom/task-split.json \
+  --partition holdout \
+  --out work/tau2-telecom-holdout/report.json \
+  --min-eligible 80 \
+  --min-failures 30 \
+  --min-failure-recall 0.99 \
+  --max-false-alarm-rate 0.05 \
+  --max-missed-failure-rate 0.0
+```
+
+The published holdout contains 28 tasks and 100 eligible scenarios, producing
+47/53/0/0. The prospective o4-mini holdout produces 50/46/4/0: 100% failure
+recall and a 7.41% false-alarm rate. This is a task-disjoint proxy within the
+same public task family, not an independently sourced task set or universal
+unseen-domain generalization. See the [v4.20 acceptance](v4.20-acceptance.md).
 
 ### v4.19: actor-aware telecom and environment assertions
 

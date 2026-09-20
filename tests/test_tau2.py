@@ -7,6 +7,7 @@ from agent_regression import (
     evaluate_tau2_airline_results,
     evaluate_tau2_retail_results,
     evaluate_tau2_telecom_results,
+    split_tau2_payload_by_task,
     trace_from_tau2_simulation,
 )
 
@@ -211,6 +212,34 @@ class Tau2IntegrationTests(unittest.TestCase):
             domain="airline",
         )
         self.assertEqual([], build_tau2_airline_contract(source_task).check(trace, trace))
+
+    def test_task_split_is_disjoint_and_does_not_read_reward_labels(self):
+        payload = {
+            "tasks": [{"id": "task-a"}, {"id": "task-b"}, {"id": "task-c"}],
+            "simulations": [
+                {"id": "sim-a", "task_id": "task-a"},
+                {"id": "sim-b", "task_id": "task-b"},
+                {"id": "sim-c", "task_id": "task-c"},
+            ],
+        }
+        split = split_tau2_payload_by_task(
+            payload,
+            holdout_modulus=3,
+            holdout_bucket_limit=1,
+        )
+        calibration_ids = {task["id"] for task in split["calibration"]["tasks"]}
+        holdout_ids = {task["id"] for task in split["holdout"]["tasks"]}
+        self.assertTrue(calibration_ids.isdisjoint(holdout_ids))
+        self.assertEqual({"task-a", "task-b", "task-c"}, calibration_ids | holdout_ids)
+        self.assertEqual(3, split["provenance"]["task_count"])
+        self.assertEqual(
+            3,
+            split["provenance"]["holdout_task_count"]
+            + split["provenance"]["calibration_task_count"],
+        )
+        for partition in (split["calibration"], split["holdout"]):
+            for simulation in partition["simulations"]:
+                self.assertNotIn("reward", simulation)
 
     def test_airline_external_report_is_domain_scoped(self):
         source_task = {

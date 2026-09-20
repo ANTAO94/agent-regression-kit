@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1",
+  "name": "telecom-task-disjoint-holdout-v1",
+  "strategy": "sha256_task_id_modulo",
+  "holdout_modulus": 100,
+  "holdout_bucket_limit": 20,
+  "task_count": 114,
+  "all_task_ids_sha256": "2a9b77904f021aefefabba4e817143fd342a6849fab684f41080df2fc0a9d570",
+  "calibration_task_count": 86,
+  "calibration_task_ids_sha256": "f6d53ab67a0f3a57d1352789d88f42f7dc6d6dd42e17168cc015843e175fd417",
+  "holdout_task_count": 28,
+  "holdout_task_ids_sha256": "227cc7cbe5320e9ede4a6cc56a5639ee010390fdcfef7c23a49734f88bf8b0c0",
+  "label_boundary": "The split is selected from task IDs only; reward labels are not read."
+}

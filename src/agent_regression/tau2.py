@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import deepcopy
+import hashlib
 import json
 import re
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence
@@ -470,6 +471,109 @@ def build_tau2_telecom_contract(task: Mapping[str, Any]) -> ContractPolicy:
 
 def _rate(numerator: int, denominator: int) -> float | None:
     return numerator / denominator if denominator else None
+
+
+def split_tau2_payload_by_task(
+    payload: Mapping[str, Any],
+    *,
+    holdout_modulus: int = 100,
+    holdout_bucket_limit: int = 20,
+) -> Dict[str, Any]:
+    """Create a deterministic task-disjoint calibration/holdout split.
+
+    The partition is derived only from sorted task IDs and SHA-256 buckets. It
+    never reads reward labels, so callers can freeze the Contract implementation
+    before using the holdout partition for an evaluation report.
+    """
+
+    if (
+        not isinstance(holdout_modulus, int)
+        or isinstance(holdout_modulus, bool)
+        or holdout_modulus < 2
+    ):
+        raise ValueError("holdout_modulus must be an integer >= 2")
+    if (
+        not isinstance(holdout_bucket_limit, int)
+        or isinstance(holdout_bucket_limit, bool)
+        or holdout_bucket_limit <= 0
+        or holdout_bucket_limit >= holdout_modulus
+    ):
+        raise ValueError(
+            "holdout_bucket_limit must be an integer between 1 and modulus - 1"
+        )
+    payload = _object(payload, "tau2 results")
+    raw_tasks = _array(payload.get("tasks", []), "tau2 results.tasks")
+    tasks: List[Dict[str, Any]] = []
+    task_map: Dict[str, Dict[str, Any]] = {}
+    for index, raw_task in enumerate(raw_tasks):
+        task = dict(_object(raw_task, f"tau2 task[{index}]"))
+        task_id = task.get("id")
+        if task_id is None or not str(task_id).strip():
+            raise ValueError(f"tau2 task[{index}].id must be a non-empty value")
+        normalized_id = str(task_id)
+        if normalized_id in task_map:
+            raise ValueError(f"duplicate tau2 task id: {normalized_id}")
+        task_map[normalized_id] = task
+        tasks.append(task)
+    simulations = [
+        dict(_object(raw_simulation, f"tau2 simulation[{index}]"))
+        for index, raw_simulation in enumerate(
+            _array(payload.get("simulations", []), "tau2 results.simulations")
+        )
+    ]
+    for simulation in simulations:
+        task_id = str(simulation.get("task_id", ""))
+        if task_id not in task_map:
+            raise ValueError(f"tau2 simulation references unknown task_id {task_id!r}")
+
+    task_ids = sorted(task_map)
+
+    def bucket(task_id: str) -> int:
+        digest = hashlib.sha256(task_id.encode("utf-8")).hexdigest()
+        return int(digest[:8], 16) % holdout_modulus
+
+    holdout_ids = [
+        task_id for task_id in task_ids if bucket(task_id) < holdout_bucket_limit
+    ]
+    calibration_ids = [task_id for task_id in task_ids if task_id not in set(holdout_ids)]
+
+    def digest(ids: Sequence[str]) -> str:
+        rendered = json.dumps(
+            list(ids),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(rendered).hexdigest()
+
+    def subset(ids: Sequence[str]) -> Dict[str, Any]:
+        selected = set(ids)
+        result = deepcopy(dict(payload))
+        result["tasks"] = [deepcopy(task_map[task_id]) for task_id in ids]
+        result["simulations"] = [
+            deepcopy(simulation)
+            for simulation in simulations
+            if str(simulation.get("task_id", "")) in selected
+        ]
+        return result
+
+    provenance = {
+        "schema_version": "0.1",
+        "strategy": "sha256_task_id_modulo",
+        "holdout_modulus": holdout_modulus,
+        "holdout_bucket_limit": holdout_bucket_limit,
+        "task_count": len(task_ids),
+        "all_task_ids_sha256": digest(task_ids),
+        "calibration_task_count": len(calibration_ids),
+        "calibration_task_ids_sha256": digest(calibration_ids),
+        "holdout_task_count": len(holdout_ids),
+        "holdout_task_ids_sha256": digest(holdout_ids),
+        "label_boundary": "split selection reads task IDs only; reward labels are not read",
+    }
+    return {
+        "calibration": subset(calibration_ids),
+        "holdout": subset(holdout_ids),
+        "provenance": provenance,
+    }
 
 
 def _telecom_result_records(trace: AgentTrace) -> List[Dict[str, Any]]:

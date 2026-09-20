@@ -15,6 +15,13 @@ TELECOM_SPEC = importlib.util.spec_from_file_location("tau2_telecom_validation",
 assert TELECOM_SPEC is not None and TELECOM_SPEC.loader is not None
 TELECOM_MODULE = importlib.util.module_from_spec(TELECOM_SPEC)
 TELECOM_SPEC.loader.exec_module(TELECOM_MODULE)
+HOLDOUT_SCRIPT = ROOT / "examples" / "tau2_telecom_holdout_validation.py"
+HOLDOUT_SPEC = importlib.util.spec_from_file_location(
+    "tau2_telecom_holdout_validation", HOLDOUT_SCRIPT
+)
+assert HOLDOUT_SPEC is not None and HOLDOUT_SPEC.loader is not None
+HOLDOUT_MODULE = importlib.util.module_from_spec(HOLDOUT_SPEC)
+HOLDOUT_SPEC.loader.exec_module(HOLDOUT_MODULE)
 
 
 class Tau2ValidationScriptTests(unittest.TestCase):
@@ -43,6 +50,13 @@ class Tau2ValidationScriptTests(unittest.TestCase):
             results.write_text('{"domain":"telecom"}\n', encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "does not match source manifest"):
                 TELECOM_MODULE.bind_results_to_source(results, {"sha256": "0" * 64})
+
+    def test_task_disjoint_validator_rejects_a_changed_split_definition(self):
+        with self.assertRaisesRegex(ValueError, "task split definition mismatch"):
+            HOLDOUT_MODULE.verify_split_definition(
+                {"strategy": "sha256_task_id_modulo"},
+                {"strategy": "different"},
+            )
 
 
 if __name__ == "__main__":

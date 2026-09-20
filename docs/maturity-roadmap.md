@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.19 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.20 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -62,6 +62,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 评测来源完整性 | v4.17 | 结果文件与 source manifest 哈希绑定、失败样本下限和模型级 prospective 评测；未见任务域泛化仍待补齐 |
 | 路径噪音与跨域证据 | v4.18 | `path_rules.ignore_argument_paths` 的严格边界、airline 第二任务域和模型级前瞻结果；样本量与真实用户研究仍待补齐 |
 | actor-aware 电信跨域适配 | v4.19 | assistant/user 行为边界、有限环境断言、telecom 第三任务域和 prospective 结果；真正未见任务与真实用户研究仍待补齐 |
+| 任务级留出代理 | v4.20 | 只按 task ID 哈希分桶、校验任务集合摘要、公开与 prospective holdout CI；仍不是独立来源或通用未见域泛化 |
 
 ## 迭代顺序
 
@@ -313,6 +314,19 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
   的 136/216/9/3 观察结果和明确放宽门槛。
 - [x] 本地测试达到 248 项，补齐 API、限制、复现和 v4.19 验收文档。
 - [ ] 在规则冻结后引入真正未见的 telecom 任务集，并由未参与实现的用户完成接入研究。
+
+### v4.20：task-disjoint holdout 代理
+
+- [x] 增加 `split_tau2_payload_by_task`，仅使用 task ID 的 SHA-256 分桶，不读取 reward 标签。
+- [x] 固定 114 个任务的分区摘要：86 个 calibration tasks、28 个 holdout tasks，并在 CI 校验
+  全量、calibration 和 holdout 的任务集合哈希。
+- [x] 公开 telecom holdout 的 100 个可判定样本得到 47/53/0/0；prospective o4-mini 得到
+  50/46/4/0，误报率 7.41%，漏报率 0%。
+- [x] 增加独立的 holdout 验证脚本、JSON 报告、sample Trace、CI artifact、双语使用说明和
+  v4.20 验收记录。
+- [x] 本地测试达到 250 项，v4.20 wheel、干净环境安装和独立消费仓库升级纳入发布门禁。
+- [ ] 该 holdout 仍来自同一公开任务族；下一阶段必须引入真正独立来源或任务族，并完成
+  未参与实现用户的 30/60/90 分钟接入研究。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

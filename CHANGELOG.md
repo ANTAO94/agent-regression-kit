@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 4.20.0 - 2026-09-21
+
+- Add `split_tau2_payload_by_task`, a label-independent SHA-256 task-ID split
+  helper that returns disjoint calibration and holdout payloads with task-set
+  digests.
+- Add a reproducible telecom task-disjoint holdout validator and checked-in
+  split definition. The published holdout records 47/53/0/0 over 100 eligible
+  simulations; the prospective o4-mini holdout records 50/46/4/0 with 100%
+  failure recall and 7.41% false-alarm rate.
+- Add holdout-specific CI jobs, sample Trace artifacts, bilingual reproduction
+  guidance and an explicit boundary: this is a task-level holdout proxy from
+  the same public task family, not universal unseen-domain generalization.
+- Record 250 passing local tests and preserve the v4.19 independent consumer
+  wheel evidence.
+
 ## 4.19.0 - 2026-09-21
 
 - Add an actor-aware τ²-bench telecom adapter: assistant-owned tool calls are

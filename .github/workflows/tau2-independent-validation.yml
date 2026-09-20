@@ -11,6 +11,7 @@ on:
       - "examples/tau2_airline_validation.py"
       - "examples/tau2-airline/**"
       - "examples/tau2_telecom_validation.py"
+      - "examples/tau2_telecom_holdout_validation.py"
       - "examples/tau2-telecom/**"
       - "tests/test_tau2.py"
       - "tests/test_contracts.py"
@@ -26,6 +27,7 @@ on:
       - "examples/tau2_airline_validation.py"
       - "examples/tau2-airline/**"
       - "examples/tau2_telecom_validation.py"
+      - "examples/tau2_telecom_holdout_validation.py"
       - "examples/tau2-telecom/**"
       - "tests/test_tau2.py"
       - "tests/test_contracts.py"
@@ -357,3 +359,126 @@ jobs:
         with:
           name: tau2-prospective-o4-telecom
           path: work/tau2-telecom-prospective/
+
+  task-disjoint-telecom-holdout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install Agent Regression Kit
+        run: python -m pip install .
+      - name: Download the pinned telecom result file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/tau2-telecom-holdout
+          curl --fail --location --retry 3 \
+            --output work/tau2-telecom-holdout/results.json \
+            "https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/gpt-4.1-mini-2025-04-14_telecom_base_gpt-4.1-2025-04-14_4trials.json"
+          echo "04fad1a6fb3ff8804be31c54cf5a993b64868e37683c226e014e7adbf60841d9  work/tau2-telecom-holdout/results.json" \
+            | shasum -a 256 -c -
+      - name: Evaluate the task-disjoint telecom holdout
+        run: |
+          python examples/tau2_telecom_holdout_validation.py \
+            --results work/tau2-telecom-holdout/results.json \
+            --source-manifest examples/tau2-telecom/source.json \
+            --split-definition examples/tau2-telecom/task-split.json \
+            --partition holdout \
+            --out work/tau2-telecom-holdout/report.json \
+            --traces-dir work/tau2-telecom-holdout/sample-traces \
+            --min-eligible 80 \
+            --min-failures 30 \
+            --min-failure-recall 0.99 \
+            --max-false-alarm-rate 0.05 \
+            --max-missed-failure-rate 0.0
+      - name: Publish the task-disjoint holdout summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          report = json.load(open("work/tau2-telecom-holdout/report.json"))
+          scope = report["scope"]
+          matrix = report["confusion_matrix"]
+          metrics = report["metrics"]
+          split = report["split"]
+          print("## tau2-bench task-disjoint telecom holdout")
+          print()
+          print(f"- Partition: {split['partition']}")
+          print(f"- Holdout tasks: {split['holdout_task_count']}")
+          print(f"- Eligible assistant-write scenarios: {scope['eligible_write_scenarios']}")
+          print(f"- Oracle failures: {matrix['true_block'] + matrix['missed_failure']}")
+          print(f"- Failure recall: {metrics['failure_recall']:.2%}")
+          print(f"- False alarm rate: {metrics['false_alarm_rate']:.2%}")
+          print(f"- Results SHA-256: {report['provenance']['results']['results_sha256']}")
+          print(f"- Split definition SHA-256: {split['definition_sha256']}")
+          print("- Label boundary: split selection uses task IDs and SHA-256 only")
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: tau2-task-disjoint-telecom-holdout
+          path: work/tau2-telecom-holdout/
+
+  task-disjoint-o4-telecom-holdout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install Agent Regression Kit
+        run: python -m pip install .
+      - name: Download the prospective telecom result file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/tau2-telecom-holdout-prospective
+          curl --fail --location --retry 3 \
+            --output work/tau2-telecom-holdout-prospective/results.json \
+            "https://raw.githubusercontent.com/sierra-research/tau2-bench/v1.0.1/data/tau2/results/final/o4-mini-2025-04-16_telecom_default_gpt-4.1-2025-04-14_4trials.json"
+          echo "1f46a6f296694bdb3ae203e6b379cdada0b8f17b648a4cf90d6343de1f1fb070  work/tau2-telecom-holdout-prospective/results.json" \
+            | shasum -a 256 -c -
+      - name: Evaluate the prospective task-disjoint telecom holdout
+        run: |
+          python examples/tau2_telecom_holdout_validation.py \
+            --results work/tau2-telecom-holdout-prospective/results.json \
+            --source-manifest examples/tau2-telecom/prospective-o4-mini-source.json \
+            --split-definition examples/tau2-telecom/task-split.json \
+            --partition holdout \
+            --out work/tau2-telecom-holdout-prospective/report.json \
+            --traces-dir work/tau2-telecom-holdout-prospective/sample-traces \
+            --min-eligible 80 \
+            --min-failures 30 \
+            --min-failure-recall 0.99 \
+            --max-false-alarm-rate 0.10 \
+            --max-missed-failure-rate 0.0
+      - name: Publish the prospective task-disjoint holdout summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          report = json.load(open("work/tau2-telecom-holdout-prospective/report.json"))
+          scope = report["scope"]
+          matrix = report["confusion_matrix"]
+          metrics = report["metrics"]
+          split = report["split"]
+          print("## tau2-bench prospective task-disjoint telecom holdout")
+          print()
+          print(f"- Partition: {split['partition']}")
+          print(f"- Holdout tasks: {split['holdout_task_count']}")
+          print(f"- Eligible assistant-write scenarios: {scope['eligible_write_scenarios']}")
+          print(f"- Oracle failures: {matrix['true_block'] + matrix['missed_failure']}")
+          print(f"- Failure recall: {metrics['failure_recall']:.2%}")
+          print(f"- False alarm rate: {metrics['false_alarm_rate']:.2%}")
+          print(f"- Missed failure rate: {metrics['missed_failure_rate']:.2%}")
+          print(f"- Results SHA-256: {report['provenance']['results']['results_sha256']}")
+          print(f"- Split definition SHA-256: {split['definition_sha256']}")
+          print("- Thresholds: recall >= 99%, false alarms <= 10%, missed failures <= 0%")
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: tau2-task-disjoint-o4-telecom-holdout
+          path: work/tau2-telecom-holdout-prospective/

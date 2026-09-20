@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.19）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.20）
 
-> 状态：v4.19 已落地，继续进入真实用户与更大未见任务集验证
-> 当前基线版本：v4.19.0
+> 状态：v4.20 已落地，继续进入真正独立来源与真实用户验证
+> 当前基线版本：v4.20.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.19 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.20 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.18 目标 |
+| 维度 | v4.12 现状 | v4.20 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -43,6 +43,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
 | 评测来源完整性 | 不同结果文件可能复用错误 manifest | 结果字节、来源 manifest、模型身份和失败样本门槛绑定 |
 | 路径噪音控制 | 传输字段容易被误当作业务差异 | 路径规则显式忽略未建模字段，显式业务字段仍严格匹配 |
 | 跨任务域证据 | 只有 retail 结果 | airline 和 telecom 分别记录域内误报、漏报、actor 边界和样本不足限制 |
+| 任务级留出 | 没有任务级分区 | 只按 task ID 哈希生成互斥 holdout，记录集合摘要并在 CI 独立验收 |
 
 ### 最终通过条件
 
@@ -479,6 +480,29 @@ v4.19 用显式 actor 边界解决这个问题：
 这一版本仍然有边界：电信环境解析是有限适配器，不是通用模拟器状态还原；结果仍来自同一
 上游任务族，不能称为真正未见任务域泛化；真实用户接入研究仍待补齐。
 
+### 7.8 v4.20：task-disjoint holdout 代理（已落地）
+
+v4.19 的 telecom 结果已经验证了 actor 边界，但整份公开结果复测仍不能回答一个更严格
+的问题：规则冻结后，换到没有参与同一场景校准的任务，是否仍能稳定工作。v4.20 增加一个
+可复现的任务级留出代理，先把“切分是否独立于标签”这件事做成可审计的工程约束。
+
+- `split_tau2_payload_by_task` 只读取 task ID；使用 task ID 的 SHA-256 前 8 位十六进制值
+  按 100 取模，桶值 `<20` 进入 holdout，其余进入 calibration；不读取 reward 内容；
+- 分区前拒绝空 task ID、重复 task ID 和未知 simulation task ID；分区后记录全量、calibration
+  和 holdout 的任务数量与有序 ID 摘要；`task-split.json` 冻结这些摘要；
+- 新增 `examples/tau2_telecom_holdout_validation.py`，在读取 reward 之前完成分区和契约
+  决策，然后按已绑定 source manifest 的结果评分，输出 split provenance、混淆矩阵、sample
+  Trace 和 gate；
+- 固定分区有 114 个任务，其中 86 个 calibration、28 个 holdout；holdout 的 112 条轨迹
+  中 100 条可判定、12 条 user-only 排除；公开结果为 47/53/0/0，prospective o4-mini 为
+  50/46/4/0，误报率 7.41%、漏报率 0%；
+- 本地测试达到 250 项，新增两个独立 holdout CI job，并将 split manifest、源文件、报告和
+  artifact 名称写入验收文档与 README。
+
+v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `tau2-bench` 任务族，不能
+称为独立来源或通用未见域泛化；下一阶段必须引入真正独立来源/任务族，并由未参与实现的
+使用者完成 30/60/90 分钟接入研究。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -495,6 +519,9 @@ v4.19 用显式 actor 边界解决这个问题：
 | `docs/` | 配置迁移、benchmark 方法、独立接入报告和首次用户测试记录 |
 | `examples/tau2-airline/` | 第二任务域的来源 manifest、复现说明和哈希绑定结果 |
 | `examples/tau2-telecom/` | 第三任务域的 actor-aware 来源 manifest、复现说明和哈希绑定结果 |
+| `src/agent_regression/tau2.py` | task ID 分区、任务集合摘要和标签无关的 holdout provenance |
+| `examples/tau2_telecom_holdout_validation.py` | task-disjoint 分区校验、telecom holdout 评分和 sample Trace 导出 |
+| `examples/tau2-telecom/task-split.json` | 冻结的 114-task 分区定义与摘要 |
 
 ## 9. CI 结构
 
@@ -508,6 +535,8 @@ v4.19 用显式 actor 边界解决这个问题：
 | external-pilot | 每日或上游固定版本变化时 | 候选发布必须通过 |
 | cross-domain-airline | 修改 tau2 adapter 或来源 manifest 时 | published airline gate 必须通过；prospective threshold 单独记录 |
 | cross-domain-telecom | 修改 tau2 adapter 或 telecom manifest 时 | published telecom gate 必须通过；actor 边界和 prospective threshold 单独记录 |
+| task-disjoint-telecom-holdout | 修改 tau2 分区、telecom adapter 或 holdout manifest 时 | published holdout gate 必须通过；只按 task ID 分区，结果单独评分 |
+| task-disjoint-o4-telecom-holdout | 候选版本或 prospective 结果更新时 | prospective holdout 观察阈值必须通过并保留完整 artifact |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
 | release | tag 推送时 | 是 |
 
@@ -516,7 +545,7 @@ v4.19 用显式 actor 边界解决这个问题：
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.19 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.20 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -544,7 +573,7 @@ v4.19 用显式 actor 边界解决这个问题：
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.19 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.20 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -557,6 +586,7 @@ v4.19 用显式 actor 边界解决这个问题：
 5. **v4.17**：评测结果 provenance、失败样本门槛和 prospective 模型证据。
 6. **v4.18**：路径噪音字段的显式边界和 airline 第二任务域证据。
 7. **v4.19**：telecom actor-aware 适配器、环境断言和第三任务域证据。
+8. **v4.20**：task-disjoint holdout 分区、任务集合摘要和 telecom 留出 CI。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布
@@ -575,6 +605,7 @@ v4.19 用显式 actor 边界解决这个问题：
 - 一份可重复的性能基线；
 - 一份结果字节与 source manifest 哈希绑定的 prospective 评测报告；
 - 一份不同任务域的独立评测报告，并明确样本不足和阈值放宽边界；
+- 一份只按 task ID 分区、在决策前不读取 reward 的 holdout 报告，并明确同任务族限制；
 - 完整的升级、限制和安全说明。
 
 这些证据齐全后，可以把项目描述为成熟的本地/CI Agent 回归框架。托管后台、多租户权限、

@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.19.0 source. Package version 4.19.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
+Based on v4.20.0 source. Package version 4.20.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -364,11 +364,22 @@ published telecom result is 147/217/0/0 over 364 eligible scenarios; the
 prospective o4-mini result is 136/216/9/3. See the [v4.19 acceptance
 record](v4.19-acceptance.md) and [telecom reproduction](../examples/tau2-telecom/README.md).
 
+v4.20 adds a task-disjoint holdout proxy on top of that boundary.
+`split_tau2_payload_by_task` reads task IDs only, assigns them to mutually
+exclusive calibration and holdout buckets with SHA-256, verifies the task-set
+digests, and then evaluates the selected telecom partition with the same
+Contract. The published 28-task holdout contains 100 eligible scenarios and
+produces 47/53/0/0; the prospective o4-mini partition produces 50/46/4/0,
+with a 7.41% false-alarm rate. Both partitions still come from the same
+published task family, so this is a reproducible task-level holdout proxy, not
+independent-source or universal unseen-domain generalization. See the [v4.20
+acceptance record](v4.20-acceptance.md).
+
 See [the full methodology](tau2-independent-validation.md), the
 [state-equivalence guide](state-equivalence.md), the [v4.12 acceptance
 record](v4.12-acceptance.md) and the [v4.13 acceptance record](v4.13-acceptance.md) for field mappings, limitations, sample traces and
 CI behavior.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Telecom reproduction](../examples/tau2-telecom/README.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.19.0) · [v4.19 acceptance](v4.19-acceptance.md) · [v4.18 acceptance](v4.18-acceptance.md) · [v4.17 acceptance](v4.17-acceptance.md) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Telecom reproduction](../examples/tau2-telecom/README.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.20.0) · [v4.20 acceptance](v4.20-acceptance.md) · [v4.19 acceptance](v4.19-acceptance.md) · [v4.18 acceptance](v4.18-acceptance.md) · [v4.17 acceptance](v4.17-acceptance.md) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

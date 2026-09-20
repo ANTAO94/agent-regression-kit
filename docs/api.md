@@ -77,6 +77,11 @@ input:
   user-owned calls are environment evidence for bounded telecom assertions.
   The corresponding `TAU2_TELECOM_WRITE_TOOLS` and
   `TAU2_TELECOM_OBSERVATION_TOOLS` constants make the domain boundary explicit.
+- `split_tau2_payload_by_task(payload, holdout_modulus=100,
+  holdout_bucket_limit=20)` creates deterministic calibration and task-disjoint
+  holdout payloads using only SHA-256 task-ID buckets. It returns task-set
+  digests and a label-boundary note; reward values are not consulted while
+  selecting the split.
 
 ## Benchmark governance
 
@@ -135,6 +140,10 @@ v4.19 adds the actor-aware telecom adapter and checksum-bound telecom
 validation. See [`docs/v4.19-acceptance.md`](v4.19-acceptance.md) for the
 assistant/user evidence boundary, environment assertion scope and measured
 calibration/prospective results.
+The v4.20 telecom example adds a task-disjoint holdout proxy. Its split
+definition is hashed and checked before evaluation; because the source remains
+the same published task family, the result must still be described as a
+task-level holdout proxy rather than universal unseen-domain generalization.
 
 ## Recording
 
