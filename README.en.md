@@ -329,7 +329,7 @@ time regression on like-for-like environments.
 
 ## 8. Evidence and current limits
 
-Suitable for local development and team CI pilots. The v4.19 release records **247 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade and three task-domain validations.
+Suitable for local development and team CI pilots. The v4.19 release records **248 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade and three task-domain validations.
 
 | Evidence | Result and scope |
 | --- | --- |
