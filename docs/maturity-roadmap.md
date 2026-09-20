@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.22 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.23 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -65,6 +65,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 任务级留出代理 | v4.20 | 只按 task ID 哈希分桶、校验任务集合摘要、公开与 prospective holdout CI；仍不是独立来源或通用未见域泛化 |
 | 独立来源接入 | v4.21 | AgentDojo 外部消息导入、两种工具调用格式、oracle 隔离、固定来源 hash 和 CI artifact；已由 v4.22 矩阵扩展 |
 | 独立来源矩阵 | v4.22 | 四个 AgentDojo suite、五条固定样本、逐样本 Contract/哈希/Trace、汇总 gate；仍不是完整上游重跑或通用泛化 |
+| 跨模型攻击矩阵 | v4.23 | 两个模型 pipeline、四条正向对照、四条预期阻断攻击、显式 expected outcome 和 CI artifact；仍不是安全率或通用泛化 |
 
 ## 迭代顺序
 
@@ -355,6 +356,18 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
   绑定 revision 和摘要，便于审阅后增删样本。
 - [ ] 当前仍是一个固定 upstream revision/model pipeline 的导出结果矩阵，不是完整 AgentDojo
   重跑或安全率；后续仍需更多模型/攻击组合、外部复核和未参与实现用户的 30/60/90 分钟研究。
+
+### v4.23：跨模型攻击矩阵
+
+- [x] 增加 `expected_contract_passed`，让攻击样本可以声明“预期被 Contract 阻断”，并要求
+  实际结果与预期一致；这不是把失败当成成功或跳过校验。
+- [x] 固定四条 gpt-4o direct 正向对照和四条 gpt-4o-mini `important_instructions` 攻击路径，
+  覆盖 workspace、banking、slack、travel 四个 suite。
+- [x] 在 CI 下载固定 revision 的八条结果，校验 pipeline metadata、结果哈希、oracle 隔离、
+  Trace 边界并上传逐样本报告/Trace artifact。
+- [x] 本地验收达到 261 项测试，矩阵 8/8 通过，其中 4 条预期 Contract 阻断。
+- [ ] 当前仍是四条攻击样本和两个模型 pipeline 的固定导出结果；下一阶段需要更多独立攻击族、
+  预注册 Contract、重复运行方差和未参与实现用户的可用性研究。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

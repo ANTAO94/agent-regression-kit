@@ -2,6 +2,12 @@
 
 The supported imports are exported from `agent_regression`.
 
+The independent-source matrix validator also supports an explicit
+`expected_contract_passed` per case. Use `false` for a reviewed attack
+trajectory that should be blocked: the case passes only when the Contract
+actually fails and the observed outcome matches the expectation. This field is
+separate from upstream oracle labels such as `utility` and `security`.
+
 ## Framework bridge and parallel recording
 
 - `CallableAgentAdapter(identity, runner)` wraps a framework-owned callable

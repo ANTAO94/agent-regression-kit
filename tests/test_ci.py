@@ -162,7 +162,11 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("agentdojo_validation.py", workflow)
         self.assertIn("agentdojo-independent-source-smoke", workflow)
         self.assertIn("agentdojo-independent-source-matrix", workflow)
+        self.assertIn("agentdojo-cross-model-attack-matrix", workflow)
         self.assertIn("examples/agentdojo/matrix.json", workflow)
+        self.assertIn("examples/agentdojo/matrix-v4.23.json", workflow)
+        self.assertIn("Expected contract blocks", workflow)
+        self.assertIn("gpt-4o-mini", (ROOT / "examples/agentdojo/matrix-v4.23.json").read_text(encoding="utf-8"))
         self.assertIn(
             "5b5b6941039684ff7c067eeda9e737c9a3884982e02ff8f6b4f84efd16b5d625",
             workflow,

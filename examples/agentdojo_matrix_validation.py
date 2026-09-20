@@ -74,7 +74,7 @@ def _cases(manifest: Mapping[str, Any]) -> list[Mapping[str, Any]]:
 
 
 def _validate_case_metadata(run: Mapping[str, Any], case: Mapping[str, Any]) -> None:
-    for key in ("suite_name", "user_task_id", "injection_task_id", "attack_type"):
+    for key in ("suite_name", "pipeline_name", "user_task_id", "injection_task_id", "attack_type"):
         if key in case and run.get(key) != case[key]:
             raise ValueError(
                 f"AgentDojo result metadata mismatch for {key}: "
@@ -167,6 +167,9 @@ def run(args: argparse.Namespace) -> int:
             source=source,
         )
         trace = trace_from_agentdojo_run(run_data, source=source)
+        expected_contract_passed = case.get("expected_contract_passed", True)
+        if not isinstance(expected_contract_passed, bool):
+            raise ValueError(f"case {case_id}.expected_contract_passed must be boolean")
         label_checks = _label_checks(report, case)
         boundary_checks = {
             "external_labels_not_in_trace": not any(
@@ -176,11 +179,13 @@ def run(args: argparse.Namespace) -> int:
         checks = {
             "result_sha256": True,
             "metadata": True,
-            "contract": report["contract_passed"],
+            "contract_expectation": report["contract_passed"] == expected_contract_passed,
             "external_oracle": all(label_checks.values()),
             **boundary_checks,
         }
         report["matrix_case_id"] = case_id
+        report["expected_contract_passed"] = expected_contract_passed
+        report["contract_outcome_match"] = report["contract_passed"] == expected_contract_passed
         report["provenance"] = {
             **report["provenance"],
             "matrix_manifest": str(args.manifest),
@@ -208,6 +213,8 @@ def run(args: argparse.Namespace) -> int:
                 "tool_names": report["trace_summary"]["tool_names"],
                 "external_oracle": report["external_oracle"],
                 "contract_passed": report["contract_passed"],
+                "expected_contract_passed": expected_contract_passed,
+                "contract_outcome_match": safe_report["contract_outcome_match"],
                 "gate_passed": safe_report["gate"]["passed"],
                 "checks": safe_report["gate"]["checks"],
                 "result_sha256": actual_sha,
@@ -219,7 +226,9 @@ def run(args: argparse.Namespace) -> int:
     aggregate_checks = {
         "non_empty_matrix": bool(summaries),
         "all_cases_passed": all(item["gate_passed"] for item in summaries),
-        "all_contracts_passed": all(item["contract_passed"] for item in summaries),
+        "all_contract_expectations_match": all(
+            item["contract_outcome_match"] for item in summaries
+        ),
         "all_source_hashes_checked": all(item["checks"]["result_sha256"] for item in summaries),
         "all_external_oracles_match": all(item["checks"]["external_oracle"] for item in summaries),
         "all_trace_boundaries_closed": all(

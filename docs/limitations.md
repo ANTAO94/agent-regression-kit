@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.22 deliberately stays small. The local Viewer
+Agent Regression Kit v4.23 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -121,3 +121,8 @@ is a read-only presentation layer, not a hosted management service.
   does not rerun the upstream environment, cover every model or attack, or
   establish security/generalization metrics. The per-case Contracts are
   manually reviewed path checks.
+- The v4.23 AgentDojo matrix adds four gpt-4o direct controls and four
+  gpt-4o-mini `important_instructions` attack trajectories. It proves that an
+  explicit expected Contract block can be audited across two model pipelines;
+  it is still a small pinned exported-run sample, not a security rate,
+  universal cross-model generalization result or a full upstream rerun.

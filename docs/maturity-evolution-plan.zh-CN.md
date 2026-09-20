@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.22）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.23）
 
-> 状态：v4.22 已落地，继续扩展独立模型/攻击矩阵与真实用户验证
-> 当前基线版本：v4.22.0
+> 状态：v4.23 已落地，继续扩展独立攻击族、预注册和真实用户验证
+> 当前基线版本：v4.23.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,7 +27,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.22 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.23 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
@@ -548,6 +548,24 @@ v4.22 将 v4.21 的单样本接入提升为 manifest 驱动的矩阵 gate，重�
 下一阶段应增加多个模型 pipeline、更多 attack 类型和独立复核的正负样本，并让未参与实现的
 使用者完成 30/60/90 分钟接入研究；当前矩阵不能替代这些证据。
 
+### 7.11 v4.23：跨模型攻击矩阵（已落地）
+
+v4.23 的目标是证明框架能够把“正常路径”和“应被阻断的攻击路径”放进同一套可审计门禁，
+而不是只展示所有样本都通过。实现边界如下：
+
+- 增加 `expected_contract_passed`。正常样本声明 `true`，攻击样本声明 `false`；矩阵 gate
+  比较实际 Contract 结果与声明，任何不一致都失败。
+- 固定四条 gpt-4o direct 正向对照和四条 gpt-4o-mini `important_instructions` 攻击路径，
+  覆盖 workspace、banking、slack、travel；每条样本仍有独立 Contract、结果 SHA-256 和外部 oracle。
+- 在独立 CI job 中重新下载固定 revision 的结果，校验 pipeline metadata、外部 oracle 与 Trace
+  边界，并上传逐样本 report/Trace，避免只在维护者本地运行。
+- 保持标签隔离：`utility/security` 只能用于来源一致性检查，不能生成 Contract，也不能写入 Trace。
+- 本地验收为 261 项测试、8/8 矩阵用例通过、4 条实际阻断与 4 条预期阻断一致。
+
+未完成项仍明确保留：四条攻击样本不能代表安全率；两个模型 pipeline 不能代表跨模型泛化；
+当前使用导出结果而非完整 AgentDojo 重跑；还需要更多独立攻击族、Contract 预注册、多次运行
+方差和未参与实现用户的 30/60/90 分钟接入研究。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -571,7 +589,8 @@ v4.22 将 v4.21 的单样本接入提升为 manifest 驱动的矩阵 gate，重�
 | `examples/agentdojo_validation.py` | 固定来源 hash 校验、外部标签 gate 和 Trace/report 导出 |
 | `examples/agentdojo/source.json` | AgentDojo 不可变 revision、结果摘要和预期 oracle |
 | `examples/agentdojo_matrix_validation.py` | 多 suite 样本逐条校验、逐条 artifact 和 aggregate gate |
-| `examples/agentdojo/matrix.json` | 五条样本的路径、哈希、任务身份、预期 oracle 和人工 Contract |
+| `examples/agentdojo/matrix.json` | 五条 v4.22 样本的路径、哈希、任务身份、预期 oracle 和人工 Contract |
+| `examples/agentdojo/matrix-v4.23.json` | 八条跨模型/攻击样本的路径、pipeline、哈希、预期 outcome、oracle 和人工 Contract |
 
 ## 9. CI 结构
 
@@ -589,6 +608,7 @@ v4.22 将 v4.21 的单样本接入提升为 manifest 驱动的矩阵 gate，重�
 | task-disjoint-o4-telecom-holdout | 候选版本或 prospective 结果更新时 | prospective holdout 观察阈值必须通过并保留完整 artifact |
 | agentdojo-independent-source-smoke | AgentDojo importer、Contract 或 source manifest 改动时 | 固定结果 hash、Contract 和 oracle 预期必须通过 |
 | agentdojo-independent-source-matrix | AgentDojo matrix validator 或 matrix manifest 改动时 | 五条样本逐项 hash/Contract/oracle/Trace 边界和 aggregate gate 必须通过 |
+| agentdojo-cross-model-attack-matrix | v4.23 AgentDojo matrix validator 或 cross-model manifest 改动时 | 八条样本的 expected outcome、pipeline、hash/Contract/oracle/Trace 边界和 aggregate gate 必须通过 |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
 | release | tag 推送时 | 是 |
 
@@ -597,7 +617,7 @@ v4.22 将 v4.21 的单样本接入提升为 manifest 驱动的矩阵 gate，重�
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.22 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.23 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -625,7 +645,7 @@ v4.22 将 v4.21 的单样本接入提升为 manifest 驱动的矩阵 gate，重�
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.22 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.23 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型攻击证据和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -641,6 +661,7 @@ v4.22 将 v4.21 的单样本接入提升为 manifest 驱动的矩阵 gate，重�
 8. **v4.20**：task-disjoint holdout 分区、任务集合摘要和 telecom 留出 CI。
 9. **v4.21**：AgentDojo 独立来源导入、oracle 隔离和固定样本 CI smoke。
 10. **v4.22**：AgentDojo 四 suite 五样本矩阵、逐样本 Contract/哈希/Trace 和 aggregate gate。
+11. **v4.23**：AgentDojo 双模型八样本跨模型攻击矩阵、显式 expected outcome 和 CI artifact。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布

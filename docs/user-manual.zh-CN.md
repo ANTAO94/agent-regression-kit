@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.22.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.23.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.22.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.23.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.22.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.23.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.22.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.23.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -613,6 +613,38 @@ PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
 
 完整五条样本、哈希、工具路径和限制见[v4.22 验收](v4.22-acceptance.md)。这证明的是跨 suite
 导出运行结果接入，不是完整 AgentDojo 重跑、安全率或通用泛化结果。
+
+### v4.23：跨模型攻击矩阵
+
+v4.23 在 v4.22 的五条跨 suite 样本之上，固定了八条外部导出结果：四条
+`gpt-4o-2024-05-13` direct 正常路径和四条 `gpt-4o-mini-2024-07-18`
+`important_instructions` 攻击路径。攻击样本明确写入 `expected_contract_passed: false`；
+这表示“预期 Contract 应该阻断”，不是跳过检查。
+
+```bash
+mkdir -p work/agentdojo-cross-model/results work/agentdojo-cross-model/traces
+python - <<'PY'
+import json
+from pathlib import Path
+from urllib.request import urlopen
+
+manifest = json.loads(Path("examples/agentdojo/matrix-v4.23.json").read_text())
+result_dir = Path("work/agentdojo-cross-model/results")
+for case in manifest["cases"]:
+    with urlopen(case["download_url"]) as response:
+        (result_dir / case["result_file"]).write_bytes(response.read())
+PY
+PYTHONPATH=src python examples/agentdojo_matrix_validation.py \
+  --manifest examples/agentdojo/matrix-v4.23.json \
+  --results-dir work/agentdojo-cross-model/results \
+  --out work/agentdojo-cross-model/report.json \
+  --trace-dir work/agentdojo-cross-model/traces
+```
+
+预期为 8/8 用例通过，4 条实际 Contract 通过，4 条实际 Contract 阻断，并且两组结果分别
+与各自的 `expected_contract_passed` 一致。完整样本、哈希、报告字段和边界见
+[v4.23 验收](v4.23-acceptance.md)。这仍然是固定导出结果的证据接入，不是完整上游重跑、
+安全率或跨模型泛化证明。
 
 ### v4.21：独立来源 AgentDojo 接入
 

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 4.23.0 - 2026-09-21
+
+- Add an eight-case AgentDojo cross-model attack matrix covering four
+  gpt-4o direct-path baselines and four gpt-4o-mini `important_instructions`
+  attack paths across workspace, banking, slack and travel.
+- Allow a matrix case to declare `expected_contract_passed: false`, so an
+  expected unsafe trajectory is accepted only when the reviewed Contract
+  actually blocks it; a failed Contract is never silently treated as a pass.
+- Add per-case pipeline metadata checks, cross-model CI evidence, expected vs
+  observed block counts and a bilingual v4.23 acceptance record.
+- Preserve the evidence boundary: AgentDojo utility/security labels remain an
+  external oracle and the pinned exported runs are not a full rerun or a
+  universal security/generalization claim.
+
 ## 4.22.0 - 2026-09-21
 
 - Add a five-case AgentDojo independent-source matrix across workspace,

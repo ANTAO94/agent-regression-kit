@@ -124,8 +124,28 @@ class AgentDojoMatrixValidationTests(unittest.TestCase):
             self.assertEqual(1, MODULE.run(args))
             value = json.loads((root / "report.json").read_text(encoding="utf-8"))
             self.assertFalse(value["gate"]["passed"])
-            self.assertFalse(value["cases"][0]["checks"]["contract"])
+            self.assertFalse(value["cases"][0]["checks"]["contract_expectation"])
             self.assertEqual({"utility": True, "security": False}, value["cases"][0]["external_oracle"])
+
+    def test_matrix_accepts_an_expected_contract_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = self._write_case(root, value=_run(tool_name="other_tool"))
+            manifest_value = self._manifest(root, result)
+            manifest_value["cases"][0]["expected_contract_passed"] = False
+            manifest = root / "matrix.json"
+            manifest.write_text(json.dumps(manifest_value), encoding="utf-8")
+            args = MODULE.argparse.Namespace(
+                manifest=manifest,
+                results_dir=result.parent,
+                out=root / "report.json",
+                trace_dir=root / "traces",
+            )
+            self.assertEqual(0, MODULE.run(args))
+            value = json.loads((root / "report.json").read_text(encoding="utf-8"))
+            self.assertTrue(value["gate"]["passed"])
+            self.assertFalse(value["cases"][0]["contract_passed"])
+            self.assertTrue(value["cases"][0]["contract_outcome_match"])
 
 
 if __name__ == "__main__":
