@@ -8,6 +8,14 @@ from typing import Any, Dict
 
 from .contracts import ContractPolicy
 
+
+def contract_diagnostics(config: Dict[str, Any]) -> list[Dict[str, str]]:
+    """Return non-blocking migration guidance for a loaded project config."""
+    contract = config.get("contract")
+    if not contract:
+        return []
+    return ContractPolicy.from_dict(contract).diagnostics()
+
 def _relative_to_project(config_path: Path, value: str) -> str:
     """Resolve scaffold paths relative to the project root."""
     project_root = (

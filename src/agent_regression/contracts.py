@@ -32,6 +32,7 @@ _ARGUMENT_POLICY_OPERATORS = {
     "greater_or_equal_path",
 }
 _STATE_EQUIVALENCE_MODES = {"exact", "outcome", "hybrid"}
+_STATE_SCOPE_MODES = {"declared_only", "declared_and_unchanged_rest", "full"}
 
 
 def _reject_unknown_fields(
@@ -138,6 +139,55 @@ def _lookup(value: Any, pattern: Sequence[str]) -> List[Any]:
             return []
         return _lookup(value[index], rest)
     return []
+
+
+def _state_differences(
+    differences: List[Dict[str, Any]],
+    baseline: Any,
+    candidate: Any,
+    path: str,
+) -> None:
+    """Report changes in the part of world state outside declared outcome paths."""
+    if isinstance(baseline, dict) and isinstance(candidate, dict):
+        for key in sorted(set(baseline) | set(candidate)):
+            child_path = f"{path}.{key}"
+            if key not in baseline or key not in candidate:
+                differences.append(
+                    {
+                        "category": "unexpected_state_change",
+                        "path": child_path,
+                        "baseline": baseline.get(key),
+                        "candidate": candidate.get(key),
+                        "message": "state outside declared outcome paths changed",
+                    }
+                )
+            else:
+                _state_differences(differences, baseline[key], candidate[key], child_path)
+        return
+    if isinstance(baseline, list) and isinstance(candidate, list):
+        if len(baseline) != len(candidate):
+            differences.append(
+                {
+                    "category": "unexpected_state_change",
+                    "path": f"{path}.count",
+                    "baseline": len(baseline),
+                    "candidate": len(candidate),
+                    "message": "state outside declared outcome paths changed",
+                }
+            )
+        for index, (left, right) in enumerate(zip(baseline, candidate)):
+            _state_differences(differences, left, right, f"{path}[{index}]")
+        return
+    if baseline != candidate:
+        differences.append(
+            {
+                "category": "unexpected_state_change",
+                "path": path,
+                "baseline": baseline,
+                "candidate": candidate,
+                "message": "state outside declared outcome paths changed",
+            }
+        )
 
 
 def _rule_value(rule: Mapping[str, Any], key: str) -> Any:
@@ -368,6 +418,8 @@ class ContractPolicy:
                     "ignore_argument_paths",
                     "tool_aliases",
                     "allow_failed_expected",
+                    "attempt_policy",
+                    "state_scope",
                     "idempotent_tools",
                 },
                 "state equivalence",
@@ -377,6 +429,17 @@ class ContractPolicy:
                 raise ValueError(
                     "contract.state_equivalence.mode must be one of: "
                     + ", ".join(sorted(_STATE_EQUIVALENCE_MODES))
+                )
+            state_scope = self.state_equivalence.get(
+                "state_scope",
+                "declared_only"
+                if self.state_equivalence.get("paths")
+                else "full",
+            )
+            if state_scope not in _STATE_SCOPE_MODES:
+                raise ValueError(
+                    "contract.state_equivalence.state_scope must be one of: "
+                    + ", ".join(sorted(_STATE_SCOPE_MODES))
                 )
             for key in ("paths", "ignore_argument_paths", "idempotent_tools"):
                 values = self.state_equivalence.get(key, [])
@@ -414,6 +477,40 @@ class ContractPolicy:
                 raise ValueError(
                     "contract.state_equivalence.allow_failed_expected must be a boolean"
                 )
+            attempt_policy = self.state_equivalence.get("attempt_policy")
+            if attempt_policy is not None:
+                if not isinstance(attempt_policy, dict):
+                    raise ValueError(
+                        "contract.state_equivalence.attempt_policy must be an object"
+                    )
+                _reject_unknown_fields(
+                    attempt_policy,
+                    {
+                        "require_success",
+                        "allow_failed_before_success",
+                        "max_failed_attempts",
+                    },
+                    "attempt policy",
+                )
+                for key in ("require_success", "allow_failed_before_success"):
+                    if key in attempt_policy and not isinstance(attempt_policy[key], bool):
+                        raise ValueError(
+                            f"contract.state_equivalence.attempt_policy.{key} must be a boolean"
+                        )
+                max_failed = attempt_policy.get("max_failed_attempts", 0)
+                if not isinstance(max_failed, int) or isinstance(max_failed, bool) or max_failed < 0:
+                    raise ValueError(
+                        "contract.state_equivalence.attempt_policy.max_failed_attempts "
+                        "must be a non-negative integer"
+                    )
+                if (
+                    max_failed > 0
+                    and not attempt_policy.get("allow_failed_before_success", False)
+                ):
+                    raise ValueError(
+                        "attempt_policy.max_failed_attempts requires "
+                        "allow_failed_before_success=true"
+                    )
         for effect in self.side_effects:
             if not isinstance(effect, dict) or not isinstance(effect.get("path"), str):
                 raise ValueError("contract.side_effects must contain path objects")
@@ -620,6 +717,164 @@ class ContractPolicy:
             return "exact"
         return str(self.state_equivalence.get("mode", "exact"))
 
+    def _state_scope(self) -> str:
+        config = self._state_equivalence_config()
+        if "state_scope" in config:
+            return str(config["state_scope"])
+        return "declared_only" if config.get("paths") else "full"
+
+    def _attempt_policy(self) -> Dict[str, Any]:
+        """Return normalized retry semantics while preserving v4.12 behavior."""
+        config = self._state_equivalence_config()
+        explicit = config.get("attempt_policy")
+        if explicit is not None:
+            return {
+                "require_success": explicit.get("require_success", True),
+                "allow_failed_before_success": explicit.get(
+                    "allow_failed_before_success", False
+                ),
+                "max_failed_attempts": explicit.get("max_failed_attempts", 0),
+            }
+        # The legacy flag is intentionally kept as a compatibility escape hatch.
+        # New configurations should use attempt_policy, whose default is fail-closed.
+        legacy_allowed = bool(config.get("allow_failed_expected", False))
+        return {
+            "require_success": not legacy_allowed,
+            "allow_failed_before_success": legacy_allowed,
+            "max_failed_attempts": None if legacy_allowed else 0,
+        }
+
+    def diagnostics(self) -> List[Dict[str, str]]:
+        """Return non-blocking migration and safety guidance for this Contract.
+
+        Diagnostics deliberately do not change comparison behavior. They are
+        surfaced by ``config`` and ``check`` so an existing v4.12 Contract can
+        be migrated deliberately instead of silently inheriting a weaker
+        state/attempt policy.
+        """
+        config = self._state_equivalence_config()
+        if not config:
+            return []
+
+        diagnostics: List[Dict[str, str]] = []
+        if "allow_failed_expected" in config and "attempt_policy" not in config:
+            diagnostics.append(
+                {
+                    "level": "warning",
+                    "code": "legacy_allow_failed_expected",
+                    "path": "contract.state_equivalence.allow_failed_expected",
+                    "message": (
+                        "allow_failed_expected is a v4.12 compatibility field; "
+                        "replace it with an explicit attempt_policy"
+                    ),
+                    "migration": (
+                        "set require_success=true and allow_failed_before_success=false "
+                        "for fail-closed behavior, or document the intentional "
+                        "benchmark oracle explicitly"
+                    ),
+                }
+            )
+        if config.get("paths") and "state_scope" not in config:
+            diagnostics.append(
+                {
+                    "level": "info",
+                    "code": "implicit_state_scope",
+                    "path": "contract.state_equivalence.state_scope",
+                    "message": (
+                        "state_scope is omitted and defaults to declared_only; "
+                        "only the listed outcome paths are checked"
+                    ),
+                    "migration": (
+                        "choose declared_and_unchanged_rest when unrelated state "
+                        "must remain unchanged"
+                    ),
+                }
+            )
+        attempt_policy = config.get("attempt_policy")
+        if isinstance(attempt_policy, dict) and not attempt_policy.get(
+            "require_success", True
+        ):
+            diagnostics.append(
+                {
+                    "level": "info",
+                    "code": "non_strict_success_policy",
+                    "path": "contract.state_equivalence.attempt_policy.require_success",
+                    "message": (
+                        "failed expected tool calls may satisfy the action policy; "
+                        "this is only suitable when an external benchmark oracle "
+                        "defines success"
+                    ),
+                    "migration": (
+                        "use require_success=true for ordinary Agent regression "
+                        "tests"
+                    ),
+                }
+            )
+        return diagnostics
+
+    def _state_path_tokens(self) -> List[List[str]]:
+        return [_tokens(path) for path in self._state_equivalence_config().get("paths", [])]
+
+    def _world_state_remainder(self, value: Any) -> Any:
+        """Remove declared state paths, then apply normal ignore/normalizer rules."""
+        patterns = self._state_path_tokens()
+        pruned = _prune(value, ["world_state"], patterns)
+        if pruned is _IGNORED:
+            return _IGNORED
+        return _normalize(
+            _prune(pruned, ["world_state"], self._patterns()),
+            ["world_state"],
+            self.normalizers,
+        )
+
+    def _missing_success_groups(
+        self,
+        expected: Sequence[Mapping[str, Any]],
+        observed: Sequence[Mapping[str, Any]],
+        *,
+        grouped: bool,
+    ) -> List[List[Mapping[str, Any]]]:
+        policy = self._attempt_policy()
+        if not policy["require_success"] or not policy["allow_failed_before_success"]:
+            return []
+        if grouped:
+            by_key: Dict[tuple[str, str], List[Mapping[str, Any]]] = {}
+            for rule in expected:
+                by_key.setdefault(self._intent_key(rule), []).append(rule)
+            groups = list(by_key.values())
+        else:
+            groups = [[rule] for rule in expected]
+
+        missing: List[List[Mapping[str, Any]]] = []
+        for rules in groups:
+            has_success = any(
+                not event.get("is_error", False)
+                and any(
+                    (
+                        self._path_rule_matches(rule, event)
+                        if grouped
+                        else self._equivalent_rule_matches(rule, event)
+                    )
+                    for rule in rules
+                )
+                for event in observed
+            )
+            has_failure = any(
+                event.get("is_error", False)
+                and any(
+                    (
+                        self._path_rule_matches(rule, event)
+                        if grouped
+                        else self._equivalent_rule_matches(rule, event)
+                    )
+                    for rule in rules
+                )
+                for event in observed
+            )
+            if has_failure and not has_success:
+                missing.append(list(rules))
+        return missing
+
     def _trace_data(self, trace: AgentTrace) -> Dict[str, Any]:
         data = trace.to_dict()
         data.update(
@@ -644,10 +899,21 @@ class ContractPolicy:
         baseline_data = self._trace_data(baseline)
         candidate_data = self._trace_data(candidate)
 
-        for path in (self.state_equivalence or {}).get("paths", []):
+        state_config = self._state_equivalence_config()
+        for path in state_config.get("paths", []):
             baseline_values = _lookup(baseline_data, _tokens(path))
             candidate_values = _lookup(candidate_data, _tokens(path))
-            if not baseline_values or not candidate_values or baseline_values != candidate_values:
+            if not baseline_values or not candidate_values:
+                differences.append(
+                    {
+                        "category": "state_evidence_missing",
+                        "path": path,
+                        "baseline": baseline_values or None,
+                        "candidate": candidate_values or None,
+                        "message": "declared outcome state is missing",
+                    }
+                )
+            elif baseline_values != candidate_values:
                 differences.append(
                     {
                         "category": "state_equivalence",
@@ -656,6 +922,26 @@ class ContractPolicy:
                         "candidate": candidate_values or None,
                         "message": "declared outcome state is not equivalent",
                     }
+                )
+        if state_config.get("paths") and self._state_scope() == "declared_and_unchanged_rest":
+            baseline_world = self._world_state_remainder(baseline_data.get("world_state", {}))
+            candidate_world = self._world_state_remainder(candidate_data.get("world_state", {}))
+            if baseline_world is _IGNORED or candidate_world is _IGNORED:
+                differences.append(
+                    {
+                        "category": "state_evidence_missing",
+                        "path": "world_state",
+                        "baseline": None if baseline_world is _IGNORED else baseline_world,
+                        "candidate": None if candidate_world is _IGNORED else candidate_world,
+                        "message": "world state remainder is unavailable",
+                    }
+                )
+            else:
+                _state_differences(
+                    differences,
+                    baseline_world,
+                    candidate_world,
+                    "world_state",
                 )
         for assertion in self.assertions:
             path = assertion["path"]
@@ -881,6 +1167,30 @@ class ContractPolicy:
                         "message": "extra tool call is not allowed by path_rules.extra_calls",
                     }
                 )
+            for index, event in path_details.get("retry_limit_exceeded", []):
+                differences.append(
+                    {
+                        "category": "retry_limit_exceeded",
+                        "path": f"tool_calls[{index}]",
+                        "baseline": {
+                            "max_failed_attempts": self._attempt_policy()[
+                                "max_failed_attempts"
+                            ]
+                        },
+                        "candidate": deepcopy(event),
+                        "message": "failed attempts exceeded the configured limit",
+                    }
+                )
+            for group in path_details.get("required_success_missing", []):
+                differences.append(
+                    {
+                        "category": "required_success_missing",
+                        "path": "tool_calls.path",
+                        "baseline": deepcopy(group),
+                        "candidate": "only failed attempts matched this intent",
+                        "message": "a successful event is required after failed attempts",
+                    }
+                )
         for effect in self.side_effects:
             initial_values = _lookup(
                 candidate_data.get("world_state", {}).get("initial", {}),
@@ -957,6 +1267,8 @@ class ContractPolicy:
             for rule in self.path_rules.get("extra_calls", [])
         ]
         first_disallowed_extra_calls: List[tuple[int, Dict[str, Any]]] = []
+        first_retry_limit_exceeded: List[tuple[int, Dict[str, Any]]] = []
+        first_required_success_missing: List[List[Mapping[str, Any]]] = []
         for alternative in self.path_rules.get("any_of", []):
             expected = [
                 {"tool": rule}
@@ -977,6 +1289,14 @@ class ContractPolicy:
                     expected, observed, mode=mode, ordered=ordered
                 )
             if matched_indexes is None:
+                if state_mode in {"outcome", "hybrid"}:
+                    missing_success = self._missing_success_groups(
+                        expected,
+                        observed,
+                        grouped=state_mode == "outcome",
+                    )
+                    if missing_success and not first_required_success_missing:
+                        first_required_success_missing = missing_success
                 continue
             state_mode = self._state_equivalence_mode()
             enforce_state_extras = (
@@ -984,6 +1304,21 @@ class ContractPolicy:
             )
             if not has_extra_allowlist and not enforce_state_extras:
                 return {"passed": True, "disallowed_extra_calls": []}
+            failed_extras = [
+                (index, event)
+                for index, event in enumerate(observed)
+                if index not in matched_indexes
+                and event.get("is_error", False)
+                and self._is_allowed_failed_expected_extra(expected, event)
+            ]
+            max_failed_attempts = self._attempt_policy()["max_failed_attempts"]
+            retry_extras = (
+                failed_extras[max_failed_attempts:]
+                if max_failed_attempts is not None
+                else []
+            )
+            if retry_extras and not first_retry_limit_exceeded:
+                first_retry_limit_exceeded = retry_extras
             disallowed = [
                 (index, event)
                 for index, event in enumerate(observed)
@@ -992,6 +1327,7 @@ class ContractPolicy:
                 and not self._is_allowed_idempotent_extra(expected, event)
                 and not self._is_allowed_failed_expected_extra(expected, event)
             ]
+            disallowed.extend(retry_extras)
             if not disallowed:
                 return {"passed": True, "disallowed_extra_calls": []}
             if not first_disallowed_extra_calls:
@@ -999,6 +1335,8 @@ class ContractPolicy:
         return {
             "passed": False,
             "disallowed_extra_calls": first_disallowed_extra_calls,
+            "retry_limit_exceeded": first_retry_limit_exceeded,
+            "required_success_missing": first_required_success_missing,
         }
 
     def _state_equivalence_config(self) -> Mapping[str, Any]:
@@ -1058,9 +1396,8 @@ class ContractPolicy:
         else:
             groups = [[rule] for rule in expected]
 
-        allow_failed = bool(
-            self._state_equivalence_config().get("allow_failed_expected", False)
-        )
+        attempt_policy = self._attempt_policy()
+        require_success = bool(attempt_policy["require_success"])
 
         def candidates(rules: Sequence[Mapping[str, Any]]) -> List[int]:
             matches = [
@@ -1068,7 +1405,11 @@ class ContractPolicy:
                 for index, event in enumerate(observed)
                 if any(
                     (
-                        (allow_failed or not event.get("is_error", False) or rule.get("is_error") is True)
+                        (
+                            not require_success
+                            or not event.get("is_error", False)
+                            or rule.get("is_error") is True
+                        )
                         and (
                             self._path_rule_matches(rule, event)
                             if grouped
@@ -1132,7 +1473,7 @@ class ContractPolicy:
     ) -> bool:
         if self._state_equivalence_mode() not in {"outcome", "hybrid"}:
             return False
-        if not self._state_equivalence_config().get("allow_failed_expected", False):
+        if not self._attempt_policy()["allow_failed_before_success"]:
             return False
         if not event.get("is_error", False):
             return False

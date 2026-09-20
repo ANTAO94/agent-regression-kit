@@ -286,7 +286,14 @@ def build_tau2_retail_contract(task: Mapping[str, Any]) -> ContractPolicy:
                         "modify_pending_order_items",
                     ]
                 ],
-                "allow_failed_expected": True,
+                "attempt_policy": {
+                    # tau2's external reward can mark an expected write as
+                    # successful even when its tool response is an error;
+                    # preserve that benchmark oracle explicitly.
+                    "require_success": False,
+                    "allow_failed_before_success": True,
+                    "max_failed_attempts": 1,
+                },
                 "idempotent_tools": [
                     "modify_pending_order_address",
                     "modify_user_address",

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v4.12 Configuration Center">
+  <meta name="description" content="Agent Regression Kit v4.13 Configuration Center">
   <title>Configuration Center · Agent Regression Kit</title>
   <style>
     :root {
@@ -452,7 +452,7 @@ get_order -&gt; get_shipping</textarea></div>
           </div>
 
           <div class="subsection">
-            <div class="subsection-head"><h3>状态等价与受控替代路径</h3><span>state_equivalence · v4.12</span></div>
+            <div class="subsection-head"><h3>状态等价与受控替代路径</h3><span>state_equivalence · v4.13</span></div>
             <div class="switch-row">
               <div class="switch-copy"><strong>启用状态等价契约</strong><span>只归并已声明的替代意图，不会自动放宽订单号、租户号或金额</span></div>
               <label class="switch"><input id="stateEquivalenceEnabled" type="checkbox"><span class="slider"></span><span class="sr-only">启用状态等价契约</span></label>
@@ -464,8 +464,32 @@ get_order -&gt; get_shipping</textarea></div>
                 <p class="help">不确定时先用 exact；outcome 只适合已经审核过的替代路径。</p>
               </div>
               <div class="field">
-                <label for="stateAllowFailed">失败尝试</label>
-                <div class="switch-row"><div class="switch-copy"><strong>允许未声明成功的失败尝试</strong><span>仅适用于明确允许重试/降级的业务</span></div><label class="switch"><input id="stateAllowFailed" type="checkbox"><span class="slider"></span><span class="sr-only">允许失败尝试</span></label></div>
+                <label for="stateScope">最终状态比较范围</label>
+                <div class="select-wrap"><select id="stateScope"><option value="declared_only" selected>declared_only · 只检查声明路径</option><option value="declared_and_unchanged_rest">declared_and_unchanged_rest · 其余状态也不能变化</option><option value="full">full · 比较完整 world_state</option></select></div>
+                <p class="help">推荐使用 declared_and_unchanged_rest，避免只检查订单状态却漏掉余额、库存等副作用。</p>
+              </div>
+              <div class="field">
+                <label for="stateAttemptPolicyEnabled">失败尝试策略</label>
+                <div class="switch-row"><div class="switch-copy"><strong>使用严格成功/重试策略</strong><span>失败调用只能出现在成功动作之前，不能单独满足预期</span></div><label class="switch"><input id="stateAttemptPolicyEnabled" type="checkbox" checked><span class="slider"></span><span class="sr-only">使用严格成功/重试策略</span></label></div>
+              </div>
+              <div id="stateAttemptPolicyFields" class="field-grid" style="grid-column:1/-1">
+                <div class="field">
+                  <label for="stateRequireSuccess">必须有成功动作</label>
+                  <div class="switch-row"><div class="switch-copy"><strong>require_success</strong><span>默认开启；只有失败尝试时阻断</span></div><label class="switch"><input id="stateRequireSuccess" type="checkbox" checked><span class="slider"></span><span class="sr-only">要求成功动作</span></label></div>
+                </div>
+                <div class="field">
+                  <label for="stateAllowFailedBeforeSuccess">允许成功前失败尝试</label>
+                  <div class="switch-row"><div class="switch-copy"><strong>allow_failed_before_success</strong><span>仅适用于明确允许重试/降级的业务</span></div><label class="switch"><input id="stateAllowFailedBeforeSuccess" type="checkbox"><span class="slider"></span><span class="sr-only">允许成功前失败尝试</span></label></div>
+                </div>
+                <div class="field">
+                  <label for="stateMaxFailedAttempts">失败尝试上限</label>
+                  <input id="stateMaxFailedAttempts" type="number" min="0" step="1" value="0" placeholder="0">
+                  <p class="help">每个业务意图允许的失败次数；允许失败时必须大于 0。</p>
+                </div>
+              </div>
+              <div class="field" id="stateLegacyField">
+                <label for="stateAllowFailed">旧字段兼容</label>
+                <div class="switch-row"><div class="switch-copy"><strong>allow_failed_expected</strong><span>仅编辑旧配置时使用；新配置请使用上面的严格策略</span></div><label class="switch"><input id="stateAllowFailed" type="checkbox"><span class="slider"></span><span class="sr-only">兼容旧的失败规则</span></label></div>
               </div>
               <div class="field">
                 <label for="stateOutcomePaths">最终状态路径</label>
@@ -769,9 +793,19 @@ get_order -&gt; get_shipping</textarea></div>
           mode: ids("stateEquivalenceMode").value,
           paths: lines(textValue("stateOutcomePaths")),
           ignore_argument_paths: lines(textValue("stateIgnoreArguments")),
-          allow_failed_expected: ids("stateAllowFailed").checked,
+          state_scope: ids("stateScope").value,
           idempotent_tools: lines(textValue("stateIdempotentTools"))
         };
+        if (ids("stateAttemptPolicyEnabled").checked) {
+          const maxFailed = textValue("stateMaxFailedAttempts");
+          value.attempt_policy = {
+            require_success: ids("stateRequireSuccess").checked,
+            allow_failed_before_success: ids("stateAllowFailedBeforeSuccess").checked,
+            max_failed_attempts: maxFailed === "" ? 0 : Number(maxFailed)
+          };
+        } else if (ids("stateAllowFailed").checked) {
+          value.allow_failed_expected = true;
+        }
         const aliases = lines(textValue("stateToolAliases"))
           .map((line) => line.split(",").map((tool) => tool.trim()).filter(Boolean))
           .filter((group) => group.length);
@@ -823,8 +857,16 @@ get_order -&gt; get_shipping</textarea></div>
         const state = config.contract.state_equivalence;
         if (state) {
           if (!["exact", "outcome", "hybrid"].includes(state.mode)) errors.push("state_equivalence.mode 不支持");
+          if (!["declared_only", "declared_and_unchanged_rest", "full"].includes(state.state_scope)) errors.push("state_equivalence.state_scope 不支持");
           ["paths", "ignore_argument_paths", "idempotent_tools"].forEach((key) => { if (!Array.isArray(state[key]) || state[key].some((item) => !item)) errors.push(`state_equivalence.${key} 必须是非空字符串数组`); });
           if (state.tool_aliases !== undefined && (!Array.isArray(state.tool_aliases) || state.tool_aliases.some((group) => !Array.isArray(group) || group.length < 2 || new Set(group).size !== group.length))) errors.push("state_equivalence.tool_aliases 必须是没有重复项的工具组");
+          if (state.state_scope !== "full" && state.paths.length === 0) errors.push("state_equivalence.state_scope 不是 full 时至少需要一条最终状态路径");
+          if (state.attempt_policy) {
+            if (typeof state.attempt_policy.require_success !== "boolean") errors.push("attempt_policy.require_success 必须是布尔值");
+            if (typeof state.attempt_policy.allow_failed_before_success !== "boolean") errors.push("attempt_policy.allow_failed_before_success 必须是布尔值");
+            if (!Number.isInteger(state.attempt_policy.max_failed_attempts) || state.attempt_policy.max_failed_attempts < 0) errors.push("attempt_policy.max_failed_attempts 必须是非负整数");
+            if (state.attempt_policy.max_failed_attempts > 0 && !state.attempt_policy.allow_failed_before_success) errors.push("失败尝试上限需要先开启 allow_failed_before_success");
+          }
         }
         return errors;
       }
@@ -870,6 +912,8 @@ get_order -&gt; get_shipping</textarea></div>
       function render() {
         syncArgumentRuleRows();
         ids("stateEquivalenceFields").classList.toggle("hidden", !ids("stateEquivalenceEnabled").checked);
+        ids("stateAttemptPolicyFields").classList.toggle("hidden", !ids("stateAttemptPolicyEnabled").checked);
+        ids("stateLegacyField").classList.toggle("hidden", ids("stateAttemptPolicyEnabled").checked);
         const config = buildConfig();
         const errors = validateConfig(config);
         ids("jsonPreview").textContent = JSON.stringify(config, null, 2);
@@ -901,10 +945,16 @@ get_order -&gt; get_shipping</textarea></div>
         const stateEquivalence = config.contract && config.contract.state_equivalence;
         ids("stateEquivalenceEnabled").checked = stateEquivalence !== undefined;
         ids("stateEquivalenceMode").value = stateEquivalence && stateEquivalence.mode ? stateEquivalence.mode : "exact";
+        ids("stateScope").value = stateEquivalence && stateEquivalence.state_scope ? stateEquivalence.state_scope : (stateEquivalence && stateEquivalence.paths && stateEquivalence.paths.length ? "declared_only" : "full");
         ids("stateOutcomePaths").value = stateEquivalence && stateEquivalence.paths ? stateEquivalence.paths.join("\n") : "";
         ids("stateIgnoreArguments").value = stateEquivalence && stateEquivalence.ignore_argument_paths ? stateEquivalence.ignore_argument_paths.join("\n") : "";
         ids("stateToolAliases").value = stateEquivalence && stateEquivalence.tool_aliases ? stateEquivalence.tool_aliases.map((group) => group.join(", ")).join("\n") : "";
         ids("stateAllowFailed").checked = Boolean(stateEquivalence && stateEquivalence.allow_failed_expected);
+        const attemptPolicy = stateEquivalence && stateEquivalence.attempt_policy;
+        ids("stateAttemptPolicyEnabled").checked = Boolean(attemptPolicy);
+        ids("stateRequireSuccess").checked = attemptPolicy ? attemptPolicy.require_success !== false : true;
+        ids("stateAllowFailedBeforeSuccess").checked = Boolean(attemptPolicy && attemptPolicy.allow_failed_before_success);
+        ids("stateMaxFailedAttempts").value = attemptPolicy && attemptPolicy.max_failed_attempts !== undefined ? attemptPolicy.max_failed_attempts : "0";
         ids("stateIdempotentTools").value = stateEquivalence && stateEquivalence.idempotent_tools ? stateEquivalence.idempotent_tools.join("\n") : "";
         ids("ignorePaths").value = (config.contract && config.contract.ignore_paths || []).join("\n");
         const configuredAllowlist = config.contract && Object.prototype.hasOwnProperty.call(config.contract, "tool_allowlist") ? config.contract.tool_allowlist : undefined;

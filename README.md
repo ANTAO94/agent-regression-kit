@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.12.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.13.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.12.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.12.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.13.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.12.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.13.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -162,6 +162,32 @@ agent-regression compare --config .agent-regression/config.json
 
 更多规则按需查阅：[配置手册](docs/user-manual.zh-CN.md) · [允许额外查询](examples/path-variation/README.md) · [最终状态和等价动作](docs/state-equivalence.md)。放宽比较时，要同时约束订单号、金额等重要字段和禁止的副作用。
 
+### v4.13 的安全配置：失败尝试和未声明状态
+
+如果一个写操作先失败、没有成功重试，不能只因为工具名和参数相同就让它通过。普通业务
+回归可以使用严格默认值；如果业务确实允许一次失败后重试，必须把策略写出来：
+
+```json
+{
+  "state_equivalence": {
+    "mode": "outcome",
+    "paths": ["world_state.final.orders.123.status"],
+    "state_scope": "declared_and_unchanged_rest",
+    "attempt_policy": {
+      "require_success": true,
+      "allow_failed_before_success": true,
+      "max_failed_attempts": 1
+    }
+  }
+}
+```
+
+这份策略要求：必须有成功动作；最多允许一次失败尝试；声明的订单状态必须存在且相同；其余
+未忽略的 world state 变化也会被报告为 `unexpected_state_change`。如果你继续使用旧的
+`allow_failed_expected`，`agent-regression check --config ...` 会给出迁移诊断，但不会偷偷改变
+旧配置的语义。完整说明见 [v4.13 验收记录](docs/v4.13-acceptance.md) 和
+[成熟度演进方案](docs/maturity-evolution-plan.zh-CN.md)。
+
 ## 4. 怎么接入自己的 Agent？
 
 前面的 `record --scenario` 是脚本演示。接入真实项目时，需要**实际运行你的 Agent，并把工具调用、返回结果和最终输出记录成 Trace**。
@@ -238,7 +264,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.12.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -258,7 +284,7 @@ jobs:
 
 ## 6. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.12 发布记录为 **227 项测试通过**，发布流程验证构建和干净环境安装。
+当前适合本地开发与团队 CI 试点。v4.13 发布记录为 **231 项测试通过**，发布流程验证构建和干净环境安装。
 
 | 验证类型 | 已有证据 | 能说明什么 |
 | --- | --- | --- |
@@ -281,4 +307,4 @@ jobs:
 | 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
 | 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [发布验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)

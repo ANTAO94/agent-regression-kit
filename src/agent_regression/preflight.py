@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
-from .config import load_batch_compare_config, load_compare_config
+from .config import contract_diagnostics, load_batch_compare_config, load_compare_config
 from .model import AgentTrace
 
 
@@ -43,6 +43,7 @@ def check_single_config(path: str | Path) -> Dict[str, Any]:
         "ok": True,
         "kind": "single",
         "config": config,
+        "diagnostics": contract_diagnostics(config),
         "traces": [
             _read_trace(config["baseline"], "baseline"),
             _read_trace(config["candidate"], "candidate"),
@@ -81,6 +82,7 @@ def check_batch_config(path: str | Path) -> Dict[str, Any]:
         "ok": True,
         "kind": "batch",
         "config": config,
+        "diagnostics": contract_diagnostics(config),
         "trace_count": len(summaries),
         "traces": summaries,
     }

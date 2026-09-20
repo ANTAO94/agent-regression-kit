@@ -1,3 +1,4 @@
+from copy import deepcopy
 import unittest
 
 from agent_regression import AgentTrace, ComparisonPolicy, ContractPolicy, compare_traces
@@ -1110,6 +1111,212 @@ class ContractTests(unittest.TestCase):
         report = compare_traces(trace, trace, policy)
         self.assertTrue(report["passed"], report["differences"])
 
+    def test_attempt_policy_requires_success_after_a_failed_attempt(self):
+        policy = ComparisonPolicy(
+            final_answer_mode="claims-only",
+            contract=ContractPolicy.from_dict(
+                {
+                    "path_rules": {
+                        "mode": "unordered_subset",
+                        "any_of": [[
+                            {
+                                "tool": "charge_order",
+                                "arguments": {
+                                    "order_id": "123",
+                                    "payment_method_id": "card-a",
+                                },
+                            }
+                        ]],
+                        "extra_calls": [],
+                    },
+                    "state_equivalence": {
+                        "mode": "outcome",
+                        "attempt_policy": {
+                            "require_success": True,
+                            "allow_failed_before_success": True,
+                            "max_failed_attempts": 1,
+                        },
+                    },
+                }
+            ),
+        )
+        baseline = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"charged": True},
+                    False,
+                )
+            ],
+            run_id="attempt-policy-baseline",
+        )
+        failed_only = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"error": "declined"},
+                    True,
+                )
+            ],
+            run_id="attempt-policy-failed-only",
+        )
+        report = compare_traces(baseline, failed_only, policy)
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "required_success_missing",
+            {item["category"] for item in report["differences"]},
+        )
+
+        retry_then_success = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"error": "declined"},
+                    True,
+                ),
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"charged": True},
+                    False,
+                ),
+            ],
+            run_id="attempt-policy-retry-success",
+        )
+        report = compare_traces(baseline, retry_then_success, policy)
+        self.assertTrue(report["passed"], report["differences"])
+
+        too_many_retries = make_outcome_trace(
+            [
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"error": "declined-1"},
+                    True,
+                ),
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"error": "declined-2"},
+                    True,
+                ),
+                (
+                    "charge_order",
+                    {"order_id": "123", "payment_method_id": "card-a"},
+                    {"charged": True},
+                    False,
+                ),
+            ],
+            run_id="attempt-policy-too-many-retries",
+        )
+        report = compare_traces(baseline, too_many_retries, policy)
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "retry_limit_exceeded",
+            {item["category"] for item in report["differences"]},
+        )
+
+    def test_state_scope_can_block_unexpected_state_changes(self):
+        base_config = {
+            "path_rules": {
+                "any_of": [[
+                    {
+                        "tool": "update_order",
+                        "arguments": {"order_id": "123", "status": "paid"},
+                    }
+                ]]
+            },
+            "state_equivalence": {
+                "mode": "outcome",
+                "paths": ["world_state.final.orders.123.status"],
+            },
+        }
+        baseline = make_outcome_trace(
+            [
+                (
+                    "update_order",
+                    {"order_id": "123", "status": "paid"},
+                    {"updated": True},
+                    False,
+                )
+            ],
+            final_state={
+                "orders": {"123": {"status": "paid"}},
+                "balances": {"user-1": 100},
+            },
+            run_id="state-scope-baseline",
+        )
+        changed_unrelated_state = make_outcome_trace(
+            [
+                (
+                    "update_order",
+                    {"order_id": "123", "status": "paid"},
+                    {"updated": True},
+                    False,
+                )
+            ],
+            final_state={
+                "orders": {"123": {"status": "paid"}},
+                "balances": {"user-1": 0},
+            },
+            run_id="state-scope-changed-balance",
+        )
+        declared_only = compare_traces(
+            baseline,
+            changed_unrelated_state,
+            ComparisonPolicy(
+                final_answer_mode="claims-only",
+                contract=ContractPolicy.from_dict(base_config),
+            ),
+        )
+        self.assertTrue(declared_only["passed"], declared_only["differences"])
+
+        strict_config = deepcopy(base_config)
+        strict_config["state_equivalence"]["state_scope"] = "declared_and_unchanged_rest"
+        strict = compare_traces(
+            baseline,
+            changed_unrelated_state,
+            ComparisonPolicy(
+                final_answer_mode="claims-only",
+                contract=ContractPolicy.from_dict(strict_config),
+            ),
+        )
+        self.assertFalse(strict["passed"])
+        self.assertIn(
+            "unexpected_state_change",
+            {item["category"] for item in strict["differences"]},
+        )
+
+    def test_state_scope_reports_missing_state_evidence(self):
+        config = {
+            "state_equivalence": {
+                "mode": "outcome",
+                "paths": ["world_state.final.orders.123.status"],
+                "state_scope": "declared_and_unchanged_rest",
+            }
+        }
+        empty_state = make_outcome_trace(
+            [],
+            final_state={},
+            run_id="state-evidence-missing",
+        )
+        report = compare_traces(
+            empty_state,
+            empty_state,
+            ComparisonPolicy(
+                final_answer_mode="claims-only",
+                contract=ContractPolicy.from_dict(config),
+            ),
+        )
+        self.assertFalse(report["passed"])
+        self.assertIn(
+            "state_evidence_missing",
+            {item["category"] for item in report["differences"]},
+        )
+
     def test_outcome_mode_keeps_strict_paths_closed_to_unknown_extra_calls(self):
         policy = ComparisonPolicy(
             final_answer_mode="claims-only",
@@ -1177,17 +1384,34 @@ class ContractTests(unittest.TestCase):
                     "ignore_argument_paths": ["payment_method_id"],
                     "tool_aliases": [["tool_a", "tool_b"]],
                     "allow_failed_expected": True,
+                    "attempt_policy": {
+                        "require_success": True,
+                        "allow_failed_before_success": True,
+                        "max_failed_attempts": 2,
+                    },
+                    "state_scope": "declared_and_unchanged_rest",
                     "idempotent_tools": ["update_address"],
                 }
             }
         )
         self.assertEqual("hybrid", policy.to_dict()["state_equivalence"]["mode"])
+        self.assertEqual(
+            "declared_and_unchanged_rest",
+            policy.to_dict()["state_equivalence"]["state_scope"],
+        )
         invalid = [
             {"mode": "fuzzy"},
             {"paths": [""]},
             {"tool_aliases": [["tool_a", "tool_a"]]},
             {"tool_aliases": [["tool_a", "tool_b"], ["tool_b", "tool_c"]]},
             {"allow_failed_expected": "true"},
+            {"state_scope": "fuzzy"},
+            {
+                "attempt_policy": {
+                    "max_failed_attempts": 1,
+                    "allow_failed_before_success": False,
+                }
+            },
         ]
         for value in invalid:
             with self.subTest(value=value):

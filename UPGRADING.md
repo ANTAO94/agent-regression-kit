@@ -4,6 +4,67 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.12.0 → v4.13.0
+
+v4.13 keeps the AgentTrace schema and existing files compatible, but makes two
+state-equivalence boundaries explicit: successful evidence for an expected
+action, and the scope of unchanged world state.
+
+For ordinary application regressions, use the strict policy (these are also the
+defaults when `attempt_policy` is present):
+
+```json
+{
+  "state_equivalence": {
+    "mode": "outcome",
+    "paths": ["world_state.final.orders.123.status"],
+    "state_scope": "declared_and_unchanged_rest",
+    "attempt_policy": {
+      "require_success": true,
+      "allow_failed_before_success": true,
+      "max_failed_attempts": 1
+    }
+  }
+}
+```
+
+This requires a successful matching event, permits at most one failed retry,
+requires declared state evidence and checks the remaining world state for
+unexpected changes. The new blocking categories are
+`required_success_missing`, `retry_limit_exceeded`, `state_evidence_missing`
+and `unexpected_state_change`.
+
+Existing `allow_failed_expected` configurations remain readable and preserve
+their v4.12 behavior. Run `agent-regression config --config ...` or
+`agent-regression check --config ...` to receive a non-blocking
+`legacy_allow_failed_expected` migration diagnostic. Do not mechanically turn
+it on for a normal application: use an explicit non-strict `attempt_policy` only
+when an external benchmark oracle defines the meaning of a failed expected
+write. The τ² adapter is one such documented exception.
+
+v4.13 is additive for traces and baselines. Review any newly added state paths,
+retry limits and negative cases in the same pull request as the Contract.
+See the [v4.13 acceptance record](docs/v4.13-acceptance.md).
+
+## v4.12.0 → v4.13.0（中文）
+
+v4.13 保持 AgentTrace schema 和既有文件兼容，但把两个状态等价边界显式化：预期动作必须有
+成功证据，以及未声明 world state 是否必须保持不变。
+
+普通业务回归建议使用上面的严格策略。它要求成功匹配事件，最多允许一次失败重试，要求声明
+状态证据存在，并检查其余状态是否发生意外变化。新增阻断类别为
+`required_success_missing`、`retry_limit_exceeded`、`state_evidence_missing` 和
+`unexpected_state_change`。
+
+已有 `allow_failed_expected` 配置仍可读取并保持 v4.12 语义。执行
+`agent-regression config --config ...` 或 `agent-regression check --config ...` 会获得非阻断的
+`legacy_allow_failed_expected` 迁移诊断。普通业务不要机械地保留这个旧字段；只有外部 benchmark
+oracle 明确定义“失败写入也算成功”时，才显式使用非严格 `attempt_policy`。τ² 适配器就是一个
+已在验收文档中说明的例外。
+
+v4.13 对 Trace 和 baseline 是增量兼容的，但新增状态路径、重试上限和负向用例应与 Contract
+一起评审。详见 [v4.13 验收记录](docs/v4.13-acceptance.md)。
+
 ## v4.11.0 → v4.12.0
 
 v4.12 is additive. Existing Trace, Contract and comparison policies keep their

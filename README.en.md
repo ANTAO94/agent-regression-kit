@@ -8,7 +8,7 @@
 
 [中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥3.9 · Release v4.12.0 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.13.0 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.12.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.13.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.12.0`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.13.0`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -148,6 +148,36 @@ Paths in a config under `.agent-regression/` resolve relative to the project roo
 
 See the [configuration manual](docs/user-manual.en.md), [path variation example](examples/path-variation/README.md) and [state equivalence guide](docs/state-equivalence.md) for additional rules. When relaxing comparisons, also constrain identifiers, amounts and forbidden side effects.
 
+### v4.13 safety policy: failed attempts and undeclared state
+
+A failed write followed by no successful retry must not pass merely because its
+tool name and arguments match. Ordinary application regressions use the strict
+default. If a business explicitly permits a failed attempt before a retry,
+declare the policy:
+
+```json
+{
+  "state_equivalence": {
+    "mode": "outcome",
+    "paths": ["world_state.final.orders.123.status"],
+    "state_scope": "declared_and_unchanged_rest",
+    "attempt_policy": {
+      "require_success": true,
+      "allow_failed_before_success": true,
+      "max_failed_attempts": 1
+    }
+  }
+}
+```
+
+This requires a successful action, permits at most one failed attempt, requires
+the declared order status to exist and match, and reports other non-ignored
+world-state changes as `unexpected_state_change`. Existing
+`allow_failed_expected` configs still work, but `agent-regression check
+--config ...` emits a migration diagnostic instead of silently changing their
+meaning. See the [v4.13 acceptance record](docs/v4.13-acceptance.md) and the
+[maturity evolution plan](docs/maturity-evolution-plan.zh-CN.md).
+
 ## 4. Connect your own Agent
 
 The earlier `record --scenario` commands execute scripted examples. For your project, actually run the Agent and record its tool calls, results and final output.
@@ -224,7 +254,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.12.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -244,7 +274,7 @@ Run the same commands locally first. Store model credentials in GitHub Secrets a
 
 ## 6. Evidence and current limits
 
-Suitable for local development and team CI pilots. The v4.12 release records **227 passing tests**, package builds and clean-environment installation checks.
+Suitable for local development and team CI pilots. The v4.13 release records **231 passing tests**, package builds and clean-environment installation checks.
 
 | Evidence | Result and scope |
 | --- | --- |
@@ -267,4 +297,4 @@ The kit checks recorded evidence and configured rules. You supply state snapshot
 | Wording changes fail | Extract actual claims and use `claims-only` with business assertions |
 | A valid new path fails | Review its safety, then explicitly configure allowed paths and extra calls |
 
-[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [Acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)

@@ -1,7 +1,7 @@
 # Agent Regression Kit 成熟度提升技术方案（v4.13–v4.16）
 
-> 状态：待实施  
-> 基线版本：v4.12.0  
+> 状态：v4.13 已落地，v4.14–v4.16 持续实施
+> 当前基线版本：v4.13.0
 > 更新时间：2026-09-20  
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -84,7 +84,7 @@ flowchart TD
 | Decision | 使用固定规则对 Trace 作 pass/block 判断 | 读取 benchmark reward 或标签 |
 | Evaluation | 将已冻结决定与外部标签比较 | 修改决定或自动接受 baseline |
 
-## 4. v4.13：契约安全加固
+## 4. v4.13：契约安全加固（已落地）
 
 ### 4.1 需要解决的问题
 
@@ -152,6 +152,10 @@ flowchart TD
 | `retry_limit_exceeded` | 失败尝试超过配置上限 |
 | `unexpected_state_change` | 声明结果相同，但其他未忽略状态发生变化 |
 | `state_evidence_missing` | baseline 或 candidate 缺少必需状态快照 |
+
+实现证据见 [v4.13 验收记录](v4.13-acceptance.md)。v4.13 已完成 231 项本地测试、配置中心
+字段校验、旧字段迁移诊断和固定 τ²-bench 复测；后续 v4.14 仍需要把 benchmark 规则冻结
+与留出评测集隔离，不能把本次复测误认为泛化证明。
 
 ### 4.4 安全测试矩阵
 

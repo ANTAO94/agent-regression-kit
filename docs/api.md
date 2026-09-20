@@ -50,7 +50,7 @@ and tools. Set `isolate=True` when the tools or state backend implements
 
 ## Independent project validation
 
-v4.12 exposes a small, dependency-free bridge for validating a published
+v4.13 exposes a small, dependency-free bridge for validating a published
 external Agent trajectory set without turning the external score into a test
 input:
 
@@ -548,8 +548,11 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   `state_equivalence` supports `exact`, `outcome` and `hybrid` modes. In
   `outcome` mode, `ignore_argument_paths` groups only explicitly declared
   alternative rules; `paths` compares selected baseline/candidate outcome
-  values, while `allow_failed_expected`, `tool_aliases` and `idempotent_tools`
-  remain opt-in. See `docs/state-equivalence.md` for the safety model.
+  values, while `attempt_policy`, `state_scope`, the legacy
+  `allow_failed_expected`, `tool_aliases` and `idempotent_tools` are explicit
+  controls. Missing success evidence, retry-limit violations, missing state
+  evidence and undeclared state changes are reported as structured blocking
+  differences. See `docs/state-equivalence.md` for the safety model.
   A relation compares a candidate JSON path with
   another candidate path or a fixed value using a finite operator set; missing
   evidence and false comparisons block. Put it under the

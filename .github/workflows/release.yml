@@ -82,6 +82,7 @@ jobs:
           test -f "$DOC_ROOT/v4.10-acceptance.md"
           test -f "$DOC_ROOT/v4.11-acceptance.md"
           test -f "$DOC_ROOT/v4.12-acceptance.md"
+          test -f "$DOC_ROOT/v4.13-acceptance.md"
           test -f "$DOC_ROOT/state-equivalence.md"
           test -f "$DOC_ROOT/framework-integrations.md"
           test -f "$DOC_ROOT/deepseek-live.md"

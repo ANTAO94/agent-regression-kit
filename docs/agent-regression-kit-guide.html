@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v4.12 · Usage &amp; Technical Guide</small>
+          <small>v4.13 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -251,7 +251,7 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v4.12.0</span>
+            <span class="badge">v4.13.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
             <span class="badge orange">v4 compatibility gate</span>
@@ -270,7 +270,7 @@
             <a class="badge" href="v4.9-acceptance.md">v4.9 验收说明 →</a>
             <a class="badge" href="v4.10-acceptance.md">v4.10 验收说明 →</a>
             <a class="badge" href="v4.11-acceptance.md">v4.11 独立项目验证 →</a>
-            <a class="badge" href="v4.12-acceptance.md">v4.12 状态等价验收 →</a>
+            <a class="badge" href="v4.13-acceptance.md">v4.13 契约安全验收 →</a>
             <a class="badge" href="state-equivalence.md">状态等价契约说明 →</a>
             <a class="badge" href="tau2-independent-validation.md">tau2-bench 方法说明 →</a>
             <a class="badge" href="../examples/path-variation/README.md">路径变化案例 →</a>
@@ -377,7 +377,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.12.0</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -619,7 +619,7 @@
           </table>
           <div class="callout danger"><div class="icon">!</div><div><strong>目前不是任意 JSONPath / 正则 / 语义判分平台</strong>内核只提供确定的路径、时间戳归一化、列表排序、字段断言和结构化比较。复杂业务语义应在 Adapter 或 claims 中明确表达；不要假设工具包会从一句自然语言自动推断“事实”。</div></div>
           <h3 id="state-equivalence">6.4 状态等价契约：降低误报但不放宽安全边界<a class="anchor-link" href="#state-equivalence">#</a></h3>
-          <p>严格路径适合“每一步都必须一样”的场景，但真实业务可能允许换支付方式、失败后重试或重复执行幂等更新。v4.12 用 <code>state_equivalence</code> 表达这些经过审核的等价关系：只归并你在 <code>path_rules.any_of</code> 中写出的规则，订单号、租户号、金额和资源参数仍然精确检查。</p>
+          <p>严格路径适合“每一步都必须一样”的场景，但真实业务可能允许换支付方式、失败后重试或重复执行幂等更新。v4.13 用 <code>state_equivalence</code> 表达这些经过审核的等价关系，并用 <code>attempt_policy</code> 要求成功证据、用 <code>state_scope</code> 检查未声明状态：只归并你在 <code>path_rules.any_of</code> 中写出的规则，订单号、租户号、金额和资源参数仍然精确检查。</p>
           <div class="grid-2">
             <div class="panel tint-blue">
               <h3>outcome 模式做什么</h3>
@@ -638,7 +638,7 @@
   "allow_failed_expected": true,
   "idempotent_tools": ["modify_pending_order_address"]
 }</code></pre></div>
-          <p class="small">推荐先阅读<a href="state-equivalence.md">状态等价契约说明</a>，再运行正例和负例。完整的 τ²-bench 独立复测在 v4.12 达到 267 true pass、153 true block、0 false alarm、0 missed failure，但这只是固定公开数据集上的证据，不是所有业务都可以照抄的放宽规则。</p>
+          <p class="small">推荐先阅读<a href="state-equivalence.md">状态等价契约说明</a>，再运行正例和负例。完整的 τ²-bench 独立复测在 v4.13 达到 267 true pass、153 true block、0 false alarm、0 missed failure，但这只是固定公开数据集上的证据，不是所有业务都可以照抄的放宽规则。</p>
         </section>
 
         <section id="adapter">
@@ -1059,11 +1059,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.12.0"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.12.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.13.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1290,7 +1290,7 @@ jobs:
               <tr><td><strong>v4.9</strong></td><td>调用次数规则不能表达一个场景是否调用了根本不在业务范围内的工具。</td><td><code>tool_allowlist</code> 场景工具目录、空白名单拒绝全部、参数精确匹配、<code>unauthorized_tool_call</code> 诊断和兼容验收。</td></tr>
               <tr><td><strong>v4.10</strong></td><td>工具即使在白名单内，也可能使用错误租户、错误资源或危险参数。</td><td><code>argument_rules</code>、固定值/Trace 参考路径、<code>exists</code>/<code>absent</code>、<code>tool_argument_policy</code> 诊断和退款边界验收。</td></tr>
               <tr><td><strong>v4.11</strong></td><td>仓库内置样例还不足以证明框架能面对独立项目的真实轨迹分布。</td><td>固定 tau2-bench 零售数据集、半双工轨迹导入、独立 Contract/Reward 混淆矩阵、误报边界、样例 Trace 和 CI 校验。</td></tr>
-              <tr><td><strong>v4.12</strong></td><td>严格参考路径会把最终状态等价的合法替代动作判成误报。</td><td><code>state_equivalence</code> 的 exact/outcome/hybrid 模式、显式意图分组、失败尝试/工具别名/幂等重复边界、最终状态路径和 0 误报/0 漏报独立复测。</td></tr>
+              <tr><td><strong>v4.13</strong></td><td>失败尝试可能代替成功动作，声明状态之外的副作用也可能被漏掉。</td><td><code>attempt_policy</code>、<code>state_scope</code>、缺失成功/状态证据和未声明状态变化阻断、迁移诊断、231 项测试及独立复测。</td></tr>
             </tbody>
           </table>
           <div class="panel tint-blue">
@@ -1348,7 +1348,7 @@ agent-regression migrate trace \
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v4.12.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
+          <p>本文档面向 Agent Regression Kit v4.13.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code>、<a href="v4.11-acceptance.md">v4.11 独立项目验证</a>、<a href="v4.12-acceptance.md">v4.12 状态等价验收</a>、<a href="v4.13-acceptance.md">v4.13 契约安全验收</a> 和 <a href="state-equivalence.md">状态等价契约说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

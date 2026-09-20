@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.12 deliberately stays small. The local Viewer
+Agent Regression Kit v4.13 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -48,13 +48,18 @@ is a read-only presentation layer, not a hosted management service.
   network isolation beyond the CLI's loopback default.
 - `contract.state_equivalence` is an explicit rule system, not semantic
   inference. `ignore_argument_paths` only groups rules already declared by the
-  project; it does not allow arbitrary values. `allow_failed_expected`,
+  project; it does not allow arbitrary values. v4.13's strict
+  `attempt_policy` requires successful evidence by default; failed retries must
+  be explicitly allowed and bounded. The legacy `allow_failed_expected` field
+  remains readable for compatibility but produces migration diagnostics.
   `tool_aliases` and `idempotent_tools` are opt-in and should be paired with
   negative cases. A declared `paths` value must be present in both baseline and
-  candidate or the comparison fails closed.
+  candidate or the comparison fails closed. `state_scope=declared_only` does
+  not inspect undeclared world-state fields; use
+  `declared_and_unchanged_rest` or `full` when that boundary matters.
 - The τ²-bench integration validates a checksum-pinned published half-duplex
   retail result file. It does not run the upstream simulator in core CI, cover
   voice or every domain, imply upstream adoption, or prove performance on a
-  different model/version. v4.12's zero false alarms are measured on that one
+  different model/version. v4.13's zero false alarms are measured on that one
   dataset and do not justify ignoring identifiers, tenants, amounts or resources
   in another project.

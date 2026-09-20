@@ -44,9 +44,14 @@ class ViewerTests(unittest.TestCase):
         for field in (
             'id="stateEquivalenceEnabled"',
             'id="stateEquivalenceMode"',
+            'id="stateScope"',
             'id="stateOutcomePaths"',
             'id="stateIgnoreArguments"',
             'id="stateToolAliases"',
+            'id="stateAttemptPolicyEnabled"',
+            'id="stateRequireSuccess"',
+            'id="stateAllowFailedBeforeSuccess"',
+            'id="stateMaxFailedAttempts"',
             'id="stateAllowFailed"',
             'id="stateIdempotentTools"',
         ):

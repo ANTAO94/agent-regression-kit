@@ -14,7 +14,7 @@ from .batch_record import ScenarioCase, record_scenario_batch
 from .async_record import record_async_run
 from .compare import ComparisonPolicy, compare_traces
 from .compat import run_compatibility_smoke
-from .config import load_batch_compare_config, load_compare_config
+from .config import contract_diagnostics, load_batch_compare_config, load_compare_config
 from .contracts import ContractPolicy
 from .coverage import compare_trace_coverage
 from .history import build_history_report
@@ -654,7 +654,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             loader = load_compare_config if args.kind == "single" else load_batch_compare_config
             loaded = loader(args.config)
-            _write_output({"ok": True, "kind": args.kind, "config": loaded})
+            _write_output(
+                {
+                    "ok": True,
+                    "kind": args.kind,
+                    "config": loaded,
+                    "diagnostics": contract_diagnostics(loaded),
+                }
+            )
             return 0
 
         if args.command == "check":

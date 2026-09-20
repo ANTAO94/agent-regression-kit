@@ -321,7 +321,7 @@ state relationships.
 }
 ```
 
-### v4.12: outcome equivalence and controlled alternatives
+### v4.13: outcome equivalence, success evidence and controlled alternatives
 
 When a business allows different payment methods for one order, a reviewed
 retry after a failed call, or a repeated idempotent update, use
@@ -344,7 +344,12 @@ tenant IDs or amounts.
       "mode": "outcome",
       "paths": ["world_state.final.orders.123.status"],
       "ignore_argument_paths": ["payment_method_id"],
-      "allow_failed_expected": true,
+      "state_scope": "declared_and_unchanged_rest",
+      "attempt_policy": {
+        "require_success": true,
+        "allow_failed_before_success": true,
+        "max_failed_attempts": 1
+      },
       "idempotent_tools": ["modify_pending_order_address"]
     }
   }
@@ -354,12 +359,15 @@ tenant IDs or amounts.
 `exact` keeps the old strict behavior. `outcome` groups declared rules after
 removing ignored fields, but the candidate must still exactly match a tool name
 and all other arguments in the group. `hybrid` keeps each rule separate while
-allowing explicitly configured aliases. `paths` compares the baseline and
-candidate final state and emits `state_equivalence` when it changes. Failed
-attempts, aliases and idempotent repeats are closed by default; enable each
-one deliberately and add negative cases for wrong objects and unauthorized
-resources. See the [state-equivalence guide](state-equivalence.md) for the
-complete field reference.
+allowing explicitly configured aliases. `attempt_policy` requires a successful
+matching event by default; failed retries are allowed only before success and
+up to the configured limit. Failed-only behavior produces
+`required_success_missing`, over-limit retries produce `retry_limit_exceeded`,
+and missing state evidence produces `state_evidence_missing`.
+`state_scope=declared_and_unchanged_rest` also reports
+`unexpected_state_change` for undeclared state changes. See the
+[state-equivalence guide](state-equivalence.md) and [v4.13 acceptance record](v4.13-acceptance.md)
+for the complete field reference.
 
 ### Stateful scenarios and side effects
 
@@ -661,7 +669,7 @@ agent-regression coverage \
 GitHub Actions can reuse the built-in gate:
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.12.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.13.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

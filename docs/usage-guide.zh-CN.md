@@ -309,7 +309,7 @@ v4.10 增加 `argument_rules`，用于把工具参数安全边界写成可执行
 }
 ```
 
-### v4.12：状态等价与受控替代路径
+### v4.13：状态等价、成功证据与受控替代路径
 
 如果业务允许 Agent 在同一个意图下选择不同支付方式、重试一次失败调用，或重复执行
 一个幂等更新，可以使用 `state_equivalence`。它只对 `path_rules.any_of` 中已经写出的
@@ -330,7 +330,12 @@ v4.10 增加 `argument_rules`，用于把工具参数安全边界写成可执行
       "mode": "outcome",
       "paths": ["world_state.final.orders.123.status"],
       "ignore_argument_paths": ["payment_method_id"],
-      "allow_failed_expected": true,
+      "state_scope": "declared_and_unchanged_rest",
+      "attempt_policy": {
+        "require_success": true,
+        "allow_failed_before_success": true,
+        "max_failed_attempts": 1
+      },
       "idempotent_tools": ["modify_pending_order_address"]
     }
   }
@@ -339,9 +344,11 @@ v4.10 增加 `argument_rules`，用于把工具参数安全边界写成可执行
 
 `exact` 保持旧的严格行为；`outcome` 把被忽略字段归并后的已声明规则看作同一个意图，
 但 candidate 仍需精确命中组内工具名和其他参数；`hybrid` 保留每条规则，同时允许显式
-配置的工具别名。`paths` 比较 baseline 与 candidate 的最终状态，变化会生成
-`state_equivalence`。失败尝试、工具别名和幂等重复默认都不允许，必须逐项打开并配套
-错误订单/越权资源的负向测试。完整字段说明见[状态等价契约](state-equivalence.md)。
+配置的工具别名。`attempt_policy` 默认要求成功，失败尝试只能在成功之前按上限允许；只有失败
+没有成功会生成 `required_success_missing`，超过上限会生成 `retry_limit_exceeded`。
+`state_scope=declared_and_unchanged_rest` 会额外检查声明路径以外的状态，并生成
+`unexpected_state_change`。缺少 `paths` 证据会生成 `state_evidence_missing`。完整字段说明见
+[状态等价契约](state-equivalence.md) 和 [v4.13 验收](v4.13-acceptance.md)。
 
 ### 有状态场景和副作用检查
 
@@ -604,7 +611,7 @@ agent-regression coverage \
 GitHub Actions 还可以直接复用：
 
 ```yaml
-- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.12.0
+- uses: ANTAO94/agent-regression-kit/.github/actions/agent-coverage@v4.13.0
   with:
     trace-dir: work/scenarios
     expected-paths: get_order,get_order->cancel_order,get_order->refund

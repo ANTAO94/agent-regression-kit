@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 4.13.0 - 2026-09-20
+
+- Harden state-equivalence action matching with an explicit `attempt_policy`:
+  a failed expected call cannot satisfy a required successful action, failed
+  retries can be bounded, and missing success evidence is reported as
+  `required_success_missing`.
+- Add `state_scope` modes for declared outcomes, declared outcomes plus an
+  unchanged remainder, and full world-state comparison; unexpected undeclared
+  state changes are reported as `unexpected_state_change`.
+- Report missing declared state evidence as `state_evidence_missing` instead of
+  silently treating an absent outcome path as equivalent.
+- Preserve v4.12 `allow_failed_expected` behavior as an explicit compatibility
+  path while surfacing migration diagnostics from `config` and `check`.
+- Add v4.13 configuration-center controls, bilingual acceptance evidence,
+  migration guidance and negative contract tests.
+- Re-run the pinned independent τ²-bench retail dataset: 420 eligible write
+  scenarios, 267 true passes, 153 true blocks, 0 false alarms and 0 missed
+  failures.
+
 ## 4.12.0 - 2026-09-20
 
 - Add explicit `contract.state_equivalence` modes: `exact`, `outcome` and `hybrid`.

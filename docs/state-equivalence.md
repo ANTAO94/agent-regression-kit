@@ -1,10 +1,10 @@
 # State-equivalence contracts / 状态等价契约
 
-This guide describes the v4.12 `contract.state_equivalence` feature. It is
+This guide describes the v4.13 `contract.state_equivalence` feature. It is
 intended for a regression suite where two Agents may take different, reviewed
 actions but must leave the business state in the same acceptable outcome.
 
-本文说明 v4.12 的 `contract.state_equivalence`。它适用于这样的回归场景：两个 Agent
+本文说明 v4.13 的 `contract.state_equivalence`。它适用于这样的回归场景：两个 Agent
 可以采用不同但已经审核过的动作，只要最后留下的业务状态相同且没有越过安全边界，就
 应该通过；它不是“忽略所有差异”的宽松回放。
 
@@ -22,7 +22,8 @@ The candidate has an extra failed attempt and a different routing choice, but
 the order is paid. A strict action-by-action comparison reports a false alarm
 even though the independently checked business outcome is acceptable. The
 opposite mistake is more dangerous: accepting an arbitrary successful call
-because it appears to be “equivalent”. v4.12 separates these two decisions.
+because it appears to be “equivalent”. v4.13 separates intent equivalence,
+success evidence and the scope of unchanged state.
 
 传统流量回放通常把 baseline 的动作列表当成唯一正确答案，例如：
 
@@ -33,7 +34,7 @@ candidate：charge(card-a) → declined → charge(card-b) → paid
 
 candidate 多了一次失败尝试，并且换了支付方式；如果订单最终确实为 `paid`，严格的
 动作逐条比较会产生误报。但如果为了降低误报而接受任意成功调用，又可能放过错误订单、
-越权资源或错误状态。v4.12 把“意图是否等价”和“动作是否安全”分开检查。
+越权资源或错误状态。v4.13 把“意图是否等价”“动作是否成功”和“其余状态是否变化”分开检查。
 
 ## 2. Important terms / 关键名词
 
@@ -47,15 +48,21 @@ candidate 多了一次失败尝试，并且换了支付方式；如果订单最�
 | Exact action | 工具名和未忽略参数必须精确匹配 | Prevents an unrelated order or resource from passing |
 | Idempotent call | 重复执行结果不应改变业务结果的调用 | Must be explicitly listed in `idempotent_tools` |
 | Tool alias | 明确声明的工具语义别名 | Only configured aliases are considered; aliases are not inferred |
+| Attempt policy | 失败尝试与成功证据的规则 | Controls required success, allowed failed retries and the retry limit |
+| State scope | 最终状态检查范围 | Declared paths only, declared paths plus unchanged remainder, or full state |
 
 ## 3. Configuration shape / 配置结构
 
 `state_equivalence` is nested under the same `contract` object used by the
 existing CLI, Python API and reusable GitHub Action. It is optional. Omitting it
-preserves the pre-v4.12 behavior.
+preserves the pre-v4.12 behavior. v4.13 adds explicit `attempt_policy` and
+`state_scope`; old `allow_failed_expected` remains readable and is reported by
+`config`/`check` as a migration diagnostic.
 
 `state_equivalence` 位于现有配置的 `contract` 对象下，CLI、Python API 和 GitHub Action
-都使用同一份配置。字段是可选的；省略时保持 v4.12 之前的严格行为。
+都使用同一份配置。字段是可选的；省略时保持 v4.12 之前的严格行为。v4.13 增加显式
+`attempt_policy` 和 `state_scope`；旧的 `allow_failed_expected` 仍可兼容读取，但
+`config`/`check` 会给出迁移诊断。
 
 ```json
 {
@@ -91,7 +98,12 @@ preserves the pre-v4.12 behavior.
       "ignore_argument_paths": [
         "payment_method_id"
       ],
-      "allow_failed_expected": true,
+      "state_scope": "declared_and_unchanged_rest",
+      "attempt_policy": {
+        "require_success": true,
+        "allow_failed_before_success": true,
+        "max_failed_attempts": 1
+      },
       "idempotent_tools": [
         "modify_pending_order_address"
       ]
@@ -109,6 +121,10 @@ preserves the pre-v4.12 behavior.
 | `ignore_argument_paths` | `[]` | Relative argument paths removed only while grouping declared rules into one intent. It is not a wildcard allowlist for candidate arguments. |
 | `tool_aliases` | `[]` | Lists of tool names with an explicitly reviewed semantic relationship. No aliases are inferred from spelling or result shape. |
 | `allow_failed_expected` | `false` | Allows a candidate error event to satisfy a rule that did not require success. Use only when retry/fallback is a valid business behavior. An explicit `is_error: true` rule is always allowed to match an error. |
+| `attempt_policy.require_success` | `true` | Requires at least one successful matching event for each expected intent. |
+| `attempt_policy.allow_failed_before_success` | `false` | Allows failed matching attempts only as retries before a successful event. |
+| `attempt_policy.max_failed_attempts` | `0` | Maximum failed matching attempts per intent; a positive value requires `allow_failed_before_success`. |
+| `state_scope` | `declared_only` when `paths` exist, otherwise `full` | `declared_only` checks listed paths; `declared_and_unchanged_rest` also checks the remaining world state; `full` compares all world state. |
 | `idempotent_tools` | `[]` | Allows an additional successful call when it exactly matches an already satisfied expected rule. It does not allow a different argument, a failed extra call, or an unlisted tool. |
 
 ## 4. Three modes / 三种模式
@@ -165,14 +181,19 @@ State equivalence is deliberately fail-closed:
    outcome grouping still requires the candidate to match one of the exact
    rules in that group; a successful undeclared alias does not create a new
    valid action.
-4. Failed attempts are not automatically harmless. Set
-   `allow_failed_expected: true` only when the business path explicitly
-   permits retry/fallback, and keep `must_not_call`, `tool_allowlist`,
-   `argument_rules` and `max_steps` in place.
+4. Failed attempts are not automatically harmless. The v4.13 default requires
+   a successful matching event. Set `allow_failed_before_success: true` only
+   when the business path explicitly permits retry/fallback, set a finite
+   `max_failed_attempts`, and keep `must_not_call`, `tool_allowlist`,
+   `argument_rules` and `max_steps` in place. A failed-only path produces
+   `required_success_missing`; an over-limit path produces
+   `retry_limit_exceeded`.
 5. Idempotent repeats must be listed and must match the same arguments. A
    failed repeat is not treated as an allowed extra.
 6. `paths` compare baseline and candidate evidence. A missing baseline or
-   candidate path is a blocking `state_equivalence` difference.
+   candidate path is a blocking `state_evidence_missing` difference. Use
+   `declared_and_unchanged_rest` to block changes outside the declared paths;
+   those differences are reported as `unexpected_state_change`.
 
 状态等价严格遵循 fail-closed 原则：
 
@@ -181,12 +202,14 @@ State equivalence is deliberately fail-closed:
    资源范围通常不能放进忽略列表。
 3. 工具别名必须显式配置；outcome 分组最终仍要求命中组内某条精确规则，不会因为名称相似
    就自动放行一个未声明动作。
-4. 失败尝试不是天然安全的。只有业务确实允许重试/降级时才配置
-   `allow_failed_expected: true`，同时保留 `must_not_call`、`tool_allowlist`、
-   `argument_rules` 和 `max_steps`。
+4. 失败尝试不是天然安全的。v4.13 默认要求成功事件；只有业务确实允许重试/降级时才配置
+   `allow_failed_before_success: true` 并设置有限的 `max_failed_attempts`，同时保留
+   `must_not_call`、`tool_allowlist`、`argument_rules` 和 `max_steps`。只有失败没有成功会生成
+   `required_success_missing`，超过上限会生成 `retry_limit_exceeded`。
 5. 幂等重复必须列入 `idempotent_tools`，并且参数完全相同；失败的重复调用不会被额外放行。
 6. `paths` 会比较 baseline 和 candidate 的证据；任一侧缺失都会生成阻断性的
-   `state_equivalence` 差异。
+   `state_evidence_missing` 差异。使用 `declared_and_unchanged_rest` 可以阻断声明路径之外的
+   状态变化，并生成 `unexpected_state_change`。
 
 ## 6. When to use which rule / 选择规则
 
@@ -194,7 +217,7 @@ State equivalence is deliberately fail-closed:
 | --- | --- |
 | Every call must be identical | `mode: exact`, strict `path_rules` |
 | Payment/provider routing can vary, order must stay exact | `mode: outcome` + ignore only `payment_method_id` |
-| Retry after a known business error is valid | `allow_failed_expected: true` + explicit expected rules |
+| Retry after a known business error is valid | `attempt_policy` with success required, failed retries allowed and a finite limit |
 | Repeating the same address update is harmless | `idempotent_tools` + exact arguments + `extra_calls: []` |
 | Two reviewed APIs implement one operation | `tool_aliases` plus rules for both names; add a negative test for an undeclared alias |
 | Final database status is the real oracle | `paths` under `world_state.final` plus side-effect/argument policies |
@@ -237,7 +260,7 @@ Use `report["differences"]` to inspect `behavior_path`, `extra_tool_call`,
 The report keeps blocking and allowed differences separate; it does not modify
 the baseline.
 
-## 8. v4.12 independent evidence / v4.12 独立证据
+## 8. v4.13 independent evidence / v4.13 独立证据
 
 The pinned τ²-bench retail dataset exposes the practical reason for this
 feature. v4.11's strict action contract correctly blocked every one of 153
@@ -255,11 +278,13 @@ measures 420 eligible write scenarios as:
 | False alarm | 0 |
 | Missed failure | 0 |
 
-The result is evidence on one pinned public dataset, not a universal quality
-claim. Reproduce it with the [independent validation guide](tau2-independent-validation.md)
-and read the [v4.12 acceptance record](v4.12-acceptance.md) before using the
+The v4.13 implementation keeps the same matrix while making the benchmark's
+non-strict success interpretation explicit in its adapter. The result is
+evidence on one pinned public dataset, not a universal quality claim. Reproduce
+it with the [independent validation guide](tau2-independent-validation.md)
+and read the [v4.13 acceptance record](v4.13-acceptance.md) before using the
 numbers in a project announcement.
 
 该结果只代表一份固定的公开数据集，不是对所有模型或生产系统的普遍承诺。请按[独立验证
-说明](tau2-independent-validation.md)复现，并结合 [v4.12 验收记录](v4.12-acceptance.md)
+说明](tau2-independent-validation.md)复现，并结合 [v4.13 验收记录](v4.13-acceptance.md)
 理解边界。

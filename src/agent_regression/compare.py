@@ -200,6 +200,11 @@ def compare_traces(
         and state_mode == "outcome"
         and (contract.state_equivalence or {}).get("paths")
     )
+    contract_owns_world_state = bool(
+        contract
+        and (contract.state_equivalence or {}).get("paths")
+        and contract._state_scope() in {"declared_only", "declared_and_unchanged_rest"}
+    )
     baseline_calls = _events(baseline, "tool_call")
     candidate_calls = _events(candidate, "tool_call")
     baseline_call_ordinals = {
@@ -266,7 +271,7 @@ def compare_traces(
         )
     baseline_world = baseline.metadata.get("world_state")
     candidate_world = candidate.metadata.get("world_state")
-    if (baseline_world is not None or candidate_world is not None) and not declared_outcome_paths:
+    if (baseline_world is not None or candidate_world is not None) and not contract_owns_world_state:
         left_world = baseline_world or {}
         right_world = candidate_world or {}
         if contract:

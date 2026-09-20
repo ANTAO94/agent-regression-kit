@@ -72,6 +72,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("v4.10-acceptance.md", workflow)
         self.assertIn("v4.11-acceptance.md", workflow)
         self.assertIn("v4.12-acceptance.md", workflow)
+        self.assertIn("v4.13-acceptance.md", workflow)
         self.assertIn("state-equivalence.md", workflow)
         self.assertIn("maturity-evolution-plan.zh-CN.md", workflow)
         self.assertIn("generate_release_metadata.py", workflow)
