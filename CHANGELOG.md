@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.21.0 - 2026-09-21
+
+- Add an AgentDojo bridge that converts exported runs to validated AgentTrace
+  without copying upstream utility/security labels into evidence or Contracts.
+- Support both string-function and object-function AgentDojo tool-call shapes,
+  plus required/forbidden tool Contract checks and source SHA-256 binding.
+- Add an immutable AgentDojo independent-source CI smoke, report/Trace artifact,
+  bilingual v4.21 acceptance record and focused regression tests.
+- Keep the evidence boundary explicit: one pinned run is an integration smoke,
+  not a full AgentDojo benchmark or universal security/generalization claim.
+
 ## 4.20.0 - 2026-09-21
 
 - Add `split_tau2_payload_by_task`, a label-independent SHA-256 task-ID split

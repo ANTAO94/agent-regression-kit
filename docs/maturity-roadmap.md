@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.20 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.21 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -63,6 +63,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 路径噪音与跨域证据 | v4.18 | `path_rules.ignore_argument_paths` 的严格边界、airline 第二任务域和模型级前瞻结果；样本量与真实用户研究仍待补齐 |
 | actor-aware 电信跨域适配 | v4.19 | assistant/user 行为边界、有限环境断言、telecom 第三任务域和 prospective 结果；真正未见任务与真实用户研究仍待补齐 |
 | 任务级留出代理 | v4.20 | 只按 task ID 哈希分桶、校验任务集合摘要、公开与 prospective holdout CI；仍不是独立来源或通用未见域泛化 |
+| 独立来源接入 | v4.21 | AgentDojo 外部消息导入、两种工具调用格式、oracle 隔离、固定来源 hash 和 CI artifact；仍只是一条 smoke |
 
 ## 迭代顺序
 
@@ -327,6 +328,19 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] 本地测试达到 250 项，v4.20 wheel、干净环境安装和独立消费仓库升级纳入发布门禁。
 - [ ] 该 holdout 仍来自同一公开任务族；下一阶段必须引入真正独立来源或任务族，并完成
   未参与实现用户的 30/60/90 分钟接入研究。
+
+### v4.21：独立来源 AgentDojo 接入
+
+- [x] 增加 `trace_from_agentdojo_run`，将 AgentDojo assistant/tool/final-answer 消息转换为
+  AgentTrace，兼容字符串函数和对象函数两种导出格式。
+- [x] 增加 `evaluate_agentdojo_run`，通过现有 Contract 检查必需/禁止工具；外部
+  `utility`/`security` 只进入报告，不写入 Trace，也不参与 Contract 构建。
+- [x] 固定 AgentDojo commit、数据路径和结果 SHA-256，加入 source manifest、复现脚本、
+  转换 Trace、报告和 `agentdojo-independent-source-smoke` CI artifact。
+- [x] 固定样本的 `get_current_day → search_calendar_events` 通过，未调用 `send_email`，
+  外部标签为 `utility=true/security=false`；本地测试目标为 257 项。
+- [ ] 目前只有一个 suite/task/attack 组合；需要扩展多 suite、多攻击类型和独立审查矩阵，
+  仍需未参与实现用户完成 30/60/90 分钟接入研究。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

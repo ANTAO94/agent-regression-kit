@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.20.0 source. Package version 4.20.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
+Based on v4.21.0 source. Package version 4.21.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -375,11 +375,23 @@ published task family, so this is a reproducible task-level holdout proxy, not
 independent-source or universal unseen-domain generalization. See the [v4.20
 acceptance record](v4.20-acceptance.md).
 
+v4.21 adds an independent-source AgentDojo bridge. `trace_from_agentdojo_run`
+converts exported assistant/tool/final-answer messages into a validated
+AgentTrace, while `evaluate_agentdojo_run` checks required and forbidden tools
+with this project's Contract. The bridge accepts both string-function and
+object-function export shapes, and keeps upstream `utility`/`security` values
+as external oracle labels only: they are never written into the Trace or used
+to derive the Contract. The pinned sample passes the
+`get_current_day → search_calendar_events` path without calling `send_email`
+and records `utility=true/security=false`. This is an independent-source
+integration smoke, not a full AgentDojo benchmark or universal security claim;
+see the [v4.21 acceptance record](v4.21-acceptance.md).
+
 See [the full methodology](tau2-independent-validation.md), the
 [state-equivalence guide](state-equivalence.md), the [v4.12 acceptance
 record](v4.12-acceptance.md) and the [v4.13 acceptance record](v4.13-acceptance.md) for field mappings, limitations, sample traces and
 CI behavior.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Telecom reproduction](../examples/tau2-telecom/README.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.20.0) · [v4.20 acceptance](v4.20-acceptance.md) · [v4.19 acceptance](v4.19-acceptance.md) · [v4.18 acceptance](v4.18-acceptance.md) · [v4.17 acceptance](v4.17-acceptance.md) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Telecom reproduction](../examples/tau2-telecom/README.md) · [AgentDojo intake](v4.21-acceptance.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.21.0) · [v4.21 acceptance](v4.21-acceptance.md) · [v4.20 acceptance](v4.20-acceptance.md) · [v4.19 acceptance](v4.19-acceptance.md) · [v4.18 acceptance](v4.18-acceptance.md) · [v4.17 acceptance](v4.17-acceptance.md) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

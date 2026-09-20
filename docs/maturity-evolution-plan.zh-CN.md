@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.20）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.21）
 
-> 状态：v4.20 已落地，继续进入真正独立来源与真实用户验证
-> 当前基线版本：v4.20.0
+> 状态：v4.21 已落地，继续扩展独立来源矩阵与真实用户验证
+> 当前基线版本：v4.21.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.20 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.21 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.20 目标 |
+| 维度 | v4.12 现状 | v4.21 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -44,6 +44,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
 | 路径噪音控制 | 传输字段容易被误当作业务差异 | 路径规则显式忽略未建模字段，显式业务字段仍严格匹配 |
 | 跨任务域证据 | 只有 retail 结果 | airline 和 telecom 分别记录域内误报、漏报、actor 边界和样本不足限制 |
 | 任务级留出 | 没有任务级分区 | 只按 task ID 哈希生成互斥 holdout，记录集合摘要并在 CI 独立验收 |
+| 独立来源接入 | 只有 tau² 任务族 | 外部 AgentDojo 消息可导入、来源可校验、oracle 与 Trace 隔离；多样本矩阵仍待补齐 |
 
 ### 最终通过条件
 
@@ -503,6 +504,31 @@ v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `
 称为独立来源或通用未见域泛化；下一阶段必须引入真正独立来源/任务族，并由未参与实现的
 使用者完成 30/60/90 分钟接入研究。
 
+### 7.9 v4.21：独立来源 AgentDojo 接入（已落地）
+
+v4.21 把“独立来源”从文档边界推进为一个真实可运行的接入路径。AgentDojo 和 tau² 的
+数据结构不同：它以消息列表表示 assistant/tool 交互，并在同一运行文件中提供
+`utility`/`security` 结果。接入层必须把可观察行为和外部 oracle 分开，否则评测框架会
+把答案标签偷偷变成输入。
+
+- 新增 `trace_from_agentdojo_run`：读取 assistant tool call、tool result 和最后的
+  assistant answer，生成连续且可校验的 AgentTrace；忽略 system/user 原始自由文本，避免
+  把外部数据直接复制进核心证据；
+- 兼容 AgentDojo 固定文件的 `function: "tool", args: {...}`，以及常见导出器的
+  `function: {"name": "tool", "args": {...}` 两种格式；重复 call ID、缺少结果和缺少最终
+  回答均失败关闭；
+- 新增 `evaluate_agentdojo_run`：调用现有 `ContractPolicy.check` 检查必需/禁止工具，
+  把上游 `utility`/`security` 仅保存在 `external_oracle` 报告字段，不写入 Trace metadata，
+  不从标签生成 Contract；
+- 固定 `ethz-spylab/agentdojo` commit、数据路径和结果 SHA-256，CI 下载后校验 hash，输出
+  报告、转换 Trace 和 Job Summary；固定样本通过 `get_current_day → search_calendar_events`
+  路径，未调用 `send_email`，外部标签为 `utility=true/security=false`；
+- 本地测试目标达到 257 项，并在双语 v4.21 验收文档中明确：这是一个独立来源接入 smoke，
+  不是完整 AgentDojo 重跑、通用安全率或跨来源泛化证明。
+
+下一阶段应至少扩展 AgentDojo 的多个 suite/attack 组合，增加独立审查的正负样本矩阵，并
+让未参与实现的用户按 30/60/90 分钟协议完成接入；不能用一个通过样本替代这些证据。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -522,6 +548,9 @@ v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `
 | `src/agent_regression/tau2.py` | task ID 分区、任务集合摘要和标签无关的 holdout provenance |
 | `examples/tau2_telecom_holdout_validation.py` | task-disjoint 分区校验、telecom holdout 评分和 sample Trace 导出 |
 | `examples/tau2-telecom/task-split.json` | 冻结的 114-task 分区定义与摘要 |
+| `src/agent_regression/agentdojo.py` | AgentDojo 消息导入、格式兼容、Contract 检查和 oracle 隔离 |
+| `examples/agentdojo_validation.py` | 固定来源 hash 校验、外部标签 gate 和 Trace/report 导出 |
+| `examples/agentdojo/source.json` | AgentDojo 不可变 revision、结果摘要和预期 oracle |
 
 ## 9. CI 结构
 
@@ -537,6 +566,7 @@ v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `
 | cross-domain-telecom | 修改 tau2 adapter 或 telecom manifest 时 | published telecom gate 必须通过；actor 边界和 prospective threshold 单独记录 |
 | task-disjoint-telecom-holdout | 修改 tau2 分区、telecom adapter 或 holdout manifest 时 | published holdout gate 必须通过；只按 task ID 分区，结果单独评分 |
 | task-disjoint-o4-telecom-holdout | 候选版本或 prospective 结果更新时 | prospective holdout 观察阈值必须通过并保留完整 artifact |
+| agentdojo-independent-source-smoke | AgentDojo importer、Contract 或 source manifest 改动时 | 固定结果 hash、Contract 和 oracle 预期必须通过 |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
 | release | tag 推送时 | 是 |
 
@@ -545,7 +575,7 @@ v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.20 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.21 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -573,7 +603,7 @@ v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.20 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.21 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -587,6 +617,7 @@ v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `
 6. **v4.18**：路径噪音字段的显式边界和 airline 第二任务域证据。
 7. **v4.19**：telecom actor-aware 适配器、环境断言和第三任务域证据。
 8. **v4.20**：task-disjoint holdout 分区、任务集合摘要和 telecom 留出 CI。
+9. **v4.21**：AgentDojo 独立来源导入、oracle 隔离和固定样本 CI smoke。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布
@@ -606,6 +637,7 @@ v4.20 的证据仍有明确边界：calibration 和 holdout 共享同一公开 `
 - 一份结果字节与 source manifest 哈希绑定的 prospective 评测报告；
 - 一份不同任务域的独立评测报告，并明确样本不足和阈值放宽边界；
 - 一份只按 task ID 分区、在决策前不读取 reward 的 holdout 报告，并明确同任务族限制；
+- 一份来自独立 Agent 评测生态的固定来源报告，证明外部 oracle 与 Trace/Contract 输入隔离；
 - 完整的升级、限制和安全说明。
 
 这些证据齐全后，可以把项目描述为成熟的本地/CI Agent 回归框架。托管后台、多租户权限、

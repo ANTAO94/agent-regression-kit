@@ -90,6 +90,7 @@ jobs:
           test -f "$DOC_ROOT/v4.18-acceptance.md"
           test -f "$DOC_ROOT/v4.19-acceptance.md"
           test -f "$DOC_ROOT/v4.20-acceptance.md"
+          test -f "$DOC_ROOT/v4.21-acceptance.md"
           test -f "$DOC_ROOT/performance.md"
           test -f "$DOC_ROOT/consumer-pilot.md"
           test -f "$DOC_ROOT/state-equivalence.md"

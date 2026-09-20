@@ -8,7 +8,7 @@
 
 [中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥3.9 · Release v4.20.0 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.21.0 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.20.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.21.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.20.0`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.21.0`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -278,7 +278,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.20.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.21.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -329,7 +329,7 @@ time regression on like-for-like environments.
 
 ## 8. Evidence and current limits
 
-Suitable for local development and team CI pilots. The v4.20 release records **250 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade and three task-domain validations.
+Suitable for local development and team CI pilots. The v4.21 release records **257 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, three task-domain validations and an independent AgentDojo source smoke.
 
 | Evidence | Result and scope |
 | --- | --- |
@@ -343,6 +343,7 @@ Suitable for local development and team CI pilots. The v4.20 release records **2
 | Second task domain | [τ² airline validation](docs/tau2-independent-validation.md): 120 eligible scenarios, 69 failures, 100% failure recall and 3.92% false-alarm rate | Shows cross-domain contract transfer; not a guarantee for every unseen task distribution |
 | Third domain and actor boundary | [τ² telecom validation](docs/tau2-independent-validation.md): 364 assistant-write scenarios; published 147/217/0/0; prospective o4-mini recall 98.63% and 6.21% false alarms | Shows simulator/user actions do not masquerade as Agent behavior; environment parsing remains bounded and domain-specific |
 | Task-level holdout proxy | [τ² telecom holdout](docs/v4.20-acceptance.md): 28 disjoint holdout tasks and 100 eligible scenarios; published 47/53/0/0, prospective 50/46/4/0 | Split reads task IDs only; both partitions remain from the same public task family |
+| Independent source intake | [AgentDojo v4.21 smoke](docs/v4.21-acceptance.md): pinned commit/result SHA-256, two imported tool calls, passing Contract and `utility=true/security=false` | Proves external trace format and oracle isolation; one sample is not a full security or generalization claim |
 
 τ² equivalence rules were adjusted using errors from this dataset, then retested on the same data. **These are not held-out generalization results.** This integration imports published trajectories; it does not run the upstream simulator or imply upstream adoption.
 
@@ -359,4 +360,4 @@ The kit checks recorded evidence and configured rules. You supply state snapshot
 | Wording changes fail | Extract actual claims and use `claims-only` with business assertions |
 | A valid new path fails | Review its safety, then explicitly configure allowed paths and extra calls |
 
-[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Performance baseline](docs/performance.md) · [Independent consumer pilot](docs/consumer-pilot.md) · [τ² independent validation](docs/tau2-independent-validation.md) · [Airline reproduction](examples/tau2-airline/README.md) · [Telecom reproduction](examples/tau2-telecom/README.md) · [Telecom holdout acceptance](docs/v4.20-acceptance.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.19 acceptance](docs/v4.19-acceptance.md) · [v4.18 acceptance](docs/v4.18-acceptance.md) · [v4.17 acceptance](docs/v4.17-acceptance.md) · [v4.16 acceptance](docs/v4.16-acceptance.md) · [v4.15 acceptance](docs/v4.15-acceptance.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Performance baseline](docs/performance.md) · [Independent consumer pilot](docs/consumer-pilot.md) · [τ² independent validation](docs/tau2-independent-validation.md) · [Airline reproduction](examples/tau2-airline/README.md) · [Telecom reproduction](examples/tau2-telecom/README.md) · [Telecom holdout acceptance](docs/v4.20-acceptance.md) · [AgentDojo v4.21 acceptance](docs/v4.21-acceptance.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.20 acceptance](docs/v4.20-acceptance.md) · [v4.19 acceptance](docs/v4.19-acceptance.md) · [v4.18 acceptance](docs/v4.18-acceptance.md) · [v4.17 acceptance](docs/v4.17-acceptance.md) · [v4.16 acceptance](docs/v4.16-acceptance.md) · [v4.15 acceptance](docs/v4.15-acceptance.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)

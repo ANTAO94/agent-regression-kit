@@ -37,6 +37,7 @@ from .framework_integrations import (
     trace_from_pydantic_ai_result,
 )
 from .deepseek import DeepSeekAPIError, record_deepseek_tool_run
+from .agentdojo import evaluate_agentdojo_run, trace_from_agentdojo_run
 from .mcp import (
     McpProtocolError,
     McpEventStream,

@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.20.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.21.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.20.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.21.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.20.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.21.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.20.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.21.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -599,6 +599,32 @@ agent-regression performance gate \
 The default gate warns above 20% and blocks above 40% elapsed-time regression
 on like-for-like Python/OS/hardware. See the [performance guide](performance.md)
 and [v4.16 acceptance](v4.16-acceptance.md).
+
+### v4.21: independent AgentDojo source intake
+
+v4.21 adds a runtime-free bridge for an exported AgentDojo run. It converts
+assistant/tool/final-answer messages into `AgentTrace`, then checks required and
+forbidden tools with this project's Contract. Upstream `utility`/`security`
+values remain external oracle labels in the report: they are not written into
+the Trace and are not used to derive the Contract.
+
+```bash
+mkdir -p work/agentdojo
+curl -L -o work/agentdojo/run.json \
+  https://raw.githubusercontent.com/ethz-spylab/agentdojo/089ed468cf3ed0322acc66b0211f26d9d90dbf60/runs/gpt-4o-2024-05-13/workspace/user_task_0/direct/injection_task_0.json
+shasum -a 256 work/agentdojo/run.json
+PYTHONPATH=src python examples/agentdojo_validation.py \
+  --results work/agentdojo/run.json \
+  --source-manifest examples/agentdojo/source.json \
+  --out work/agentdojo/report.json \
+  --trace-out work/agentdojo/agent-trace.json
+```
+
+The pinned sample contains `get_current_day → search_calendar_events`, does not
+call the forbidden `send_email` tool, passes the Contract and records
+`utility=true/security=false`. This is an independent-source integration smoke,
+not the full AgentDojo benchmark or a universal security claim. See the
+[v4.21 acceptance](v4.21-acceptance.md) for the boundary.
 
 ### v4.20: task-level holdout proxy
 

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "src/agent_regression/tau2.py"
+      - "src/agent_regression/agentdojo.py"
       - "src/agent_regression/contracts.py"
       - "src/agent_regression/compare.py"
       - "examples/tau2_retail_validation.py"
@@ -13,13 +14,18 @@ on:
       - "examples/tau2_telecom_validation.py"
       - "examples/tau2_telecom_holdout_validation.py"
       - "examples/tau2-telecom/**"
+      - "examples/agentdojo_validation.py"
+      - "examples/agentdojo/**"
       - "tests/test_tau2.py"
+      - "tests/test_agentdojo.py"
+      - "tests/test_agentdojo_validation.py"
       - "tests/test_contracts.py"
       - ".github/workflows/tau2-independent-validation.yml"
   push:
     branches: [main]
     paths:
       - "src/agent_regression/tau2.py"
+      - "src/agent_regression/agentdojo.py"
       - "src/agent_regression/contracts.py"
       - "src/agent_regression/compare.py"
       - "examples/tau2_retail_validation.py"
@@ -29,7 +35,11 @@ on:
       - "examples/tau2_telecom_validation.py"
       - "examples/tau2_telecom_holdout_validation.py"
       - "examples/tau2-telecom/**"
+      - "examples/agentdojo_validation.py"
+      - "examples/agentdojo/**"
       - "tests/test_tau2.py"
+      - "tests/test_agentdojo.py"
+      - "tests/test_agentdojo_validation.py"
       - "tests/test_contracts.py"
       - ".github/workflows/tau2-independent-validation.yml"
   workflow_dispatch:
@@ -482,3 +492,49 @@ jobs:
         with:
           name: tau2-task-disjoint-o4-telecom-holdout
           path: work/tau2-telecom-holdout-prospective/
+
+  agentdojo-independent-source-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install Agent Regression Kit
+        run: python -m pip install .
+      - name: Download the immutable AgentDojo run
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/agentdojo
+          curl --fail --location --retry 3 \
+            --output work/agentdojo/run.json \
+            "https://raw.githubusercontent.com/ethz-spylab/agentdojo/089ed468cf3ed0322acc66b0211f26d9d90dbf60/runs/gpt-4o-2024-05-13/workspace/user_task_0/direct/injection_task_0.json"
+          echo "5b5b6941039684ff7c067eeda9e737c9a3884982e02ff8f6b4f84efd16b5d625  work/agentdojo/run.json" \
+            | shasum -a 256 -c -
+      - name: Convert and gate the independent AgentDojo run
+        run: |
+          python examples/agentdojo_validation.py \
+            --results work/agentdojo/run.json \
+            --source-manifest examples/agentdojo/source.json \
+            --out work/agentdojo/report.json \
+            --trace-out work/agentdojo/agent-trace.json
+      - name: Publish the independent-source summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          report = json.load(open("work/agentdojo/report.json"))
+          print("## AgentDojo independent-source smoke")
+          print()
+          print(f"- Suite/task: {report['provenance']['suite_name']} / {report['provenance']['user_task_id']}")
+          print(f"- Contract passed: {report['contract_passed']}")
+          print(f"- External utility/security: {report['external_oracle']}")
+          print(f"- Result SHA-256: {report['provenance']['result_sha256']}")
+          print(f"- Gate: {report['gate']['passed']}")
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: agentdojo-independent-source-smoke
+          path: work/agentdojo/

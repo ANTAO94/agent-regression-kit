@@ -82,6 +82,13 @@ input:
   holdout payloads using only SHA-256 task-ID buckets. It returns task-set
   digests and a label-boundary note; reward values are not consulted while
   selecting the split.
+- `trace_from_agentdojo_run(run, source=None, run_id=None, agent=None)` converts
+  an exported AgentDojo message run into a validated `AgentTrace`, accepting
+  both string-function and object-function tool-call shapes. Its external
+  `utility`/`security` labels remain outside the Trace.
+- `evaluate_agentdojo_run(run, contract, source=None)` applies a deterministic
+  Contract to the imported run and returns the Contract diagnostics plus the
+  external oracle labels in a separate report.
 
 ## Benchmark governance
 
@@ -144,6 +151,11 @@ The v4.20 telecom example adds a task-disjoint holdout proxy. Its split
 definition is hashed and checked before evaluation; because the source remains
 the same published task family, the result must still be described as a
 task-level holdout proxy rather than universal unseen-domain generalization.
+
+The v4.21 AgentDojo bridge is an independent-source intake smoke. It validates
+the upstream result SHA-256, converts observable messages only, and checks
+required/forbidden tools without using `utility`/`security` to derive the
+Contract. See [`docs/v4.21-acceptance.md`](v4.21-acceptance.md).
 
 ## Recording
 

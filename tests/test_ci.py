@@ -142,6 +142,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("6d6badb43b716adca31591b0b40e15fd493b49adddaa8e2c47035bb557549257", workflow)
         self.assertIn('"src/agent_regression/contracts.py"', workflow)
         self.assertIn('"src/agent_regression/compare.py"', workflow)
+        self.assertIn('"src/agent_regression/agentdojo.py"', workflow)
         self.assertIn("tau2_retail_validation.py", workflow)
         self.assertIn("tau2_airline_validation.py", workflow)
         self.assertIn("tau2_telecom_validation.py", workflow)
@@ -157,6 +158,12 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("tau2-prospective-o4-telecom", workflow)
         self.assertIn("tau2-task-disjoint-telecom-holdout", workflow)
         self.assertIn("tau2-task-disjoint-o4-telecom-holdout", workflow)
+        self.assertIn("agentdojo_validation.py", workflow)
+        self.assertIn("agentdojo-independent-source-smoke", workflow)
+        self.assertIn(
+            "5b5b6941039684ff7c067eeda9e737c9a3884982e02ff8f6b4f84efd16b5d625",
+            workflow,
+        )
         self.assertIn("report.json", workflow)
         self.assertIn("sample-traces", workflow)
         self.assertIn("actions/upload-artifact@v7", workflow)
