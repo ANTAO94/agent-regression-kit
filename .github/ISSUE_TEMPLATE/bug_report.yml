@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible defect without secrets or private Trace data.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not report vulnerabilities or paste credentials here. Use private security reporting.
+  - type: input
+    id: version
+    attributes:
+      label: Agent Regression Kit version
+      placeholder: 4.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Affected boundary
+      options:
+        - Trace / comparison / Contract
+        - CLI / configuration
+        - MCP
+        - Framework integration
+        - Reports / Viewer
+        - Packaging / CI
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic data and include the exact command and exit code.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data safety
+      options:
+        - label: I removed credentials, customer data and private Trace content.
+          required: true

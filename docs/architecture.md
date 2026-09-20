@@ -2,7 +2,7 @@
 
 See the [current technical design](technical-design.en.md) / [中文技术方案](technical-design.zh-CN.md) for a layered explanation, exact replay semantics and failure boundaries.
 
-This document describes Agent Regression Kit v3.4 and its local Viewer. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
+This document describes Agent Regression Kit v4.4 and its local Viewer. The core question is: how does a live or scripted agent run become deterministic regression evidence without coupling comparison logic to an agent framework, leaking mutable test state between cases, making a large scenario suite run serially, hiding repeat-run instability, losing meaning when tools finish asynchronously, forcing every integration author to rediscover the adapter boundary, or losing long-term trend context between releases?
 
 ```mermaid
 flowchart TD
@@ -177,4 +177,4 @@ state.
 
 ## Version boundaries
 
-Agent Regression Kit v3.4 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, parallel-run summaries, stability reports, async execution metadata, adapter-template files, history reports, and report indexes are optional, so v2.4-v3.3 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.
+Agent Regression Kit v4.4 writes AgentTrace schema version `0.1` and AgentSession schema version `0.1`. Product and evidence-schema versions are independent so the package can evolve without silently changing stored evidence. World snapshots, sessions, coverage metadata, isolation metadata, parallel-run summaries, stability reports, async execution metadata, adapter-template files, history reports, and report indexes are optional, so v2.4-v3.3 traces remain readable. The MCP clients and bundled fixtures are pinned to protocol revision `2025-11-25`; future protocol revisions belong in separate transports or an explicit compatibility layer.

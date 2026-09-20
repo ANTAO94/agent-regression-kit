@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.4.0 - 2026-09-20
+
+- Add SHA-256 release checksums and an SPDX 2.3 release SBOM generated without third-party runtime dependencies.
+- Add signed SLSA provenance and SBOM attestations to tagged GitHub releases.
+- Add bilingual vulnerability reporting, community conduct, issue templates and weekly dependency updates.
+- Upgrade official GitHub Actions to their Node 24-based v7 releases and fix stale limitations-version documentation.
+
 ## 4.3.0 - 2026-09-20
 
 - Surface real PydanticAI, OpenAI Agents, LangGraph, LangChain Core and hosted DeepSeek evidence prominently in the bilingual README.

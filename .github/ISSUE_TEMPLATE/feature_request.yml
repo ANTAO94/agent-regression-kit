@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a concrete Agent regression use case and acceptance evidence.
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the regression that cannot currently be detected.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Desired evidence and acceptance rule
+      description: Explain the Trace events, Contract, and pass/fail behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Compatibility and safety impact
+      description: Note affected schemas, public APIs, side effects, and sensitive data.
+    validations:
+      required: true

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Agent Regression Kit v4.3 完整使用说明、接入指南和技术文档">
-  <title>Agent Regression Kit v4.3 · 完整使用与技术文档</title>
+  <meta name="description" content="Agent Regression Kit v4.4 完整使用说明、接入指南和技术文档">
+  <title>Agent Regression Kit v4.4 · 完整使用与技术文档</title>
   <style>
     :root {
       --ink: #152235;
@@ -210,7 +210,7 @@
         <div class="brand-mark">AR</div>
         <div>
           <strong>Agent Regression Kit</strong>
-          <small>v4.3 · Usage &amp; Technical Guide</small>
+          <small>v4.4 · Usage &amp; Technical Guide</small>
         </div>
       </div>
       <div class="nav-label">Start here</div>
@@ -250,7 +250,7 @@
           <h1>Agent Regression Kit<br><span style="color: var(--blue)">完整使用与技术文档</span></h1>
           <p class="lead">把一次 AI Agent 运行变成可保存、可审核、可比较、可放进 CI 的回归证据。它不替你训练模型，也不替你“猜”答案是否正确；它让工具调用、参数、结果、结构化结论、流程和状态变化都变得可见。</p>
           <div class="badges">
-            <span class="badge">v4.3.0</span>
+            <span class="badge">v4.4.0</span>
             <span class="badge green">Python ≥ 3.9</span>
             <span class="badge green">MIT License</span>
             <span class="badge orange">v4 compatibility gate</span>
@@ -262,7 +262,7 @@
             <a class="badge" href="../viewer/index.html">打开 Trace 查看器 →</a>
             <a class="badge" href="../viewer/reports.html">打开报告索引 →</a>
             <a class="badge" href="../viewer/config.html">打开配置中心 →</a>
-            <a class="badge" href="v4.3-acceptance.md">v4.3 验收说明 →</a>
+            <a class="badge" href="v4.4-acceptance.md">v4.4 验收说明 →</a>
           </div>
           <div class="summary-grid">
             <div class="summary-card"><strong>Trace</strong><span>一次运行的结构化证据</span></div>
@@ -366,7 +366,7 @@
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/agent-regression --version</code></pre></div>
-          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.3.0</code>。</p>
+          <p class="small">开发仓库使用 <code>-e .</code>（editable install，可编辑安装），代码修改后无需反复打包。使用发布版本时可以从 GitHub 安装并固定 tag，例如 <code>git+https://github.com/ANTAO94/agent-regression-kit.git@v4.4.0</code>。</p>
 
           <h3><span class="number">2</span>先录一份经过确认的 baseline</h3>
           <div class="code-wrap"><button class="copy" type="button">复制</button><pre><code>mkdir -p work baselines outputs
@@ -998,11 +998,11 @@ jobs:
           python-version: "3.11"
       - name: Install Agent Regression Kit
         run: python -m pip install \
-          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.3.0"
+          "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.4.0"
       - name: Record candidate trace
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare with reviewed baseline
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.3.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-regression@v4.4.0
         with:
           baseline: baselines/my-agent.trace.json
           candidate: work/my-agent.trace.json
@@ -1221,6 +1221,7 @@ jobs:
               <tr><td><strong>v4.1</strong></td><td>真实 Agent 框架迁移缺少统一、可执行的兼容证据。</td><td>PydanticAI、OpenAI Agents、LangGraph 统一 Trace，跨框架正例与参数回归反例。</td></tr>
               <tr><td><strong>v4.2</strong></td><td>离线框架测试无法证明当前远端模型仍遵守工具和业务契约。</td><td>低成本 DeepSeek 真实工具 Agent、密钥隔离、token 记录和每周供应商门禁。</td></tr>
               <tr><td><strong>v4.3</strong></td><td>单次工具调用不能证明 Agent 能正确传递跨步骤依赖数据。</td><td>两步真实工具链、参数关联 Contract、在线正例和错误跨步参数反例。</td></tr>
+              <tr><td><strong>v4.4</strong></td><td>发布包只有下载链接，缺少可独立验证的来源和治理边界。</td><td>SHA-256、SPDX SBOM、签名证明、安全披露、Issue 模板和依赖更新。</td></tr>
             </tbody>
           </table>
           <div class="panel tint-blue">
@@ -1278,7 +1279,7 @@ agent-regression migrate trace \
             <a href="../UPGRADING.md">Upgrade Guide</a> ·
             <a href="compatibility-matrix.md">Compatibility Matrix</a>
           </p>
-          <p>本文档面向 Agent Regression Kit v4.3.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code> 和 <a href="v4.3-acceptance.md">v4.3 验收说明</a>。</p>
+          <p>本文档面向 Agent Regression Kit v4.4.0。命令和行为以仓库当前实现为准；如果你从 GitHub 的其他 tag 打开，请同时检查对应版本的 <code>CHANGELOG.md</code> 和 <a href="v4.4-acceptance.md">v4.4 验收说明</a>。</p>
           <p class="small">Generated as a version-controlled HTML guide. Diagrams are Mermaid source with explanatory text fallback, so the design remains maintainable instead of becoming screenshots.</p>
         </footer>
       </div>

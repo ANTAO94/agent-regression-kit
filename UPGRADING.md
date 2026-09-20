@@ -4,6 +4,21 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.3.0 → v4.4.0
+
+This release changes packaging and repository governance, not Trace or public
+Python API semantics. Existing Agent integrations and baselines require no
+migration.
+
+Tagged releases now contain `SHA256SUMS` and an SPDX 2.3 release SBOM. The
+release workflow also creates signed SLSA provenance and SBOM attestations.
+Consumers can continue installing the wheel normally, or verify it first using
+the commands in [`docs/supply-chain.md`](docs/supply-chain.md).
+
+Official checkout, Python setup and artifact-upload Actions move to their
+Node 24-based v7 releases. Self-hosted GitHub Actions runners must satisfy the
+minimum runner version required by those Actions.
+
 ## v4.2.0 → v4.3.0
 
 This feature release adds `required_tool_sequence` to the dependency-free

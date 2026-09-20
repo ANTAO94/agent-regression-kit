@@ -8,13 +8,16 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   build-and-verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install build tooling
@@ -25,6 +28,14 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Build source distribution and wheel
         run: python -m build
+      - name: Generate release checksums and SPDX SBOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_version="$(PYTHONPATH=src python -c 'from agent_regression import __version__; print(__version__)')"
+          python scripts/generate_release_metadata.py \
+            --dist-dir dist \
+            --version "$release_version"
       - name: Verify wheel in a clean virtual environment
         shell: bash
         run: |
@@ -59,18 +70,31 @@ jobs:
           test -f "$DOC_ROOT/v4.1-acceptance.md"
           test -f "$DOC_ROOT/v4.2-acceptance.md"
           test -f "$DOC_ROOT/v4.3-acceptance.md"
+          test -f "$DOC_ROOT/v4.4-acceptance.md"
           test -f "$DOC_ROOT/framework-integrations.md"
           test -f "$DOC_ROOT/deepseek-live.md"
+          test -f "$DOC_ROOT/supply-chain.md"
           VIEWER_ROOT="$(/tmp/agent-regression-release-venv/bin/python -c 'import sys; print(sys.prefix)')/share/agent-regression-kit/viewer"
           test -f "$VIEWER_ROOT/reports.html"
           test -f "$VIEWER_ROOT/workspace.html"
+      - name: Attest release provenance
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Attest release SBOM
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+          sbom-path: dist/*.spdx.json
       - name: Create GitHub release for a pushed tag
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agent-regression-kit-${{ github.ref_name }}
           path: dist/

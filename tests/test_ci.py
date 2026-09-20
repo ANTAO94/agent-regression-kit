@@ -66,6 +66,32 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("agent-regression migrate trace", workflow)
         self.assertIn("agent-regression workspace manifest", workflow)
         self.assertIn("v4-acceptance.md", workflow)
+        self.assertIn("generate_release_metadata.py", workflow)
+        self.assertIn("dist/SHA256SUMS", workflow)
+        self.assertIn("actions/attest@v4", workflow)
+        self.assertIn("id-token: write", workflow)
+        self.assertIn("attestations: write", workflow)
+
+    def test_workflows_use_node24_official_actions_and_governance_exists(self):
+        workflows = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / ".github/workflows").glob("*.yml"))
+        )
+        self.assertNotIn("actions/checkout@v4", workflows)
+        self.assertNotIn("actions/setup-python@v5", workflows)
+        self.assertNotIn("actions/upload-artifact@v4", workflows)
+        self.assertIn("actions/checkout@v7", workflows)
+        self.assertIn("actions/setup-python@v7", workflows)
+        self.assertIn("actions/upload-artifact@v7", workflows)
+        for path in (
+            "SECURITY.md",
+            "CODE_OF_CONDUCT.md",
+            ".github/dependabot.yml",
+            ".github/ISSUE_TEMPLATE/bug_report.yml",
+            ".github/ISSUE_TEMPLATE/feature_request.yml",
+            ".github/ISSUE_TEMPLATE/config.yml",
+        ):
+            self.assertTrue((ROOT / path).is_file(), path)
 
 
 if __name__ == "__main__":
