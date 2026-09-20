@@ -1,13 +1,13 @@
 # Independent consumer pilot / 独立消费项目验证
 
 v4.15 introduced an end-to-end consumer repository that is separate from the
-core checkout. After the v4.16 release, that consumer was upgraded and
-re-verified against the v4.16 wheel:
+core checkout. After the v4.17 release, that consumer was upgraded and
+re-verified against the immutable v4.17 wheel:
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.16 发布后，消费项目又升级到
-v4.16 wheel 并重新验收：
+v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.17 发布后，消费项目又升级到
+v4.17 wheel 并重新验收：
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
@@ -16,8 +16,8 @@ v4.16 wheel 并重新验收：
 The pilot installs exactly this immutable Release asset:
 
 ```text
-https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.16.0/agent_regression_kit-4.16.0-py3-none-any.whl
-sha256: ca1fe6d4a9461b68f0992042fc6519d8664250360b07e4f84efbca0ac08c3233
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.17.0/agent_regression_kit-4.17.0-py3-none-any.whl
+sha256: a3239d03d89cadf05c3bc8e92722b2605b7bacb0432cf130f555da659668d3d4
 ```
 
 The pilot does not import the producer checkout, add the producer `src/`
@@ -48,7 +48,8 @@ Agent 的真实消费流程是两步依赖：先查订单，再使用订单返�
 
 ## Injected regressions / 注入回归
 
-The consumer workflow ran on the v4.16 upgrade commit `69028e5` and passed:
+The consumer workflow ran on the v4.17 upgrade commit `2119787` and passed
+(GitHub Actions run [`35525513139`](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35525513139)):
 
 | Case / 用例 | Expected / 预期 | Observed / 实测 |
 | --- | --- | --- |
@@ -61,11 +62,12 @@ CI run: [Consumer Agent regression workflow](https://github.com/ANTAO94/agent-re
 
 The original v4.15 acceptance snapshot used the v4.14.0 wheel at commit
 `d231df3`; the v4.16 release snapshot used the v4.15.0 wheel at commit
-`8ebc38f`; the current post-release verification uses the v4.16.0 wheel at
-`69028e5`.
+`8ebc38f`; the v4.16 post-release verification used the v4.16.0 wheel at
+`69028e5`; the current v4.17 post-release verification uses the v4.17.0 wheel
+at `2119787`.
 
-消费仓库的 CI 已验证正常场景返回 0，三类注入均返回 1。报告会保留在 workflow artifact 中，
-baseline 由人工审核后提交，CI 不会自动覆盖 baseline。
+消费仓库的 CI（run `35525513139`）已验证正常场景返回 0，三类注入均返回 1。报告会保留在
+workflow artifact 中，baseline 由人工审核后提交，CI 不会自动覆盖 baseline。
 
 ## Reproduce / 复现
 
