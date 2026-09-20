@@ -4,6 +4,31 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.30.0 → v4.31.0
+
+v4.31 is additive. Existing Trace, Contract, baseline, stability and v4.30
+study manifests remain valid. No migration is required. A study can opt into a
+source inventory by adding `evidence` entries with `id`, `role`, `path` and
+`sha256`, then setting `integrity.require_evidence_index: true`.
+
+Use `required_evidence_roles` when a project wants to require roles such as
+`input`, `tool_schema` and `adapter`. The report adds a content-free
+`evidence_index`; a changed descriptor, path escape, duplicate ID/path or
+missing required role returns status `2` before Contract evaluation.
+
+See the [v4.31 acceptance record](docs/v4.31-acceptance.md) for the complete
+manifest and CI negative test.
+
+## v4.30.0 → v4.31.0（中文）
+
+v4.31 是增量兼容版本，已有 Trace、Contract、baseline、stability 和 v4.30 study manifest 都能
+继续使用，不需要迁移。study 可以通过 `evidence` 增加来源清单，每项包含 `id`、`role`、`path` 和
+`sha256`，再设置 `integrity.require_evidence_index: true`。
+
+如果项目要求 input、tool schema、adapter 等角色都存在，可以增加 `required_evidence_roles`。
+报告新增不含原文的 `evidence_index`；描述文件被修改、路径越界、ID/路径重复或缺少必需角色时，
+在 Contract 评估前返回状态 `2`。完整结构见[v4.31 验收记录](docs/v4.31-acceptance.md)。
+
 ## v4.29.0 → v4.30.0
 
 v4.30 is additive. Existing Trace, Contract, baseline, stability and v4.29

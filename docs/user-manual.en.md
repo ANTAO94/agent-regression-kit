@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.30.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.31.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.30.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.31.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.30.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.31.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.30.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.31.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -813,6 +813,19 @@ agent-regression study \
 Older v4.29 manifests without `integrity` remain valid. See the [v4.30
 acceptance](v4.30-acceptance.md) for the complete fields, normalized policy
 digest and CI tamper-negative test.
+
+### v4.31: study evidence index
+
+v4.31 adds an `evidence` source inventory on top of file hashes. Each entry can
+declare an input descriptor, tool-schema descriptor, adapter build, dataset
+revision or environment note with an `id`, `role`, `path` and `sha256`. When
+`integrity.require_evidence_index` is true, `required_evidence_roles` can require
+roles such as `input`, `tool_schema` and `adapter`.
+
+Reports add `evidence_index` with roles, relative paths and digests only; source
+contents are not embedded. A changed descriptor, duplicate ID/path, path escape
+or missing required role returns CLI status `2`. Older v4.30 manifests without
+`evidence` remain valid. See the [v4.31 acceptance](v4.31-acceptance.md).
 
 ### v4.21: independent AgentDojo source intake
 

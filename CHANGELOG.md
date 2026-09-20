@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.31.0 - 2026-09-21
+
+- Add an optional study `evidence` index for non-secret input, tool-schema,
+  adapter, dataset, environment and provider-output descriptors.
+- Validate evidence roles, unique IDs/paths, manifest-directory containment,
+  SHA-256 equality and required-role coverage before evaluating a study.
+- Emit a content-free `evidence_index` and mirror its verification state in
+  `evidence_integrity`; keep v4.30 and earlier manifests backward compatible.
+- Extend the deterministic example, bilingual documentation and core CI with a
+  source-descriptor tamper-negative test.
+
 ## 4.30.0 - 2026-09-21
 
 - Add optional file-level study evidence integrity: baseline and per-run Trace

@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.30.0 source. Package version 4.30.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance/study use their own schema 0.1.
+Based on v4.31.0 source. Package version 4.31.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance/study use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -451,13 +451,20 @@ rejected with CLI status 2. This proves file identity, not hidden-input
 correctness or sample representativeness. See the [v4.30 acceptance
 record](v4.30-acceptance.md).
 
-Current release: [v4.30.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.30.0).
+v4.31 adds an `evidence` source inventory on top of those hashes. Integrators
+can declare input, tool-schema, adapter, dataset, environment or provider-output
+descriptors; the evaluator validates containment, uniqueness, required roles and
+digests, then emits a content-free `evidence_index`. This improves provenance
+reviewability but does not prove semantic correctness or source completeness.
+See the [v4.31 acceptance record](v4.31-acceptance.md).
+
+Current release: [v4.31.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.31.0).
 
 See [the full methodology](tau2-independent-validation.md), the
 [state-equivalence guide](state-equivalence.md), the [v4.12 acceptance
 record](v4.12-acceptance.md) and the [v4.13 acceptance record](v4.13-acceptance.md) for field mappings, limitations, sample traces and
 CI behavior.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Recorded sampling study](../examples/sampling-study/README.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Telecom reproduction](../examples/tau2-telecom/README.md) · [AgentDojo attack-family](v4.26-acceptance.md) · [AgentDojo repeatability](v4.25-acceptance.md) · [AgentDojo Contract pre-registration](v4.24-acceptance.md) · [AgentDojo cross-model attack matrix](v4.23-acceptance.md) · [AgentDojo matrix](v4.22-acceptance.md) · [AgentDojo single-sample intake](v4.21-acceptance.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.30.0) · [v4.29 acceptance](v4.29-acceptance.md) · [v4.28 acceptance](v4.28-acceptance.md) · [v4.27 acceptance](v4.27-acceptance.md) · [v4.26 acceptance](v4.26-acceptance.md) · [v4.25 acceptance](v4.25-acceptance.md) · [v4.24 acceptance](v4.24-acceptance.md) · [v4.23 acceptance](v4.23-acceptance.md) · [v4.22 acceptance](v4.22-acceptance.md) · [v4.21 acceptance](v4.21-acceptance.md) · [v4.20 acceptance](v4.20-acceptance.md) · [v4.19 acceptance](v4.19-acceptance.md) · [v4.18 acceptance](v4.18-acceptance.md) · [v4.17 acceptance](v4.17-acceptance.md) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Performance CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/performance.yml) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [Independent consumer pilot](consumer-pilot.md) · [Recorded sampling study](../examples/sampling-study/README.md) · [Performance baseline](performance.md) · [State-equivalence guide](state-equivalence.md) · [Telecom reproduction](../examples/tau2-telecom/README.md) · [AgentDojo attack-family](v4.26-acceptance.md) · [AgentDojo repeatability](v4.25-acceptance.md) · [AgentDojo Contract pre-registration](v4.24-acceptance.md) · [AgentDojo cross-model attack matrix](v4.23-acceptance.md) · [AgentDojo matrix](v4.22-acceptance.md) · [AgentDojo single-sample intake](v4.21-acceptance.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.31.0) · [v4.29 acceptance](v4.29-acceptance.md) · [v4.28 acceptance](v4.28-acceptance.md) · [v4.27 acceptance](v4.27-acceptance.md) · [v4.26 acceptance](v4.26-acceptance.md) · [v4.25 acceptance](v4.25-acceptance.md) · [v4.24 acceptance](v4.24-acceptance.md) · [v4.23 acceptance](v4.23-acceptance.md) · [v4.22 acceptance](v4.22-acceptance.md) · [v4.21 acceptance](v4.21-acceptance.md) · [v4.20 acceptance](v4.20-acceptance.md) · [v4.19 acceptance](v4.19-acceptance.md) · [v4.18 acceptance](v4.18-acceptance.md) · [v4.17 acceptance](v4.17-acceptance.md) · [v4.16 acceptance](v4.16-acceptance.md) · [v4.15 acceptance](v4.15-acceptance.md) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.

@@ -71,6 +71,33 @@ class SamplingStudyTests(unittest.TestCase):
         )
         return manifest
 
+    def add_evidence_index(self, manifest: Path, roles: tuple[str, ...]) -> Path:
+        root = manifest.parent
+        raw = json.loads(manifest.read_text(encoding="utf-8"))
+        entries = []
+        for role in roles:
+            path = root / "evidence" / f"{role}.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"role": role}) + "\n", encoding="utf-8")
+            entries.append(
+                {
+                    "id": f"{role}-evidence",
+                    "role": role,
+                    "path": str(path.relative_to(root)),
+                    "sha256": sha256_file(path),
+                }
+            )
+        raw["evidence"] = entries
+        raw["integrity"] = {
+            "require_evidence_index": True,
+            "required_evidence_roles": list(roles),
+        }
+        manifest.write_text(
+            json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return manifest
+
     def test_evaluates_recorded_runs_and_keeps_provenance_separate(self):
         with tempfile.TemporaryDirectory() as directory:
             manifest = self.make_manifest(Path(directory))
@@ -185,6 +212,65 @@ class SamplingStudyTests(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(ValueError, "sha256 is required"):
+                evaluate_sampling_study(manifest)
+
+    def test_evidence_index_binds_roles_and_hashes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.add_evidence_index(
+                self.make_manifest(Path(directory)),
+                ("input", "tool_schema", "adapter"),
+            )
+
+            report = evaluate_sampling_study(manifest).to_dict()
+
+            index = report["evidence_index"]
+            self.assertTrue(index["required"])
+            self.assertTrue(index["verified"])
+            self.assertEqual(3, index["entry_count"])
+            self.assertEqual(["adapter", "input", "tool_schema"], index["roles"])
+            self.assertTrue(report["evidence_integrity"]["evidence_index_verified"])
+
+    def test_evidence_index_rejects_tampering(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.add_evidence_index(
+                self.make_manifest(Path(directory)),
+                ("adapter",),
+            )
+            evidence_path = manifest.parent / "evidence/adapter.json"
+            evidence_path.write_text(
+                evidence_path.read_text(encoding="utf-8") + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                evaluate_sampling_study(manifest)
+
+    def test_evidence_index_requires_declared_roles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.make_manifest(Path(directory))
+            root = manifest.parent
+            evidence = root / "evidence/input.json"
+            evidence.parent.mkdir(parents=True, exist_ok=True)
+            evidence.write_text('{"role": "input"}\n', encoding="utf-8")
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            raw["evidence"] = [
+                {
+                    "id": "input-evidence",
+                    "role": "input",
+                    "path": "evidence/input.json",
+                    "sha256": sha256_file(evidence),
+                }
+            ]
+            raw["integrity"] = {
+                "require_evidence_index": True,
+                "required_evidence_roles": ["input", "adapter"],
+            }
+            manifest.write_text(
+                json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "missing required evidence roles"):
                 evaluate_sampling_study(manifest)
 
     def test_provenance_rejects_secret_like_parameters(self):

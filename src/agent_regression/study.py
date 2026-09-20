@@ -58,6 +58,18 @@ _INTEGRITY_FIELDS = {
     "require_trace_hashes",
     "baseline_sha256",
     "comparison_policy_sha256",
+    "require_evidence_index",
+    "required_evidence_roles",
+}
+_EVIDENCE_FIELDS = {"id", "role", "path", "sha256"}
+_EVIDENCE_ROLES = {
+    "input",
+    "tool_schema",
+    "adapter",
+    "dataset",
+    "environment",
+    "provider_output",
+    "other",
 }
 
 
@@ -185,6 +197,7 @@ class SamplingStudyReport:
     provenance: SamplingProvenance
     stability: StabilityReport
     evidence_integrity: Dict[str, Any] = field(default_factory=dict)
+    evidence_index: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def passed(self) -> bool:
@@ -200,6 +213,7 @@ class SamplingStudyReport:
                 "manifest_sha256": self.manifest_sha256,
                 "provenance": self.provenance.to_dict(),
                 "evidence_integrity": dict(self.evidence_integrity),
+                "evidence_index": dict(self.evidence_index),
             }
         )
         return value
@@ -280,6 +294,8 @@ def _integrity_policy(value: Any) -> Dict[str, Any]:
             "require_trace_hashes": False,
             "baseline_sha256": None,
             "comparison_policy_sha256": None,
+            "require_evidence_index": False,
+            "required_evidence_roles": [],
         }
     if not isinstance(value, Mapping):
         raise ValueError("integrity must be an object")
@@ -298,6 +314,22 @@ def _integrity_policy(value: Any) -> Dict[str, Any]:
             comparison_sha256,
             "integrity.comparison_policy_sha256",
         )
+    require_evidence_index = value.get("require_evidence_index", False)
+    if not isinstance(require_evidence_index, bool):
+        raise ValueError("integrity.require_evidence_index must be boolean")
+    required_roles = value.get("required_evidence_roles", [])
+    if not isinstance(required_roles, list) or not all(
+        isinstance(role, str) and role in _EVIDENCE_ROLES for role in required_roles
+    ):
+        raise ValueError(
+            "integrity.required_evidence_roles must be an array of supported role names"
+        )
+    if len(set(required_roles)) != len(required_roles):
+        raise ValueError("integrity.required_evidence_roles must not contain duplicates")
+    if required_roles and not require_evidence_index:
+        raise ValueError(
+            "integrity.require_evidence_index must be true when evidence roles are required"
+        )
     if require and baseline_sha256 is None:
         raise ValueError(
             "integrity.baseline_sha256 is required when trace hashes are required"
@@ -306,6 +338,81 @@ def _integrity_policy(value: Any) -> Dict[str, Any]:
         "require_trace_hashes": require,
         "baseline_sha256": baseline_sha256,
         "comparison_policy_sha256": comparison_sha256,
+        "require_evidence_index": require_evidence_index,
+        "required_evidence_roles": required_roles,
+    }
+
+
+def _evidence_index(
+    value: Any,
+    root: Path,
+    integrity_policy: Mapping[str, Any],
+) -> Dict[str, Any]:
+    require = bool(integrity_policy["require_evidence_index"])
+    required_roles = set(integrity_policy["required_evidence_roles"])
+    if value is None:
+        if require:
+            raise ValueError("evidence must be a non-empty array when evidence index is required")
+        return {
+            "required": False,
+            "verified": True,
+            "entry_count": 0,
+            "roles": [],
+            "entries": [],
+        }
+    if not isinstance(value, list) or (require and not value):
+        raise ValueError("evidence must be a non-empty array when evidence index is required")
+    entries: List[Dict[str, str]] = []
+    seen_ids: set[str] = set()
+    seen_paths: set[str] = set()
+    for index, item in enumerate(value):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"evidence[{index}] must be an object")
+        unknown = sorted(set(item) - _EVIDENCE_FIELDS)
+        if unknown:
+            raise ValueError(f"unsupported evidence[{index}] fields: " + ", ".join(unknown))
+        missing = sorted(_EVIDENCE_FIELDS - set(item))
+        if missing:
+            raise ValueError(f"evidence[{index}] must contain: " + ", ".join(missing))
+        evidence_id = _text(item["id"], f"evidence[{index}].id")
+        role = _text(item["role"], f"evidence[{index}].role")
+        if role not in _EVIDENCE_ROLES:
+            raise ValueError(
+                f"evidence[{index}].role must be one of: {', '.join(sorted(_EVIDENCE_ROLES))}"
+            )
+        if evidence_id in seen_ids:
+            raise ValueError(f"duplicate evidence id: {evidence_id}")
+        seen_ids.add(evidence_id)
+        path = _relative_file(root, item["path"], f"evidence[{index}].path")
+        relative_path = path.relative_to(root.resolve()).as_posix()
+        if relative_path in seen_paths:
+            raise ValueError(f"duplicate evidence path: {relative_path}")
+        seen_paths.add(relative_path)
+        expected_sha256 = _digest(item["sha256"], f"evidence[{index}].sha256")
+        observed_sha256 = sha256_file(path)
+        if observed_sha256 != expected_sha256:
+            raise ValueError(
+                f"evidence[{index}] SHA-256 mismatch: expected {expected_sha256}, "
+                f"observed {observed_sha256}"
+            )
+        entries.append(
+            {
+                "id": evidence_id,
+                "role": role,
+                "path": relative_path,
+                "sha256": observed_sha256,
+            }
+        )
+    observed_roles = {entry["role"] for entry in entries}
+    missing_roles = sorted(required_roles - observed_roles)
+    if missing_roles:
+        raise ValueError("missing required evidence roles: " + ", ".join(missing_roles))
+    return {
+        "required": require,
+        "verified": True,
+        "entry_count": len(entries),
+        "roles": sorted(observed_roles),
+        "entries": entries,
     }
 
 
@@ -338,6 +445,7 @@ def evaluate_sampling_study(
         "comparison_policy",
         "policy",
         "integrity",
+        "evidence",
     }
     unknown = sorted(set(raw) - allowed)
     if unknown:
@@ -350,6 +458,7 @@ def evaluate_sampling_study(
         raise ValueError("provenance.study_id must match study_id")
     root = manifest_file.parent
     integrity_policy = _integrity_policy(raw.get("integrity"))
+    evidence_index = _evidence_index(raw.get("evidence"), root, integrity_policy)
     baseline_path = _relative_file(root, raw.get("baseline"), "baseline")
     observed_baseline_sha256 = sha256_file(baseline_path)
     expected_baseline_sha256 = integrity_policy["baseline_sha256"]
@@ -435,8 +544,11 @@ def evaluate_sampling_study(
             "trace_hashes_verified": bool(integrity_policy["require_trace_hashes"]),
             "baseline_sha256": observed_baseline_sha256,
             "comparison_policy_sha256": observed_comparison_sha256,
+            "evidence_index_required": integrity_policy["require_evidence_index"],
+            "evidence_index_verified": evidence_index["verified"],
             "runs": run_evidence,
         },
+        evidence_index=evidence_index,
     )
 
 

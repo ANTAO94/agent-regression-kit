@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.30.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.31.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.30.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.31.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.30.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.31.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.30.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.31.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -785,6 +785,17 @@ agent-regression study \
 
 旧的 v4.29 manifest 不带 `integrity` 仍然可以使用。完整字段、规范化 policy 哈希和 CI 篡改
 负向用例见[v4.30 验收](v4.30-acceptance.md)。
+
+### v4.31：study evidence index 来源清单
+
+v4.31 在文件哈希之上增加 `evidence` 来源清单。你可以把 input descriptor、tool schema descriptor、
+adapter 构建信息、dataset revision 或环境说明文件写成清单条目，每项声明 `id`、`role`、`path`
+和 `sha256`。当 `integrity.require_evidence_index` 为 `true` 时，还可以用
+`required_evidence_roles` 要求例如 `input`、`tool_schema`、`adapter` 必须全部出现。
+
+报告新增 `evidence_index`，只包含角色、相对路径和摘要，不包含来源文件原文；修改任意描述文件、
+重复 ID/路径、路径越界或缺少必需角色，study 都会返回退出码 `2`。旧的 v4.30 manifest 不带
+`evidence` 仍然兼容。完整格式见[v4.31 验收](v4.31-acceptance.md)。
 
 ### v4.21：独立来源 AgentDojo 接入
 

@@ -1,11 +1,11 @@
 # Recorded sampling study / 记录式采样研究
 
-This example demonstrates the v4.30 `study` evidence-integrity boundary. A real Agent is run by
+This example demonstrates the v4.31 `study` evidence-index boundary. A real Agent is run by
 the caller, its redacted Trace files are stored beside a manifest, and the
 framework evaluates the repeated evidence without receiving an API key or
 the raw prompt.
 
-这个示例演示 v4.30 的 `study` 证据完整性边界：真实 Agent 由接入方运行，脱敏后的 Trace 和
+这个示例演示 v4.31 的 `study` evidence index 来源边界：真实 Agent 由接入方运行，脱敏后的 Trace 和
 manifest 放在同一个目录，框架只读取公开 provenance、Trace 和 Contract，不接收 API Key，
 也不会把原始 Prompt 写入研究报告。
 
@@ -22,12 +22,12 @@ agent-regression study \
 ```
 
 The report contains the provider/model identifiers, input and tool-schema
-hashes, manifest hash, evidence-integrity hashes, Wilson interval and one row
-per recorded run. The fixture is deterministic; it is an onboarding check,
+hashes, manifest hash, evidence-integrity hashes, the evidence index, Wilson
+interval and one row per recorded run. The fixture is deterministic; it is an onboarding check,
 not an online model quality result.
 
-报告包含 provider/model 标识、输入和工具 schema 哈希、manifest 哈希、证据完整性哈希、Wilson
-区间以及每次运行的一行证据。这里使用确定性 Fixture，只用于验证接入流程，不代表在线模型质量。
+报告包含 provider/model 标识、输入和工具 schema 哈希、manifest 哈希、证据完整性哈希、来源
+清单、Wilson 区间以及每次运行的一行证据。这里使用确定性 Fixture，只用于验证接入流程，不代表在线模型质量。
 
 ## Use with a real Agent / 接入真实 Agent
 
@@ -57,6 +57,15 @@ not an online model quality result.
    再执行 `agent-regression study`。
 6. 把 JSON/Markdown 报告作为 CI 证据上传；Contract、稳定性策略或最低样本门禁失败时，
    命令返回非零退出码并阻断 CI。
+
+7. For v4.31, add non-secret descriptor files to `evidence` with a role and
+   SHA-256, set `integrity.require_evidence_index` to `true`, and list roles
+   such as `input`, `tool_schema` and `adapter` in `required_evidence_roles`.
+   The report records paths and digests, never descriptor contents.
+
+7. v4.31 中，将非敏感描述文件以 role 和 SHA-256 写入 `evidence`，设置
+   `integrity.require_evidence_index` 为 `true`，并在 `required_evidence_roles` 中列出
+   `input`、`tool_schema`、`adapter` 等角色。报告只记录路径和摘要，不记录描述文件原文。
 
 If a Trace is changed after the manifest is written, the command returns
 status `2` with a SHA-256 mismatch instead of evaluating stale evidence.

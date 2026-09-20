@@ -335,6 +335,37 @@ exit status `2`. Older manifests without `integrity` remain valid for
 backward compatibility. The complete bilingual manifest and CI example are in
 [`v4.30-acceptance.md`](v4.30-acceptance.md).
 
+### Evidence index in v4.31
+
+Add an `evidence` array when a study needs to declare the source files behind
+its input, tool schema or adapter. Set `integrity.require_evidence_index` to
+`true` and optionally list `required_evidence_roles`:
+
+```json
+{
+  "evidence": [
+    {
+      "id": "adapter-build",
+      "role": "adapter",
+      "path": "evidence/adapter.json",
+      "sha256": "<64 hex characters>"
+    }
+  ],
+  "integrity": {
+    "require_evidence_index": true,
+    "required_evidence_roles": ["adapter"]
+  }
+}
+```
+
+Supported roles are `input`, `tool_schema`, `adapter`, `dataset`,
+`environment`, `provider_output` and `other`. The evaluator checks containment,
+unique IDs/paths, digest equality and required-role coverage. The resulting
+`SamplingStudyReport.to_dict()` includes an `evidence_index` inventory and
+`evidence_integrity.evidence_index_verified`; it never embeds the source file
+contents. Missing or changed required evidence maps to CLI status `2`. The
+complete bilingual example is in [`v4.31-acceptance.md`](v4.31-acceptance.md).
+
 ## Async and parallel events
 
 Use the async boundary when one Agent run awaits multiple tools concurrently:

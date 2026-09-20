@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.30 deliberately stays small. The local Viewer
+Agent Regression Kit v4.31 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -155,3 +155,7 @@ is a read-only presentation layer, not a hosted management service.
   policy to SHA-256. This detects file tampering or policy drift inside the
   study bundle, but a digest does not prove the hidden input is correct,
   representative or semantically meaningful.
+- v4.31 can add an evidence index for input, tool schema, adapter, dataset,
+  environment or provider-output descriptors. The index makes declared source
+  coverage reviewable, but it is not a signature system, semantic oracle or
+  proof that the selected sources are complete.
