@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from .adapters import AsyncScriptedAgentAdapter, ScriptedAgentAdapter, ScriptedSessionAdapter
 from .batch import compare_trace_batch
+from .benchmark import decide_benchmark, prepare_benchmark, score_benchmark
 from .cassette import ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioCase, record_scenario_batch
 from .async_record import record_async_run
@@ -574,6 +575,29 @@ def build_parser() -> argparse.ArgumentParser:
         "--kind", choices=["single", "batch"], default="single",
         help="config shape to check (default: single)",
     )
+
+    benchmark = subparsers.add_parser(
+        "benchmark", help="prepare, decide and score a hash-bound benchmark"
+    )
+    benchmark_actions = benchmark.add_subparsers(
+        dest="benchmark_action", required=True
+    )
+    benchmark_prepare = benchmark_actions.add_parser(
+        "prepare", help="validate benchmark inputs without reading label meaning"
+    )
+    benchmark_prepare.add_argument("--manifest", required=True)
+    benchmark_prepare.add_argument("--out")
+    benchmark_decide = benchmark_actions.add_parser(
+        "decide", help="make evidence-only decisions without loading labels"
+    )
+    benchmark_decide.add_argument("--manifest", required=True)
+    benchmark_decide.add_argument("--out", required=True)
+    benchmark_score = benchmark_actions.add_parser(
+        "score", help="score frozen decisions against labels"
+    )
+    benchmark_score.add_argument("--manifest", required=True)
+    benchmark_score.add_argument("--decisions", required=True)
+    benchmark_score.add_argument("--out", required=True)
     return parser
 
 
@@ -672,6 +696,21 @@ def main(argv: list[str] | None = None) -> int:
             )
             _write_output(report)
             return 0
+
+        if args.command == "benchmark":
+            if args.benchmark_action == "prepare":
+                report = prepare_benchmark(args.manifest)
+                _write_output(report, args.out)
+                return 0
+            if args.benchmark_action == "decide":
+                report = decide_benchmark(args.manifest)
+                _write_output(report, args.out)
+                return 0
+            if args.benchmark_action == "score":
+                report = score_benchmark(args.manifest, args.decisions)
+                _write_output(report, args.out)
+                return 0
+            raise ValueError(f"unsupported benchmark action: {args.benchmark_action}")
 
         if args.command == "workspace":
             if args.workspace_action != "manifest":

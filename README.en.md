@@ -8,7 +8,7 @@
 
 [中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥3.9 · Release v4.13.0 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.14.0 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.13.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.14.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.13.0`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.14.0`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -178,7 +178,31 @@ world-state changes as `unexpected_state_change`. Existing
 meaning. See the [v4.13 acceptance record](docs/v4.13-acceptance.md) and the
 [maturity evolution plan](docs/maturity-evolution-plan.zh-CN.md).
 
-## 4. Connect your own Agent
+## 4. How to make external evaluation auditable
+
+If you publish a number about how many regressions the framework catches, do not
+put labels into the Trace being tested. v4.14 provides a three-step workflow:
+
+```bash
+agent-regression benchmark prepare --manifest benchmark/manifest.json
+agent-regression benchmark decide \
+  --manifest benchmark/manifest.json \
+  --out work/benchmark/decisions.json
+agent-regression benchmark score \
+  --manifest benchmark/manifest.json \
+  --decisions work/benchmark/decisions.json \
+  --out work/benchmark/score.json
+```
+
+`prepare` checks the immutable revision, SHA-256 values for data/split/
+Contract/evidence/labels and exact sample coverage. `decide` reads only Traces
+and rules; it does not read label meaning. `score` validates the decision digest
+before loading labels, then reports true pass, true block, false alarm, missed
+failure and Wilson 95% intervals. `unsupported` samples stay explicit instead
+of silently disappearing. See the [v4.14 acceptance record](docs/v4.14-acceptance.md)
+for the manifest schema and boundaries.
+
+## 5. Connect your own Agent
 
 The earlier `record --scenario` commands execute scripted examples. For your project, actually run the Agent and record its tool calls, results and final output.
 
@@ -227,7 +251,7 @@ The example builds an answer from tool results. With a model Agent, capture its 
 
 **baseline accept validates and stores a file; it does not review business correctness.** Review first and commit the baseline to Git. Subsequent runs regenerate only the candidate. Do not automatically overwrite the baseline in CI. Intentionally break an argument once to verify the gate detects it.
 
-## 5. Run in CI
+## 6. Run in CI
 
 Prepare these files in your own repository:
 
@@ -254,7 +278,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.14.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -272,9 +296,9 @@ Exit codes: **0 = pass, 1 = regression, 2 = invalid input/configuration**. Nonze
 
 Run the same commands locally first. Store model credentials in GitHub Secrets and configure redaction at recording time. See the [manual](docs/user-manual.en.md) for JUnit, Markdown and reusable Action examples.
 
-## 6. Evidence and current limits
+## 7. Evidence and current limits
 
-Suitable for local development and team CI pilots. The v4.13 release records **231 passing tests**, package builds and clean-environment installation checks.
+Suitable for local development and team CI pilots. The v4.14 release records **235 passing tests**, package builds and clean-environment installation checks.
 
 | Evidence | Result and scope |
 | --- | --- |
@@ -286,7 +310,7 @@ Suitable for local development and team CI pilots. The v4.13 release records **2
 
 The kit checks recorded evidence and configured rules. You supply state snapshots where needed. Hidden side effects, free-form factual correctness and production authorization are not automatically guaranteed by Trace comparison. See [limitations](docs/limitations.md).
 
-## 7. Troubleshooting and reference
+## 8. Troubleshooting and reference
 
 | Symptom | Check |
 | --- | --- |
@@ -297,4 +321,4 @@ The kit checks recorded evidence and configured rules. You supply state snapshot
 | Wording changes fail | Extract actual claims and use `claims-only` with business assertions |
 | A valid new path fails | Review its safety, then explicitly configure allowed paths and extra calls |
 
-[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [API](docs/api.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)

@@ -1,7 +1,7 @@
 # Agent Regression Kit 成熟度提升技术方案（v4.13–v4.16）
 
 > 状态：v4.13 已落地，v4.14–v4.16 持续实施
-> 当前基线版本：v4.13.0
+> 当前基线版本：v4.14.0
 > 更新时间：2026-09-20  
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -178,7 +178,7 @@ flowchart TD
 - 配置中心能够生成新字段，默认选择安全策略；
 - README、API、升级说明和限制说明同步更新。
 
-## 5. v4.14：冻结规则与留出数据验证
+## 5. v4.14：冻结规则与留出数据验证（基础设施已落地）
 
 ### 5.1 Benchmark Manifest
 
@@ -218,7 +218,7 @@ Git 提交。URL 的 `main`、`latest` 或未锁定依赖不能进入正式验�
 ```bash
 agent-regression benchmark prepare --manifest benchmark.json
 agent-regression benchmark decide --manifest benchmark.json --out decisions.json
-agent-regression benchmark score --decisions decisions.json --labels labels.json --out report.json
+agent-regression benchmark score --manifest benchmark.json --decisions decisions.json --out report.json
 ```
 
 - `prepare` 校验来源、哈希、样本 ID 和 Contract；
@@ -258,6 +258,10 @@ Contract Bundle 和 decisions，再单独提交 score 报告。正式报告必�
 - 决策和评分两个 CI Job 使用不同输入权限；
 - 任意改动 Trace、Contract、标签或 decisions 都会触发哈希失败；
 - τ² 旧结果降级为 calibration 历史证据，不再称为独立泛化成绩。
+
+v4.14 已实现 manifest、prepare/decide/score 命令、决策 digest、unsupported 显式计数和
+Wilson 95% 区间。由于当前 τ² 文件曾参与 v4.12/v4.13 规则设计，本版本不把它包装成留出
+泛化成绩；真正的外部 evaluation 数据需要在后续消费仓库接入前冻结。
 
 ## 6. v4.15：独立项目接入
 

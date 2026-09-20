@@ -66,6 +66,25 @@ input:
 - `TAU2_RETAIL_WRITE_TOOLS` and `TAU2_RETAIL_OBSERVATION_TOOLS` document the
   retail tool classification used by the adapter.
 
+## Benchmark governance
+
+v4.14 adds three public helpers for a hash-bound, label-separated benchmark:
+
+- `prepare_benchmark(manifest_path)` validates immutable source metadata, split,
+  evidence, Contract bundle, labels and exact sample coverage without making a
+  behavior decision;
+- `decide_benchmark(manifest_path)` compares each baseline/candidate pair using
+  the declared Contract and emits a `benchmark_decisions` document with a
+  self-checking `decision_digest`; it does not read label meaning;
+- `score_benchmark(manifest_path, decisions_path)` validates that digest and
+  all provenance before reading boolean labels, then returns a confusion matrix,
+  Wilson 95% intervals and explicit unsupported counts.
+
+The manifest paths are relative to the manifest file. Source revisions named
+`main`, `master`, `latest`, `head` or `trunk` are rejected. This workflow makes
+the evaluation boundary auditable; it does not make a public dataset genuinely
+unseen if its labels or trajectories were used while designing the Contract.
+
 The shipped example pins the upstream tag and SHA-256 in
 `examples/tau2-retail/source.json`; see
 [`docs/tau2-independent-validation.md`](tau2-independent-validation.md) for

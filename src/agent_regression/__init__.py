@@ -15,6 +15,7 @@ from .adapters import (
 )
 from .async_record import AsyncToolExecutor, async_record_run, record_async_run
 from .batch import compare_trace_batch
+from .benchmark import decide_benchmark, prepare_benchmark, score_benchmark
 from .cassette import CassetteEntry, CassetteToolExecutor, ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioBatchResult, ScenarioCase, ScenarioResult, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
@@ -136,6 +137,9 @@ __all__ = [
     "CassetteToolExecutor",
     "AgentSession",
     "compare_trace_batch",
+    "prepare_benchmark",
+    "decide_benchmark",
+    "score_benchmark",
     "record_scenario_batch",
     "ScenarioBatchResult",
     "ScenarioCase",

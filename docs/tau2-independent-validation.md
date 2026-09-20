@@ -30,7 +30,7 @@ Agent Regression Kit 只负责把轨迹转换成 `AgentTrace`，从任务定义�
 大小写和逗号归一化逻辑保持一致。当前验证只评估至少包含一个写操作的任务；纯查询
 任务没有足够的确定性业务副作用契约，因此被明确排除。
 
-### v4.12 实测结果
+### v4.13 实测结果（v4.14 起标记为 calibration）
 
 | 指标 | 结果 | 含义 |
 | --- | ---: | --- |
@@ -57,6 +57,10 @@ v4.11 与 v4.12 的对照如下：
 | --- | ---: | ---: | --- |
 | v4.11 | 14 | 0 | 参考写操作按严格路径匹配 |
 | v4.12 | 0 | 0 | 显式 outcome 分组 + 精确动作安全约束 |
+
+从 v4.14 开始，这份结果在 benchmark 治理中被标记为 `calibration`：历史标签参与过规则
+设计，因此不能作为真正留出数据的泛化成绩。正式评测应使用 `benchmark prepare` 固定输入，
+先运行 `benchmark decide`，再由独立步骤执行 `benchmark score`。
 
 ### 本地复现
 
@@ -103,7 +107,7 @@ The 23 MB file contains 456 real tool-Agent trajectories produced by
 `gpt-4.1-mini-2025-04-14`. Reward labels are read only after each contract
 decision; they are never written into Trace metadata, claims or rules.
 
-The v4.12 run evaluates 420 scenarios containing expected writes. It correctly
+The v4.13 run evaluates 420 scenarios containing expected writes. It correctly
 accepts 267 upstream passes, correctly blocks all 153 upstream failures, raises
 no false alarms and misses no failures. Accuracy, failure precision, failure
 recall and the false-alarm rate are all 100%, 100%, 100% and 0% respectively.
@@ -112,6 +116,11 @@ The v4.11 false alarms remain useful historical evidence: a reference action
 list is not always the only path to an equivalent final database state. v4.12
 addresses that boundary with explicit state-equivalence configuration, while
 keeping unrelated tools, objects and successful writes fail-closed.
+
+From v4.14, this same-dataset result is labeled `calibration`, not held-out
+generalization: its labels informed Contract design. Use the generic
+`benchmark prepare`, `benchmark decide` and `benchmark score` workflow when a
+separate evaluation set is available.
 
 Run the commands in the Chinese section above or execute the dedicated
 `tau2 independent validation` GitHub Actions workflow. The check covers pinned

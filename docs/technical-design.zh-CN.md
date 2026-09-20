@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.13.0 源码整理；产品版本 4.13.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.14.0 源码整理；产品版本 4.14.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score 另有独立 schema=0.1。
 
 ## 1. 目标和适用场景
 
@@ -303,6 +303,11 @@ manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等
 
 ### 独立项目验证：tau2-bench
 
+v4.14 在具体适配器外增加通用 benchmark 边界：manifest 用 SHA-256 固定数据源 revision、拆分、
+证据、Contract Bundle、标签和包提交；`benchmark prepare` 校验输入覆盖，`benchmark decide`
+只读证据和规则，`benchmark score` 校验 decision digest 后才读取标签。由于历史标签参与过
+Contract 设计，下面的 τ² 结果仍然是 calibration 证据，不包装成真正留出数据成绩。
+
 v4.13 在 v4.12 独立验证的基础上增加契约安全边界：接入独立维护的
 [tau2-bench](https://github.com/sierra-research/tau2-bench) 零售场景结果集。
 仓库固定了上游 `v1.0.1` tag、tag commit、原始数据 URL 和 SHA-256 校验和。
@@ -335,6 +340,6 @@ PYTHONPATH=src python examples/tau2_retail_validation.py \
 [状态等价契约](state-equivalence.md)、[v4.12 验收记录](v4.12-acceptance.md)与
 [v4.13 验收记录](v4.13-acceptance.md)。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [状态等价契约](state-equivalence.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.13.0) · [v4.13 验收](v4.13-acceptance.md) · [v4.12 验收](v4.12-acceptance.md) · [v4.11 验收](v4.11-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [退款业务案例](../examples/refund-business-case/README.md) · [路径变化案例](../examples/path-variation/README.md) · [DeepSeek 真实检查](deepseek-live.md) · [独立 tau2 验证](tau2-independent-validation.md) · [状态等价契约](state-equivalence.md) · [发布完整性](supply-chain.md) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.14.0) · [v4.14 验收](v4.14-acceptance.md) · [v4.13 验收](v4.13-acceptance.md) · [v4.12 验收](v4.12-acceptance.md) · [v4.11 验收](v4.11-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

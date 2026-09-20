@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.13.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.14.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.13.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.13.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.14.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.13.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.14.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -188,7 +188,29 @@ agent-regression compare --config .agent-regression/config.json
 旧配置的语义。完整说明见 [v4.13 验收记录](docs/v4.13-acceptance.md) 和
 [成熟度演进方案](docs/maturity-evolution-plan.zh-CN.md)。
 
-## 4. 怎么接入自己的 Agent？
+## 4. 如何做可审计的外部评测？
+
+如果你要把“框架发现了多少问题”作为公开数字，不能把标签直接塞进待测 Trace。v4.14 提供
+三步流水线：
+
+```bash
+agent-regression benchmark prepare --manifest benchmark/manifest.json
+agent-regression benchmark decide \
+  --manifest benchmark/manifest.json \
+  --out work/benchmark/decisions.json
+agent-regression benchmark score \
+  --manifest benchmark/manifest.json \
+  --decisions work/benchmark/decisions.json \
+  --out work/benchmark/score.json
+```
+
+`prepare` 校验不可变 revision、数据/拆分/Contract/证据/标签 SHA-256 和样本覆盖；`decide`
+只读取 Trace 与规则，不读取标签语义；`score` 校验 decision digest 后才读取标签，输出
+true pass、true block、false alarm、missed failure 和 Wilson 95% 区间。`unsupported` 会被
+明确保留，不会从分母中静默删除。manifest 格式、输入 JSON 和限制见
+[v4.14 验收记录](docs/v4.14-acceptance.md)。
+
+## 5. 怎么接入自己的 Agent？
 
 前面的 `record --scenario` 是脚本演示。接入真实项目时，需要**实际运行你的 Agent，并把工具调用、返回结果和最终输出记录成 Trace**。
 
@@ -237,7 +259,7 @@ agent-regression compare \
 
 **baseline accept 只校验并保存文件，不判断业务正确性。** 基线应人工审核并提交 Git。后续每次只生成 candidate 并比较，不要在 CI 中自动覆盖 baseline。接入后故意改错一次参数，确认门禁失败。
 
-## 5. 怎么放进 CI？
+## 6. 怎么放进 CI？
 
 在你自己的项目中准备：
 
@@ -264,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.14.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -282,9 +304,9 @@ jobs:
 
 先本地跑通，再开启 CI。模型密钥使用 GitHub Secrets，并在录制边界配置脱敏。JUnit、Markdown 和可复用 Action 的完整示例见[使用手册](docs/user-manual.zh-CN.md)。
 
-## 6. 验证到了什么程度？
+## 7. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.13 发布记录为 **231 项测试通过**，发布流程验证构建和干净环境安装。
+当前适合本地开发与团队 CI 试点。v4.14 发布记录为 **235 项测试通过**，发布流程验证构建和干净环境安装。
 
 | 验证类型 | 已有证据 | 能说明什么 |
 | --- | --- | --- |
@@ -296,7 +318,7 @@ jobs:
 
 框架只能检查已记录证据和已配置规则。真实数据库状态需要你提供快照；隐藏副作用、自然语言事实判断和外部权限执行不由 Trace 比较自动保证。详见[能力限制](docs/limitations.md)。
 
-## 7. 常见问题与文档
+## 8. 常见问题与文档
 
 | 问题 | 先检查 |
 | --- | --- |
@@ -307,4 +329,4 @@ jobs:
 | 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
 | 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)

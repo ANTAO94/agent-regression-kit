@@ -63,3 +63,9 @@ is a read-only presentation layer, not a hosted management service.
   different model/version. v4.13's zero false alarms are measured on that one
   dataset and do not justify ignoring identifiers, tenants, amounts or resources
   in another project.
+- The v4.14 benchmark manifest proves input provenance and separates decision
+  from label scoring; it cannot make an openly published dataset genuinely
+  unseen. `prepare` and `decide` still read the hashed label file metadata, but
+  they do not parse label meaning. A real held-out claim requires that the
+  Contract bundle be frozen before labels are accessed and that the process be
+  independently reviewable.

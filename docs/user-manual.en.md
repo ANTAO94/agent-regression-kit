@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.13.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.14.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.13.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.14.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -362,7 +362,7 @@ The case also includes four controlled defects: `wrong-order`, `wrong-amount`, `
 
 Paths in .agent-regression/config.json resolve against the project root. Elsewhere, paths resolve against the config's directory. Explicit CLI flags override configured defaults.
 
-A runnable policy is provided in examples/quickstart/compare.config.json in v4.13.0. After recording the candidate:
+A runnable policy is provided in examples/quickstart/compare.config.json in v4.14.0. After recording the candidate:
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.14.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.13.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.14.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -496,6 +496,26 @@ Report Index Action when missing artifacts must fail the job.
 The example generates JSON, Markdown and JUnit even on a regression and preserves failing exit codes. It appends Markdown to Job Summary and uploads artifacts; uploading JUnit does not automatically create per-test GitHub Checks annotations. Keep each CI report directory separate from old or deliberately failing fixtures. The index supplements command failures; it cannot replace them.
 
 ## 7. Advanced usage
+
+### v4.14: auditable benchmark workflow
+
+When publishing false-alarm or missed-failure numbers, bind the source,
+split, evidence, Contract bundle, labels and package version in a manifest and
+keep decisions separate from scoring:
+
+```bash
+agent-regression benchmark prepare --manifest benchmark/manifest.json
+agent-regression benchmark decide --manifest benchmark/manifest.json --out work/benchmark/decisions.json
+agent-regression benchmark score --manifest benchmark/manifest.json --decisions work/benchmark/decisions.json --out work/benchmark/score.json
+```
+
+`prepare` checks every SHA-256 and sample/Contract match; `decide` reads only
+Traces and Contracts, never label meaning; `score` validates the
+`decision_digest` before loading `labels.json`. Reports include a confusion
+matrix, Wilson 95% intervals and provenance, while `unsupported` remains
+explicit. Never put reward labels or expected conclusions into a Trace, claims
+or Contract. See the [v4.14 acceptance record](v4.14-acceptance.md) for a full
+manifest example.
 
 | Requirement | Entry point | Boundary |
 | --- | --- | --- |

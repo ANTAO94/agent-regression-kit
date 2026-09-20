@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 4.14.0 - 2026-09-20
+
+- Add a dependency-free benchmark manifest with immutable source/revision,
+  split, evidence, Contract bundle, label and release provenance hashes.
+- Add `benchmark prepare`, `benchmark decide` and `benchmark score` so
+  evidence decisions are completed before labels are read for scoring.
+- Reject moving source revisions, mismatched sample/Contract IDs, stale input
+  hashes and modified decision payloads; keep unsupported samples explicit in
+  score reports.
+- Add confusion-matrix metrics with Wilson 95% intervals and bilingual
+  benchmark-governance documentation.
+- Keep the pinned τ²-bench result classified as calibration evidence; v4.14
+  does not claim that same-dataset replay is a held-out generalization score.
+
 ## 4.13.0 - 2026-09-20
 
 - Harden state-equivalence action matching with an explicit `attempt_policy`:

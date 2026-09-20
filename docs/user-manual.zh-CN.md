@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.13.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.14.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.13.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.14.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -359,7 +359,7 @@ agent-regression compare --config examples/refund-business-case/compare.config.j
 
 路径规则：配置放在 .agent-regression/ 下时相对项目根目录解析；放在其他位置时相对配置文件所在目录解析。命令行参数优先于文件配置。
 
-可运行的比较策略示例位于 v4.13.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
+可运行的比较策略示例位于 v4.14.0 的 examples/quickstart/compare.config.json。已有上节 candidate 后执行：
 
 ```bash
 agent-regression config validate --config examples/quickstart/compare.config.json --kind single
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.13.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.14.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.13.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.14.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -497,6 +497,22 @@ Action 中传 `required-reports: compare.json,coverage.json`。
 此示例在差异存在时仍生成三种报告并保留非零退出码。JUnit 是可供 CI 系统读取的测试报告格式；这里上传文件，并不自动创建逐测试用例的 GitHub Checks 注释。索引是汇总导航，不能取代前面各命令的失败状态。每次 CI 用独立目录，别混入旧失败样例。
 
 ## 7. 扩展场景
+
+### v4.14：可审计 benchmark 流程
+
+当你需要公开“误报/漏报”数字时，使用 manifest 把数据源、拆分、证据、Contract、标签和
+包版本固定下来，并把决定与评分分开：
+
+```bash
+agent-regression benchmark prepare --manifest benchmark/manifest.json
+agent-regression benchmark decide --manifest benchmark/manifest.json --out work/benchmark/decisions.json
+agent-regression benchmark score --manifest benchmark/manifest.json --decisions work/benchmark/decisions.json --out work/benchmark/score.json
+```
+
+`prepare` 检查所有 SHA-256 和样本/Contract 覆盖；`decide` 只读取 Trace 和 Contract，不读取
+标签语义；`score` 校验 `decision_digest` 后才读取 `labels.json`。报告包含混淆矩阵、Wilson
+95% 区间和 provenance；`unsupported` 会明确列出。不要把 reward、人工标签或期望结论写进
+Trace、claims 或 Contract。完整 manifest 示例见 [v4.14 验收](v4.14-acceptance.md)。
 
 | 需求 | 入口 | 使用注意 |
 | --- | --- | --- |

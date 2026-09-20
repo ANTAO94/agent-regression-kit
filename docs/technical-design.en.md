@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.13.0 source. Package version 4.13.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries.
+Based on v4.14.0 source. Package version 4.14.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -307,6 +307,14 @@ automatic support for every Agent.
 
 ### Independent project validation
 
+v4.14 adds a generic benchmark boundary around this adapter. A manifest pins
+the source revision, split definition, evidence, Contract bundle, labels and
+package commit by SHA-256. `benchmark prepare` validates coverage,
+`benchmark decide` reads evidence without label semantics, and
+`benchmark score` validates the decision digest before reading labels. The
+τ²-specific result below remains calibration evidence because its historical
+labels informed Contract design.
+
 v4.13 extends the v4.12 reproducible integration against the independently maintained
 [tau2-bench](https://github.com/sierra-research/tau2-bench) retail result set.
 The repository pins upstream tag `v1.0.1`, the exact source commit, the raw
@@ -345,6 +353,6 @@ See [the full methodology](tau2-independent-validation.md), the
 record](v4.12-acceptance.md) and the [v4.13 acceptance record](v4.13-acceptance.md) for field mappings, limitations, sample traces and
 CI behavior.
 
-[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [State-equivalence guide](state-equivalence.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.13.0) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
+[Core CI](https://github.com/ANTAO94/agent-regression-kit/actions) · [Framework checks](https://github.com/ANTAO94/agent-regression-kit/actions) · [Refund business case](../examples/refund-business-case/README.md) · [Path variation](../examples/path-variation/README.md) · [DeepSeek live check](deepseek-live.md) · [Independent tau2 validation](tau2-independent-validation.md) · [State-equivalence guide](state-equivalence.md) · [Release integrity](supply-chain.md) · [Release](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.14.0) · [v4.14 acceptance](v4.14-acceptance.md) · [v4.13 acceptance](v4.13-acceptance.md) · [v4.12 acceptance](v4.12-acceptance.md) · [v4.11 acceptance](v4.11-acceptance.md)
 
 Preserve public API compatibility, document deprecation/migration, version Trace independently, and review business baselines explicitly. Expand real integrations and security/usability validation before evaluating a hosted service layer.
