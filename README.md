@@ -1,80 +1,43 @@
 # Agent Regression Kit
 
 [![CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml)
-[![Framework compatibility](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml)
-[![tau2 independent validation](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/tau2-independent-validation.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/tau2-independent-validation.yml)
-[![DeepSeek live](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/deepseek-live.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/deepseek-live.yml)
 [![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression-kit)](https://github.com/ANTAO94/agent-regression-kit/releases)
-[![License](https://img.shields.io/github/license/ANTAO94/agent-regression-kit)](LICENSE)
+[MIT](LICENSE)
 
-[中文](#中文) · [English](#english)
+**给 AI Agent 加回归测试：改了 Prompt、模型或代码后，检查它是否调用了错误工具、传错参数，或得出了错误的业务结论。**
 
-## 中文
+[English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-**为 Agent 的工具调用、结构化结论和业务状态建立可审核的回归测试。**
+Python ≥3.9 · 当前版本 v4.12.0 · 核心无必需第三方运行时依赖。
 
-改了 Prompt、模型或工具后，重新运行 Agent，比较审核后的 baseline 与新 candidate：有没有查错订单、漏掉必要工具、错误解读结果，或者发生不允许的状态变化？
+## 1. 它怎么帮你发现问题？
 
-当前版本：[v4.12.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.12.0)。Python ≥3.9，核心无必需第三方运行时依赖，MIT 开源。
+假设你的 Agent 负责查询订单：
 
-### 已验证的真实 Agent
-
-这里的“真实”包含三类证据：官方框架运行时、付费在线模型，以及由独立项目维护的公开任务、轨迹和评分。三类证据回答的问题不同，结果不会互相替代。
-
-| 测试对象 | 实际执行的 Agent 场景 | 已验证结果 | 可核验证据 |
+| 同一个请求：查询订单 123 | 工具调用 | 最终业务结论 | 期望 |
 | --- | --- | --- | --- |
-| PydanticAI | `Agent + FunctionModel + get_order` 完整工具循环 | 生成合法三事件 Trace | [框架工作流](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [示例](examples/pydantic_ai_agent_example.py) |
-| OpenAI Agents SDK | `Runner + Agent + function_tool` 完整工具循环 | 与 PydanticAI 跨框架比较，0 差异 | [框架工作流](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [示例](examples/openai_agents_agent_example.py) |
-| LangGraph | `StateGraph + ToolNode + get_order` 完整图执行 | 正常路径通过；把订单 `123` 错传成 `456` 时被 CI 阻断 | [反例门禁](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [示例](examples/langgraph_agent_example.py) |
-| LangChain Core | 真实 `RunnableLambda` 回调与事件摄取 | Python 3.9/3.11/3.13 矩阵通过 | [兼容矩阵](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
-| DeepSeek 在线模型 | 真实 `deepseek-flash` 执行单工具查询和 `get_order → check_refund_eligibility` 两步依赖链 | 两份真实 Trace 校验和 baseline 比较均通过，0 差异；错误跨步参数会被阻断 | [已通过的真实运行](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35485202922) · [接入说明](docs/deepseek-live.md) |
-| τ²-bench 零售数据 | 独立项目发布的 456 条 `gpt-4.1-mini` 工具 Agent 轨迹；reward 在 Contract 判断后才读取 | 420 条写场景：正确放行 267、正确阻断 153、误报 0、漏报 0；准确率 100% | [独立验证工作流](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/tau2-independent-validation.yml) · [方法与结果](docs/tau2-independent-validation.md) |
+| 修改前，经你审核正确 | `get_order(order_id="123")` | 未发货 | 保存为参考 |
+| 修改后，正常运行 | 查询相同订单 | 未发货 | 通过 |
+| 修改后，发生回归 | 查错订单、换错工具或传错参数 | 或把“未发货”说成“已发货” | 报告差异并阻断 |
 
-DeepSeek 多工具实测证据为 `get_order → result → check_refund_eligibility → result → final_answer`。模型必须把第一步返回的状态和金额传入第二步；三次请求共使用 1,118 个输入 tokens 和 132 个输出 tokens。工具顺序由测试策略固定，因此这里证明的是跨步骤数据传递，不夸大为自主规划。框架还会验证工具名、参数、结果与四个结构化 claims，并在上传产物前检查密钥没有进入 Trace 或报告。
+你提供**一份审核过的运行记录、一份新运行记录，以及可选的检查规则**。框架负责比较、检查规则、输出报告，并用退出码告诉 CI 是否通过。
 
-v4.11 的 14 个误报被保留为历史证据，并驱动 v4.12 增加状态等价契约：参考写操作并不总是唯一正确路径，但放宽必须由显式规则约束。v4.12 在同一数据集上达到 0 误报、0 漏报；这份结果证明框架能够统一接收不同运行时证据、发现真实失败并量化自身误报，不代表上游项目采用或认可本框架。完整边界见 [v4.12 验收说明](docs/v4.12-acceptance.md)。
+先记住四个名字：
 
-### 从这里开始
+| 名词 | 意思 | 示例文件 |
+| --- | --- | --- |
+| Trace（运行记录） | 实际工具调用、参数、结果和最终回答 | `*.trace.json` |
+| Baseline（基线） | 经你审核正确的参考 Trace | `baselines/order-123.trace.json` |
+| Candidate（候选记录） | 修改后重新运行 Agent 得到的 Trace | `work/candidate.trace.json` |
+| Contract（检查规则） | 必须满足的条件，例如订单状态为“未发货” | 配置文件里的 `contract` |
 
-| 你想做什么 | 文档 |
-| --- | --- |
-| 从安装到首个成功/失败用例 | [使用手册](docs/user-manual.zh-CN.md) |
-| 配置检查项、断言和噪声过滤 | [策略配置](docs/user-manual.zh-CN.md#4-配置断言噪声过滤与比较范围) |
-| 看一个完整业务案例 | [退款业务案例](examples/refund-business-case/README.md) |
-| 允许安全的额外查询 | [路径变化案例](examples/path-variation/README.md) |
-| 收紧额外调用白名单 | [v4.7 验收说明](docs/v4.7-acceptance.md) |
-| 限制工具调用次数 | [v4.8 验收说明](docs/v4.8-acceptance.md) |
-| 限制场景可调用的工具目录 | [v4.9 验收说明](docs/v4.9-acceptance.md) |
-| 限制每次工具调用的参数和租户/资源边界 | [v4.10 验收说明](docs/v4.10-acceptance.md) |
-| 表达替代动作、最终状态与幂等重复 | [状态等价契约](docs/state-equivalence.md) · [v4.12 验收](docs/v4.12-acceptance.md) |
-| 接入自己的 Agent | [接入步骤](docs/user-manual.zh-CN.md#5-接入自己的-agent) |
-| 接入 PydanticAI / OpenAI Agents / LangGraph | [真实框架集成](docs/framework-integrations.md) |
-| 用最低成本 DeepSeek 做真实供应商检查 | [DeepSeek 真实检查](docs/deepseek-live.md) |
-| 查看独立项目上的误报、漏报与复现方法 | [τ²-bench 独立验证](docs/tau2-independent-validation.md) |
-| 同一策略集成 CI | [完整 CI 工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁) |
-| 理解架构、实现和边界 | [技术方案](docs/technical-design.zh-CN.md) |
-| 验证发布包来源、校验和与 SBOM | [发布完整性](docs/supply-chain.md) |
-| 查 API 与高级场景 | [API](docs/api.md) · [高级指南](docs/usage-guide.zh-CN.md) |
-| 了解 v4.12 验收与升级 | [v4.12 验收](docs/v4.12-acceptance.md) · [状态等价契约](docs/state-equivalence.md) · [升级说明](UPGRADING.md) |
-| 阅读 HTML 讲解 | [HTML 文档](docs/agent-regression-kit-guide.html)，下载后本地打开 |
+框架不会自动知道业务正确答案；你需要审核 baseline，并定义重要的业务约束。
 
-### 工作方式
+## 2. 先跑通：一个成功案例，一个失败案例
 
-```mermaid
-flowchart TD
-    A[修改 Agent] -->|实际运行| C[Candidate Trace]
-    B[人工审核的 Baseline] -->|预期证据| D[Compare + Contract]
-    C -->|实际证据| D
-    P[检查项与噪声规则] -->|比较策略| D
-    D -->|通过: exit 0| OK[CI 通过]
-    D -->|回归: exit 1| FAIL[CI 失败与差异报告]
-```
+以下命令适用于 macOS/Linux Bash/Zsh，也可在 Windows WSL 执行。请在同一终端按顺序操作。安装需要联网；这组示例使用固定脚本和本地工具结果，**不需要 API Key，不会请求模型**。
 
-Trace 是一次运行的事件证据，baseline 是预期，candidate 是实际；Contract 是字段和行为约束。Claims 是由接入代码提供的结构化业务结论。
-
-### 五分钟体验
-
-macOS/Linux Bash/Zsh 示例。首次安装需要联网，示例不用模型密钥。
+### 安装
 
 ```bash
 git clone --branch v4.12.0 https://github.com/ANTAO94/agent-regression-kit.git
@@ -83,7 +46,15 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
 agent-regression --version
+```
 
+应看到 `agent-regression 4.12.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+
+### 录制正常版本并比较
+
+仓库已附带示例 baseline，无需自己先生成：
+
+```bash
 agent-regression record \
   --scenario examples/order-123/candidate-ok.scenario.json \
   --out work/candidate.trace.json
@@ -93,7 +64,9 @@ agent-regression compare \
   --out work/reports/compare.json
 ```
 
-预期：passed=true，退出码 0。再故意录制一个错误版本：
+预期 JSON 中包含 `"passed": true`、`"blocking_difference_count": 0`，退出码为 **0**。报告在 `work/reports/compare.json`。
+
+### 故意跑一个错误版本
 
 ```bash
 agent-regression record \
@@ -105,201 +78,207 @@ agent-regression compare \
   --out work/reports/regression.json
 ```
 
-预期：退出码 1，JSON 显示阻断差异。退出码 2 表示输入或校验错误。[使用手册](docs/user-manual.zh-CN.md)说明配置策略、审核 baseline、接入真实 Agent 和排错。
+这个样例把工具换成 `lookup_order`、把订单号从字符串改成数字，并把“未发货”回答成“已发货”。
 
-### 能力与边界
+预期 `"passed": false`，退出码为 **1**。这是成功抓住了回归，不是安装失败。打开 `work/reports/regression.json`，查看 `differences`：
 
-| 能力 | 可做的事情 | 使用边界 |
-| --- | --- | --- |
-| Trace / Compare | 记录工具名、参数、结果、错误、答案和 claims | 按顺序对齐，需显式插桩 |
-| Contract | 字段断言、噪声过滤、归一化、工具/路径/副作用约束 | 业务期望由你定义 |
-| Tool limits | 按工具限制最小/最大调用次数，可按参数计数 | 只证明 Trace 中观察到的调用次数 |
-| Tool allowlist | 场景级工具目录白名单，可按参数精确匹配；未授权调用生成 `unauthorized_tool_call` | 不替代真实 Tool Gateway 的权限控制 |
-| Argument policies | 对指定工具的每一次调用检查参数值、参考字段、必填/禁用字段；违规生成 `tool_argument_policy` | 只验证 Trace 中暴露的参数，不替代生产权限执行 |
-| Cross-step relations | 约束后续调用引用前一步结果，以及金额、状态等业务关系 | 只比较 Trace 中已暴露的结构化证据 |
-| State equivalence | 在显式声明的规则中归并替代意图，比较最终状态路径，支持受控失败尝试和幂等重复 | 不自动推断等价；忽略参数、别名和重复调用都必须显式配置 |
-| 状态 / 多轮 / 异步 | 快照隔离、逐轮检查、并行组记录 | 外部状态和线程安全由接入方负责 |
-| Stability / Coverage | 重复运行阈值、工具路径与业务分支覆盖 | 不是模型质量或代码覆盖率 |
-| MCP | stdio / Streamable HTTP 工具接入及 Fixture | MCP 服务不等同于完整 Agent |
-| SDK | Python 同步/异步 Adapter 与模板 | 无现成 Java/TypeScript SDK |
-| CI / Viewer | JSON、Markdown、JUnit、报告索引、配置导出 | 页面是本地静态工具，无账号/远程执行 |
-| Controlled replay | 用审核过的工具结果重跑 Agent 并严格检查调用 | 不证明真实工具实现仍然正确 |
-| Path/result correlation | 按 call_id 关联结果，路径规则可约束结果和错误状态 | 需要 Trace 保留稳定 call_id |
-| Framework events | 接收真实框架的工具开始/结束和最终答案回调 | 框架仍负责模型、生命周期和工具本身 |
-| Workspace review | manifest、只读 baseline review、本地工作区页面 | 页面不自动读目录、不执行 Agent、不接受 baseline |
-| Compatibility / migration | v4 public API、Trace/Session/Contract/Report 检查、显式迁移 | 不会静默修改源文件 |
-| External project validation | 导入 τ²-bench 公开轨迹，以独立 reward 统计误报和漏报 | 当前覆盖固定版本的半双工零售写场景，不代表上游采用 |
+| 报告字段 | 怎么读 |
+| --- | --- |
+| `category` | 哪类差异，例如工具参数或业务结论变化 |
+| `path` | 差异发生在哪个字段 |
+| `baseline` / `candidate` | 原来是什么，现在是什么 |
+| `allowed` | 策略是否明确允许这项差异 |
 
-**replay 只检查已有 Trace，不重新运行 Agent 或工具。** 需要让 Agent 在不触碰真实工具的情况下运行时，使用 v3.6 的 `replay_agent_run`/`CassetteToolExecutor`；它会阻断漏调用、多调用和参数变化。claims-only 允许措辞变化，但需要有意义的 claims 和业务断言。
-
+### 用页面查看
 
 ```bash
 agent-regression ui
 ```
 
-打开终端提示的地址，默认 http://127.0.0.1:8765/index.html，选择本地 Trace/报告。配置中心导出 JSON 后再运行 CLI。GitHub 不直接运行这些 HTML 页面。
+打开终端提示的本地地址，选择刚才生成的 Trace 或报告文件。配置页面可导出 JSON，保存后再交给 CLI 使用。页面不会替你运行 Agent、自动保存配置或接受 baseline。
 
-自定义断言的 CI 可以使用 **compare --config**，或在 v3.5.0+ 比较 Action 中传入 `config`；旧的 baseline/candidate 输入仍兼容。策略中的 `required_claims` 能阻止候选 Trace 通过“少报业务结论”，Report Index 的 `required-reports` 能阻止报告缺失被误认为成功。[可复制工作流](docs/user-manual.zh-CN.md#6-ci使用相同配置执行门禁)保留失败退出码并上传三种报告。
+## 3. 怎么配置检查项和噪音过滤？
 
-### 验证与维护
+**baseline 保存参考数据，config 保存检查规则。** 默认比较工具调用、参数、结果和最终回答；需要允许措辞变化、忽略动态字段或增加业务断言时，再加配置。
 
-v4.12.0 的发布验收：
+在项目根目录创建 `.agent-regression` 文件夹，把下面内容保存为 **`.agent-regression/config.json`**：
 
-| 检查 | 证据 |
-| --- | --- |
-| 核心测试 | 本地完整测试 + [Python 3.9/3.11/3.13 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml) |
-| 框架兼容 | [PydanticAI、OpenAI Agents、LangGraph 与 LangChain Core](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
-| 真实在线 Agent | [DeepSeek live provider：单工具、多工具依赖链、比较与密钥扫描](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35485202922) |
-| 构建与干净安装 | [发布流水线](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/release.yml) |
-| 发布完整性 | SHA-256、SPDX 2.3 SBOM 与 GitHub 签名证明，见[验证说明](docs/supply-chain.md) |
-| 业务回归案例 | [v4.5 验收契约](docs/v4.5-acceptance.md) |
-| 路径变化与误报控制 | [v4.6 验收契约](docs/v4.6-acceptance.md) · [路径变化案例](examples/path-variation/README.md) |
-| 额外调用白名单 | [v4.7 验收契约](docs/v4.7-acceptance.md) · `extra_tool_call` 诊断 |
-| 工具调用次数契约 | [v4.8 验收契约](docs/v4.8-acceptance.md) · `tool_count` 诊断 · 退款重复调用反例 |
-| 场景工具白名单 | [v4.9 验收契约](docs/v4.9-acceptance.md) · `unauthorized_tool_call` 诊断 · 空白名单与参数范围反例 |
-| 工具参数与租户边界 | [v4.10 验收契约](docs/v4.10-acceptance.md) · `tool_argument_policy` 诊断 · 错误订单/超额退款反例 |
-| 独立项目实测 | [τ²-bench 公开零售轨迹](docs/tau2-independent-validation.md) · 420 条写场景 · 153 个失败全部阻断 · 0 误报 · 0 漏报 |
-| 状态等价验收 | [v4.12 验收契约](docs/v4.12-acceptance.md) · [配置与负向用例](docs/state-equivalence.md) |
-| 下载 | [wheel 与源码包](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.12.0) |
-
-这些验证覆盖已实现路径，生产接入仍需要自己的业务用例。官方 MCP 检查是独立的[可选工作流](.github/workflows/mcp-compatibility.yml)，不等于完整协议认证。文档更新以 main 为准，发布 tag 内容固定。
-
-[升级](UPGRADING.md) · [变更](CHANGELOG.md) · [限制](docs/limitations.md) · [发布完整性](docs/supply-chain.md) · [安全](SECURITY.md) · [兼容矩阵](docs/compatibility-matrix.md) · [贡献](CONTRIBUTING.md)
-
-## English
-
-**Regression tests for Agent tool calls, structured conclusions and business state.**
-
-After changing prompts, models or tools, run the Agent again and compare candidate evidence against a reviewed baseline. Detect wrong arguments, missing/forbidden calls, changed claims and exposed side effects.
-
-Release: [v4.12.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.12.0). Python ≥3.9, no required third-party core runtime dependencies, MIT license.
-
-### Verified real Agents
-
-“Real” evidence covers official framework runtimes, paid hosted models, and
-published tasks, trajectories and rewards maintained by an independent project.
-Each category answers a different validation question.
-
-| Target | Agent run actually executed | Verified result | Evidence |
-| --- | --- | --- | --- |
-| PydanticAI | `Agent + FunctionModel + get_order` tool loop | Valid three-event Trace | [Framework workflow](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [Example](examples/pydantic_ai_agent_example.py) |
-| OpenAI Agents SDK | `Runner + Agent + function_tool` tool loop | Cross-framework comparison with PydanticAI: 0 differences | [Framework workflow](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [Example](examples/openai_agents_agent_example.py) |
-| LangGraph | `StateGraph + ToolNode + get_order` graph execution | Normal path passes; changing order `123` to `456` is blocked | [Negative gate](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) · [Example](examples/langgraph_agent_example.py) |
-| LangChain Core | Real `RunnableLambda` callback and event ingestion | Python 3.9/3.11/3.13 matrix passes | [Compatibility matrix](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) |
-| Hosted DeepSeek | Real `deepseek-flash` runs a single-tool lookup and a `get_order → check_refund_eligibility` dependency chain | Both live traces pass validation and baseline comparison with 0 differences; wrong cross-step arguments are blocked | [Passing live run](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35485202922) · [Guide](docs/deepseek-live.md) |
-| τ²-bench retail | 456 published `gpt-4.1-mini` tool-Agent trajectories with reward labels hidden until after each Contract decision | 420 write scenarios: 267 true passes, 153 true blocks, 0 false alarms and 0 missed failures; 100% accuracy | [Independent workflow](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/tau2-independent-validation.yml) · [Method and evidence](docs/tau2-independent-validation.md) |
-
-The multi-tool DeepSeek path is `get_order → result → check_refund_eligibility
-→ result → final_answer`. The model must propagate status and amount from the
-first result into the second call; three requests used 1,118 input and 132
-output tokens. Tool order is fixed by test policy, so this proves cross-step
-data propagation rather than autonomous planning. The gate keeps tools,
-arguments, results and four business claims strict, then scans artifacts for
-the active credential before upload.
-
-This evidence proves that the current kit can normalize different Agent
-runtimes, detect a real argument regression and gate a hosted model in CI. It
-does not claim coverage of every model, multi-Agent topology or long-running
-production workload. The independent project does not imply upstream adoption
-or endorsement. See the [v4.12 acceptance contract](docs/v4.12-acceptance.md).
-
-### Documentation
-
-| Goal | Read |
-| --- | --- |
-| Install and reproduce pass/fail behavior | [User manual](docs/user-manual.en.md) |
-| Configure assertions and noise filtering | [Comparison policy](docs/user-manual.en.md#4-configure-assertions-and-noise-filtering) |
-| See a complete business case | [Refund business case](examples/refund-business-case/README.md) |
-| Allow a safe extra query | [Path variation example](examples/path-variation/README.md) |
-| Constrain tolerant extra calls | [v4.7 acceptance](docs/v4.7-acceptance.md) |
-| Enforce per-tool call counts | [v4.8 acceptance](docs/v4.8-acceptance.md) |
-| Restrict the scenario tool catalog | [v4.9 acceptance](docs/v4.9-acceptance.md) |
-| Constrain every tool call's arguments and tenant/resource boundary | [v4.10 acceptance](docs/v4.10-acceptance.md) |
-| Express alternative actions, final state and idempotent retries | [State-equivalence contracts](docs/state-equivalence.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) |
-| Connect your own Agent | [Integration](docs/user-manual.en.md#5-integrate-your-own-agent) |
-| Connect PydanticAI / OpenAI Agents / LangGraph | [Real framework integrations](docs/framework-integrations.md) |
-| Run a low-cost live DeepSeek provider check | [DeepSeek live check](docs/deepseek-live.md) |
-| Inspect measured false alarms and missed failures on an independent project | [τ²-bench validation](docs/tau2-independent-validation.md) |
-| Use the same policy in CI | [Complete workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) |
-| Understand architecture and boundaries | [Technical design](docs/technical-design.en.md) |
-| Verify release provenance, checksums and SBOM | [Release integrity](docs/supply-chain.md) |
-| Explore advanced APIs | [API reference](docs/api.md) · [Advanced guide](docs/usage-guide.en.md) |
-| Read the v4.12 acceptance and upgrade contract | [v4.12 acceptance](docs/v4.12-acceptance.md) · [State-equivalence contracts](docs/state-equivalence.md) · [Upgrade guide](UPGRADING.md) |
-
-### Quick start
-
-Bash/Zsh on macOS/Linux. Installation needs network access; examples need no model credentials.
-
-```bash
-git clone --branch v4.12.0 https://github.com/ANTAO94/agent-regression-kit.git
-cd agent-regression-kit
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install .
-agent-regression --version
-
-agent-regression record \
-  --scenario examples/order-123/candidate-ok.scenario.json \
-  --out work/candidate.trace.json
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/candidate.trace.json \
-  --out work/reports/compare.json
+```json
+{
+  "baseline": "baselines/order-123.trace.json",
+  "candidate": "work/candidate.trace.json",
+  "report": "work/reports/compare.json",
+  "final_answer_mode": "claims-only",
+  "contract": {
+    "required_claims": [
+      "final_answer.claims.order_status"
+    ],
+    "assertions": [
+      {
+        "path": "final_answer.claims.order_status",
+        "equals": "not_shipped"
+      },
+      {
+        "path": "tool_results[*].is_error",
+        "equals": false
+      }
+    ],
+    "must_call": [
+      {
+        "tool": "get_order",
+        "arguments": {
+          "order_id": "123"
+        }
+      }
+    ],
+    "must_not_call": [
+      "cancel_order",
+      "refund"
+    ],
+    "ignore_paths": [
+      "tool_results[*].result.request_id"
+    ]
+  }
+}
 ```
 
-Expected: passed=true and exit 0. Prove a regression fails:
+使用第 2 节生成的正常候选记录运行：
 
 ```bash
-agent-regression record \
-  --scenario examples/order-123/candidate-regression.scenario.json \
-  --out work/bad.trace.json
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/bad.trace.json \
-  --out work/reports/regression.json
+agent-regression compare --config .agent-regression/config.json
 ```
 
-Expected: exit 1 and blocking differences. Exit 2 means invalid inputs or validation failure.
+这份配置要求：
 
-A Trace records one run; baseline is reviewed expectation; candidate is new evidence. Contracts express explicit business rules. Claims are structured conclusions emitted by the integration, not inferred automatically from prose.
+- 必须提供 `order_status` 业务结论，且值为 `not_shipped`。
+- 工具结果不能报错；必须用字符串订单号 `"123"` 调用 `get_order`。
+- 不能调用取消订单或退款工具。
+- 忽略返回结果中的动态 `request_id`；样例没有该字段，但真实接口经常有。
+- `claims-only` 允许回答换一种说法，仍比较结构化结论、工具参数和结果。
 
-### Capabilities and boundaries
+**Claims 是从 Agent 实际输出中提取的业务事实**，例如 `{"order_status": "not_shipped"}`，由接入代码提供。不能直接填期望答案，否则会掩盖错误；没有可靠 claims 时，先保留默认的最终文字比较。
 
-| Feature | Provides | Boundary |
+配置放在 `.agent-regression/` 时，文件路径相对于项目根目录；放在其他目录时，相对于配置文件所在目录。CLI 显式传入的路径相对于当前终端目录。
+
+更多规则按需查阅：[配置手册](docs/user-manual.zh-CN.md) · [允许额外查询](examples/path-variation/README.md) · [最终状态和等价动作](docs/state-equivalence.md)。放宽比较时，要同时约束订单号、金额等重要字段和禁止的副作用。
+
+## 4. 怎么接入自己的 Agent？
+
+前面的 `record --scenario` 是脚本演示。接入真实项目时，需要**实际运行你的 Agent，并把工具调用、返回结果和最终输出记录成 Trace**。
+
+| 你的情况 | 接入入口 |
+| --- | --- |
+| 使用 PydanticAI、OpenAI Agents SDK、LangGraph | [框架结果转换器](docs/framework-integrations.md)，可选依赖的 Python 要求见该文档 |
+| 自己写的 Python Agent | [callback 示例](examples/framework_callback_example.py)，在工具执行边界记录 |
+| 已有工具开始/结束回调 | [事件接入示例](examples/langchain_core_event_example.py) |
+| 先验证 MCP 工具交互 | [MCP 示例](examples/mcp_record_example.py)，工具协议验证与完整 Agent 回归范围不同 |
+
+先跑 callback 示例，理解记录流程：
+
+```bash
+python examples/framework_callback_example.py
+agent-regression validate --trace work/framework-callback.trace.json
+```
+
+检查 `work/framework-callback.trace.json` 中的参数、工具结果和业务结论，确认正确后，**首次**保存基线：
+
+```bash
+agent-regression baseline accept \
+  --trace work/framework-callback.trace.json \
+  --out baselines/my-agent.trace.json
+```
+
+改动 Agent 后，重新录制并比较：
+
+```bash
+python examples/framework_callback_example.py
+agent-regression compare \
+  --baseline baselines/my-agent.trace.json \
+  --candidate work/framework-callback.trace.json \
+  --out work/reports/my-agent.json
+```
+
+在 [callback 示例](examples/framework_callback_example.py)中，需要替换的部分是：
+
+| 代码位置 | 你要做什么 |
+| --- | --- |
+| `invoke_framework(request, context)` | 接入你自己的 Agent 执行逻辑 |
+| `context.call_tool(...)` | 让工具执行经过记录边界；已有框架也可用事件回调 |
+| `context.final_answer(text, claims)` | 记录实际答案及从中提取的业务结论 |
+| `FixtureTools` | 当前使用固定返回值；真实场景按需提供工具执行器 |
+
+样例按工具结果生成答案；你自己的模型 Agent 应记录模型实际回答，不能重新拼一个“正确答案”替代它。
+
+**baseline accept 只校验并保存文件，不判断业务正确性。** 基线应人工审核并提交 Git。后续每次只生成 candidate 并比较，不要在 CI 中自动覆盖 baseline。接入后故意改错一次参数，确认门禁失败。
+
+## 5. 怎么放进 CI？
+
+在你自己的项目中准备：
+
+| 文件 | 谁来提供 |
+| --- | --- |
+| `scripts/record_agent.py` | 你编写的 Agent 运行和记录入口，每次生成新的 candidate |
+| `baselines/order-123.trace.json` | 审核并提交 Git 的基线 |
+| `.agent-regression/config.json` | 第 3 节策略，按自己的场景修改路径和断言 |
+
+下面假定记录入口输出 `work/candidate.trace.json`。框架**不会自动生成 `scripts/record_agent.py`**，可从第 4 节示例改写；还需安装自己 Agent 所需的依赖。
+
+保存为 `.github/workflows/agent-regression.yml`：
+
+```yaml
+name: Agent regression
+on: [push, pull_request]
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install regression kit
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.12.0"
+      - name: Run your Agent and record its trace
+        run: python scripts/record_agent.py
+      - name: Compare with the reviewed baseline
+        run: agent-regression compare --config .agent-regression/config.json
+      - name: Upload report even after failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-regression-report
+          path: work/reports/
+          if-no-files-found: error
+```
+
+退出码 **0 = 通过，1 = 回归，2 = 输入或配置错误**。非零退出码让 CI 失败，失败时仍上传报告。不要给比较命令加 `|| true` 或 `continue-on-error`。
+
+先本地跑通，再开启 CI。模型密钥使用 GitHub Secrets，并在录制边界配置脱敏。JUnit、Markdown 和可复用 Action 的完整示例见[使用手册](docs/user-manual.zh-CN.md)。
+
+## 6. 验证到了什么程度？
+
+当前适合本地开发与团队 CI 试点。v4.12 发布记录为 **227 项测试通过**，发布流程验证构建和干净环境安装。
+
+| 验证类型 | 已有证据 | 能说明什么 |
 | --- | --- | --- |
-| Trace / Compare | Calls, arguments, results, errors, answer and claims comparison | Ordered alignment, explicit instrumentation |
-| Contracts | Assertions, noise filters, normalizers, tool/path/state constraints | Integrator-owned expectations |
-| Tool limits | Per-tool minimum/maximum counts, optionally scoped by arguments | Only observed Trace call counts |
-| Tool allowlist | Scenario-level permitted tool catalog with optional exact arguments | Does not replace permissions in the real Tool Gateway |
-| Argument policies | Check every call's argument values, Trace references, required and forbidden fields; emit `tool_argument_policy` | Verifies exposed Trace arguments; does not replace production authorization |
-| State / sessions / async | Snapshot isolation, per-turn checks, parallel groups | Integrator-owned cleanup and thread safety |
-| Stability / coverage | Repeat thresholds and observed tool/business branches | Not model quality or code coverage |
-| MCP | stdio / Streamable HTTP tools and controlled fixtures | Not a complete Agent framework |
-| SDK | Python sync/async adapters and templates | No bundled Java/TypeScript SDK |
-| Reports / UI | JSON, Markdown, JUnit, index and config export | Local static UI, no hosted management backend |
-| Compatibility / migration | v4 public API and document checks, explicit Trace migration | Source files are never silently rewritten |
-| External project validation | Imports published τ²-bench trajectories and measures decisions against an independent reward | Pinned half-duplex retail write scenarios only; no upstream adoption claim |
+| 真实框架 + 确定性模型/工具 | PydanticAI、OpenAI Agents、LangGraph、LangChain Core 的[兼容 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) | 框架运行和 Trace 接入可用，不等于在线模型质量验证 |
+| 在线模型 | [DeepSeek 实测](docs/deepseek-live.md)：订单查询和两步工具依赖 | 已记录真实模型调用，工具顺序由测试策略约束 |
+| 外部公开轨迹 | [τ²-bench 零售数据](docs/tau2-independent-validation.md)：420 个适用场景，267 正确放行、153 正确阻断、0 误报、0 漏报 | 当前规则在这份固定数据上的结果 |
 
-**replay inspects recorded evidence; it does not re-execute Agents or tools.** Record a new candidate to test changes. claims-only permits prose changes but needs meaningful claims and business assertions.
+τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
-Run agent-regression ui, open the printed loopback URL and select local files. Save exported configuration before CLI checks. GitHub HTML links display source rather than a running page.
+框架只能检查已记录证据和已配置规则。真实数据库状态需要你提供快照；隐藏副作用、自然语言事实判断和外部权限执行不由 Trace 比较自动保证。详见[能力限制](docs/limitations.md)。
 
-Use **compare --config** for custom contracts in CI, or pass `config` to the v3.5.0+ comparison Action. The legacy baseline/candidate Action inputs remain compatible. `required_claims` prevents a candidate from passing by omitting a business conclusion, Report Index `required-reports` turns missing artifacts into a failure, and controlled replay checks an Agent without calling live tools. The [documented workflow](docs/user-manual.en.md#6-use-the-same-policy-in-ci) preserves exit codes and uploads all three report formats.
+## 7. 常见问题与文档
 
-### Verification and maintenance
+| 问题 | 先检查 |
+| --- | --- |
+| 找不到 `agent-regression` 命令 | 激活 `.venv`，在该环境执行 `python -m pip install .` |
+| 找不到 Trace 或示例 | 是否在仓库根目录，是否先录制再比较 |
+| 退出码 1 | 查看报告差异；第 2 节错误样例就应返回 1 |
+| 退出码 2 | 检查终端错误、JSON 格式、路径和 Trace 校验 |
+| 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
+| 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-Recorded v4.12.0 evidence is maintained by the main regression, framework compatibility, path-variation, refund, τ²-bench, live-provider and release workflows; each release also includes local full-test, wheel-build, compatibility, migration and clean-install checks.
-
-Tagged releases additionally publish SHA-256 checksums, an SPDX 2.3 release
-SBOM, and GitHub-signed provenance/SBOM attestations. See the
-[release integrity guide](docs/supply-chain.md) before consuming an artifact in
-a sensitive environment.
-
-These checks cover implemented paths; production integrations need their own scenarios. The [optional MCP workflow](.github/workflows/mcp-compatibility.yml) is separate and does not certify every protocol behavior. Main contains documentation updates; published tags are fixed snapshots.
-
-
-```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -q
-```
-
-[Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [Limitations](docs/limitations.md) · [Compatibility](docs/compatibility-matrix.md) · [Contributing](CONTRIBUTING.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [API](docs/api.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [发布验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
