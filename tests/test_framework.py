@@ -64,6 +64,15 @@ class FrameworkEventTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "pending tool calls"):
             recorder.finish()
 
+    def test_call_id_cannot_be_reused_after_its_result(self):
+        recorder = FrameworkTraceRecorder(
+            {"name": "framework-agent", "version": "1.0.0"}, run_id="duplicate"
+        )
+        recorder.tool_start("lookup", {}, call_id="same")
+        recorder.tool_end("same", {})
+        with self.assertRaisesRegex(ValueError, "unique"):
+            recorder.tool_start("lookup-again", {}, call_id="same")
+
 
 if __name__ == "__main__":
     unittest.main()

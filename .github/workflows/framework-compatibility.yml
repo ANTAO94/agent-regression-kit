@@ -8,6 +8,10 @@ on:
       - "examples/langchain_core_event_example.py"
       - "examples/optional-requirements.txt"
       - ".github/workflows/framework-compatibility.yml"
+      - "examples/pydantic_ai_agent_example.py"
+      - "examples/openai_agents_agent_example.py"
+      - "examples/langgraph_agent_example.py"
+      - "setup.cfg"
   push:
     branches: [main]
     paths:
@@ -16,6 +20,10 @@ on:
       - "examples/langchain_core_event_example.py"
       - "examples/optional-requirements.txt"
       - ".github/workflows/framework-compatibility.yml"
+      - "examples/pydantic_ai_agent_example.py"
+      - "examples/openai_agents_agent_example.py"
+      - "examples/langgraph_agent_example.py"
+      - "setup.cfg"
   workflow_dispatch:
 
 jobs:
@@ -43,3 +51,41 @@ jobs:
         run: python examples/langchain_core_event_example.py
       - name: Validate event-ingestion Trace
         run: agent-regression validate --trace work/langchain-core-events.trace.json
+
+  real-agent-frameworks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install framework compatibility extras
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install '.[frameworks]'
+      - name: Run real deterministic Agent frameworks
+        run: |
+          python examples/pydantic_ai_agent_example.py
+          python examples/openai_agents_agent_example.py
+          python examples/langgraph_agent_example.py
+      - name: Validate framework traces
+        run: |
+          agent-regression validate --trace work/pydantic-ai.trace.json
+          agent-regression validate --trace work/openai-agents.trace.json
+          agent-regression validate --trace work/langgraph.trace.json
+      - name: Prove cross-framework regression compatibility
+        run: |
+          agent-regression compare --baseline work/pydantic-ai.trace.json --candidate work/openai-agents.trace.json --out work/pydantic-vs-openai.json
+          agent-regression compare --baseline work/openai-agents.trace.json --candidate work/langgraph.trace.json --out work/openai-vs-langgraph.json
+      - name: Prove a real Agent parameter regression is blocked
+        run: |
+          AGENT_TOOL_ORDER_ID=456 AGENT_TRACE_OUT=work/langgraph-parameter-regression.trace.json python examples/langgraph_agent_example.py
+          set +e
+          agent-regression compare --baseline work/pydantic-ai.trace.json --candidate work/langgraph-parameter-regression.trace.json --out work/langgraph-parameter-regression.report.json
+          compare_exit=$?
+          set -e
+          test "$compare_exit" -eq 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-agent-framework-traces
+          path: work/*.json

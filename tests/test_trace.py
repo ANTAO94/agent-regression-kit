@@ -4,6 +4,34 @@ from agent_regression import AgentTrace, TraceValidationError
 
 
 class AgentTraceTests(unittest.TestCase):
+    def test_runtime_validation_matches_public_schema_types_and_fields(self):
+        base = {
+            "schema_version": "0.1",
+            "run_id": "run-1",
+            "agent": {"name": "test"},
+            "events": [{"sequence": 1, "type": "final_answer", "text": "done"}],
+        }
+        invalid_values = [
+            {**base, "run_id": 123},
+            {**base, "unexpected": True},
+            {
+                **base,
+                "events": [
+                    {"sequence": 1, "type": "tool_call", "call_id": "c", "tool": ["lookup"], "arguments": {}},
+                    {"sequence": 2, "type": "tool_result", "call_id": "c", "result": {}, "is_error": False},
+                    {"sequence": 3, "type": "final_answer", "text": "done"},
+                ],
+            },
+            {
+                **base,
+                "events": [{"sequence": 1, "type": "final_answer", "text": "done", "extra": True}],
+            },
+        ]
+        for value in invalid_values:
+            with self.subTest(value=value):
+                with self.assertRaises(TraceValidationError):
+                    AgentTrace.from_dict(value)
+
     def test_rejects_non_contiguous_sequence(self):
         with self.assertRaisesRegex(TraceValidationError, "contiguous"):
             AgentTrace.from_dict(

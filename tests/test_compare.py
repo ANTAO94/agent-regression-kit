@@ -184,6 +184,24 @@ class CompareTests(unittest.TestCase):
         self.assertTrue(report["passed"], report["differences"])
         self.assertEqual([], report["differences"])
 
+    def test_fresh_call_ids_in_execution_metadata_are_normalized(self):
+        baseline = make_trace()
+        candidate = make_trace()
+        baseline.events[0]["call_id"] = "old-call"
+        baseline.events[1]["call_id"] = "old-call"
+        candidate.events[0]["call_id"] = "new-call"
+        candidate.events[1]["call_id"] = "new-call"
+        baseline.metadata["execution"] = {
+            "mode": "async",
+            "parallel_groups": [{"group_id": "g", "call_ids": ["old-call"], "call_count": 1}],
+        }
+        candidate.metadata["execution"] = {
+            "mode": "async",
+            "parallel_groups": [{"group_id": "g", "call_ids": ["new-call"], "call_count": 1}],
+        }
+        report = compare_traces(baseline, candidate)
+        self.assertTrue(report["passed"], report["differences"])
+
     def test_invalid_result_alignment_is_rejected(self):
         with self.assertRaises(ValueError):
             ComparisonPolicy(result_alignment="position")

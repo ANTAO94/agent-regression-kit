@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.1.0 - 2026-09-20
+
 - Rewrite the bilingual README around installation, policy configuration, Agent integration and CI.
 - Add bilingual technical design and user manuals with explicit replay, SDK, contract and security boundaries.
 - Add a runnable quickstart comparison policy and include the new manuals in wheel documentation assets.
@@ -9,6 +11,9 @@
 - Harden v4 boundaries: review, compare and migration outputs cannot overwrite their source documents.
 - Reject unknown contract/config fields and unsupported report types instead of silently accepting typos.
 - Treat run-scoped tool call IDs as correlation metadata, validate duplicate IDs, and require boolean report status values.
+- Add result adapters and offline real-runtime examples for PydanticAI, OpenAI Agents SDK and LangGraph.
+- Add optional framework extras and a Python 3.11 compatibility job that validates all three generated traces.
+- Prove cross-framework equivalence and require a real LangGraph parameter regression to fail in CI.
 
 ## 4.0.0 - 2026-09-19
 

@@ -58,6 +58,14 @@ def make_trace(run_id, tools):
 
 
 class CoverageTests(unittest.TestCase):
+    def test_empty_coverage_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report = compare_trace_coverage(directory)
+        self.assertFalse(report["passed"])
+        self.assertEqual(0, report["case_count"])
+        self.assertEqual(0.0, report["coverage_percent"])
+        self.assertEqual(0.0, report["business_branch_coverage_percent"])
+
     def test_trace_tool_path_preserves_order(self):
         self.assertEqual(("lookup", "cancel"), trace_tool_path(make_trace("one", ["lookup", "cancel"])))
 

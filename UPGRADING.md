@@ -275,6 +275,31 @@ transforms. Review any `status=deprecated` API warning, run the full project
 CI, and accept baseline changes only through the existing explicit review flow.
 See `docs/v4-acceptance.md` for the complete release and security checklist.
 
+## v4.0.0 → v4.1.0
+
+v4.1 keeps public API generation 4 and the existing 0.1 evidence schemas. It
+tightens validation so empty evidence sets, unknown nested policy fields,
+unknown report types, malformed Trace events and reused call IDs fail closed.
+If a previously accepted config now fails, correct the misspelled or unsupported
+field rather than weakening the gate.
+
+The release also adds optional adapters for completed PydanticAI, OpenAI Agents
+SDK and LangGraph runs:
+
+```bash
+python -m pip install --upgrade 'agent-regression-kit[frameworks]==4.1.0'
+python examples/pydantic_ai_agent_example.py
+python examples/openai_agents_agent_example.py
+python examples/langgraph_agent_example.py
+```
+
+The dependency-free core still supports Python 3.9. Framework extras require
+Python 3.10 or newer due to upstream requirements. Existing Trace files and
+reviewed baselines do not require migration. Run `compatibility`, the normal
+comparison suite and any framework-specific integration checks before changing
+a baseline. See `docs/v4.1-acceptance.md` for the positive and negative release
+evidence.
+
 ## v3.2.2 → v3.3.0
 
 This is a feature release for team CI handoff. It adds `report-index`, which

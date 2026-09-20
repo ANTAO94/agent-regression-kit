@@ -174,7 +174,8 @@ def compare_trace_coverage(
     report = {
         "schema_version": "0.1",
         "report_type": "agent_coverage",
-        "passed": not missing and not missing_branches,
+        # Zero discovered traces is missing evidence, not 100% coverage.
+        "passed": bool(files) and not missing and not missing_branches,
         "trace_dir": str(root),
         "path_mode": "tool_outcome" if include_outcomes else "tool",
         "branch_paths": list(branch_paths),
@@ -185,7 +186,7 @@ def compare_trace_coverage(
         "coverage_percent": (
             round((len(expected) - len(missing)) / len(expected) * 100, 2)
             if expected
-            else 100.0
+            else (100.0 if files else 0.0)
         ),
         "paths": [_path_entry(path, path_cases[path]) for path in actual],
         "expected_paths": [list(path) for path in expected],
@@ -201,7 +202,7 @@ def compare_trace_coverage(
                 2,
             )
             if expected_branch_list
-            else 100.0
+            else (100.0 if files else 0.0)
         ),
         "business_branches": branch_entries,
         "expected_branches": expected_branch_list,

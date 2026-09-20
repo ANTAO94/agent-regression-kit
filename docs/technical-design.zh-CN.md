@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.0.0 源码整理；产品版本 4.0.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
+依据 v4.1.0 源码整理；产品版本 4.1.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界。
 
 ## 1. 目标和适用场景
 
@@ -188,11 +188,11 @@ agent-regression migrate trace \
   --out work/order-123.v4.trace.json
 ```
 
-v4.0 的发布门禁包括仓库全量测试、Python 3.9/3.11/3.13 主回归、LangChain
-Core 事件接入检查、源码包/wheel 构建、干净环境安装、兼容与迁移命令、工作区
+v4.1 的发布门禁包括仓库全量测试、Python 3.9/3.11/3.13 主回归、LangChain
+Core 事件接入检查、PydanticAI/OpenAI Agents/LangGraph 正反例、源码包/wheel 构建、干净环境安装、兼容与迁移命令、工作区
 manifest 和 Viewer 资源检查。它们证明已覆盖路径可运行，不等价于多年生产
 使用或任意 Agent 自动兼容。
 
-[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.0.0) · [v4.0 验收](v4-acceptance.md)
+[主回归](https://github.com/ANTAO94/agent-regression-kit/actions) · [框架兼容性](https://github.com/ANTAO94/agent-regression-kit/actions) · [发布](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.1.0) · [v4.1 验收](v4.1-acceptance.md)
 
 维护策略：新增公开 API 保持兼容；破坏性变化需弃用与迁移说明；Trace schema 独立版本化；业务 baseline 人工审核；真实项目扩大覆盖后再评估服务化。后续重点应是更多实际接入验证、用户体验与安全边界验证，而不是仅凭版本号宣称成熟。

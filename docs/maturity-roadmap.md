@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
-v4.0 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
+v4.1 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
 让真实团队接入、服务层需求和更广泛的框架兼容性形成证据，而不是继续堆叠孤立功能。
 
 ## 成熟框架的定义
@@ -40,6 +40,7 @@ v4.0 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | `agent-regression ui` | v3.2 | loopback 静态服务，源码和 wheel 安装均可启动 |
 | 团队后台 / 权限 / 数据库 | 未开始 | 不进入本地 Viewer 的第一阶段 |
 | v4 兼容与迁移 | v4.0 | 公共 API、Trace/Session/Contract/Report 检查与显式 Trace 迁移 |
+| 真实框架兼容 | v4.1 | PydanticAI、OpenAI Agents、LangGraph 的统一 Trace 与正反例 CI |
 
 ## 迭代顺序
 

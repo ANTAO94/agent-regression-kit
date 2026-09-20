@@ -16,6 +16,48 @@ def write_report(root: Path, name: str, value):
 
 
 class HistoryTests(unittest.TestCase):
+    def test_history_rejects_unknown_explicit_types_and_non_boolean_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_report(
+                root,
+                "001-unknown.json",
+                {
+                    "report_type": "made_up",
+                    "candidate_run_id": "candidate",
+                    "blocking_difference_count": 0,
+                    "passed": True,
+                },
+            )
+            write_report(
+                root,
+                "002-bad-status.json",
+                {
+                    "report_type": "agent_compare",
+                    "candidate_run_id": "candidate",
+                    "blocking_difference_count": 1,
+                    "passed": "false",
+                },
+            )
+            write_report(
+                root,
+                "003-valid.json",
+                {
+                    "report_type": "agent_compare",
+                    "candidate_run_id": "candidate",
+                    "blocking_difference_count": 0,
+                    "passed": True,
+                },
+            )
+            report = build_history_report(root)
+
+        self.assertEqual(1, report.point_count)
+        self.assertTrue(report.passed)
+        self.assertEqual(
+            ["unrecognized regression report", "recognized report passed must be a boolean"],
+            [entry["reason"] for entry in report.skipped],
+        )
+
     def test_history_orders_points_and_calculates_metric_deltas(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

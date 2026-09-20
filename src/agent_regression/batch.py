@@ -72,7 +72,10 @@ def compare_trace_batch(
         {
             "schema_version": "0.1",
             "report_type": "agent_batch",
-            "passed": failed_count == 0,
+            # A regression gate must never be green when no evidence was
+            # discovered. This usually means trace generation failed or the
+            # caller supplied the wrong directories.
+            "passed": bool(all_cases) and failed_count == 0,
             "case_count": len(all_cases),
             "passed_case_count": len(all_cases) - failed_count,
             "failed_case_count": failed_count,

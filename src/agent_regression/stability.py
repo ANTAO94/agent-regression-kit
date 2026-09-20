@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Mapping, Sequence
 from .batch_record import ScenarioCase, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
 from .coverage import trace_tool_path
+from .contracts import _IGNORED
 from .model import AgentTrace
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 
@@ -41,11 +42,26 @@ class StabilityPolicy:
         }
 
 
-def _final_claims(trace: AgentTrace) -> Mapping[str, Any]:
+def _final_claims(
+    trace: AgentTrace,
+    comparison_policy: ComparisonPolicy | None = None,
+) -> Mapping[str, Any] | object:
     for event in reversed(trace.events):
         if event["type"] == "final_answer":
-            return event.get("claims", {})
+            claims = event.get("claims", {})
+            contract = comparison_policy.contract if comparison_policy else None
+            return contract.sanitize(claims, "final_answer.claims") if contract else claims
     return {}
+
+
+def _claims_match(
+    baseline: AgentTrace,
+    candidate: AgentTrace,
+    comparison_policy: ComparisonPolicy,
+) -> bool:
+    left = _final_claims(baseline, comparison_policy)
+    right = _final_claims(candidate, comparison_policy)
+    return (left is _IGNORED and right is _IGNORED) or left == right
 
 
 def _tool_error_count(trace: AgentTrace) -> int:
@@ -74,7 +90,11 @@ class StabilityRun:
             and bool(self.comparison and self.comparison.get("passed"))
         )
 
-    def to_dict(self, baseline: AgentTrace) -> Dict[str, Any]:
+    def to_dict(
+        self,
+        baseline: AgentTrace,
+        comparison_policy: ComparisonPolicy,
+    ) -> Dict[str, Any]:
         trace = self.trace
         comparison = self.comparison or {}
         return {
@@ -87,7 +107,9 @@ class StabilityRun:
             "tool_path": trace_tool_path(trace) if trace is not None else [],
             "tool_error_count": _tool_error_count(trace) if trace is not None else 0,
             "claims_match": (
-                _final_claims(trace) == _final_claims(baseline) if trace is not None else False
+                _claims_match(baseline, trace, comparison_policy)
+                if trace is not None
+                else False
             ),
         }
 
@@ -118,7 +140,8 @@ class StabilityReport:
         return sum(
             1
             for run in self.runs
-            if run.trace is not None and _final_claims(run.trace) == _final_claims(self.baseline)
+            if run.trace is not None
+            and _claims_match(self.baseline, run.trace, self.comparison_policy)
         )
 
     @property
@@ -179,7 +202,9 @@ class StabilityReport:
             "tool_error_rate": self.tool_error_rate,
             "path_variant_count": len(self.path_variants),
             "path_variants": self.path_variants,
-            "runs": [run.to_dict(self.baseline) for run in self.runs],
+            "runs": [
+                run.to_dict(self.baseline, self.comparison_policy) for run in self.runs
+            ],
         }
 
 

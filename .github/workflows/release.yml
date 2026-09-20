@@ -56,6 +56,8 @@ jobs:
           test -f "$DOC_ROOT/limitations.md"
           test -f "$DOC_ROOT/maturity-roadmap.md"
           test -f "$DOC_ROOT/v4-acceptance.md"
+          test -f "$DOC_ROOT/v4.1-acceptance.md"
+          test -f "$DOC_ROOT/framework-integrations.md"
           VIEWER_ROOT="$(/tmp/agent-regression-release-venv/bin/python -c 'import sys; print(sys.prefix)')/share/agent-regression-kit/viewer"
           test -f "$VIEWER_ROOT/reports.html"
           test -f "$VIEWER_ROOT/workspace.html"

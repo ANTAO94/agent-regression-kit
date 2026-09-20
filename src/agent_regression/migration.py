@@ -242,10 +242,17 @@ def migrate_trace(value: Mapping[str, Any]) -> Dict[str, Any]:
     entry point.
     """
 
-    compatibility = check_document_compatibility(value, "trace")
+    # Migration is the one boundary allowed to accept legacy top-level noise;
+    # normal loading and compatibility checks remain schema-strict.
+    canonical = {
+        key: value[key]
+        for key in ("schema_version", "run_id", "agent", "events", "metadata")
+        if key in value
+    }
+    compatibility = check_document_compatibility(canonical, "trace")
     if not compatibility["ok"]:
         raise ValueError(compatibility.get("error") or "Trace is not compatible")
-    return AgentTrace.from_dict(value).to_dict()
+    return AgentTrace.from_dict(canonical).to_dict()
 
 
 def build_trace_migration_report(

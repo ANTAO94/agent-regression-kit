@@ -40,11 +40,11 @@ class BatchComparisonTests(unittest.TestCase):
         self.assertEqual(["extra.trace.json"], report["missing_baselines"])
         self.assertEqual(2, report["failed_case_count"])
 
-    def test_empty_batch_passes(self):
+    def test_empty_batch_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             report = compare_trace_batch(root / "baseline", root / "candidate")
-        self.assertTrue(report["passed"])
+        self.assertFalse(report["passed"])
         self.assertEqual(0, report["case_count"])
 
 

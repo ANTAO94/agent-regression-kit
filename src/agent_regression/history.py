@@ -29,6 +29,10 @@ def _classify(report: Mapping[str, Any]) -> str | None:
     explicit = report.get("report_type")
     if explicit in {"agent_stability", "agent_compare", "agent_batch", "agent_coverage"}:
         return str(explicit)
+    # Shape inference keeps older reports without report_type readable. An
+    # explicit but unknown type must not be relabelled as a trusted report.
+    if explicit is not None:
+        return None
     if "pass_rate" in report and "claims_match_rate" in report:
         return "agent_stability"
     if "candidate_run_id" in report and "blocking_difference_count" in report:
@@ -208,13 +212,21 @@ def build_history_report(
         if report_type is None:
             skipped.append({"source": relative, "reason": "unrecognized regression report"})
             continue
+        if not isinstance(value.get("passed"), bool):
+            skipped.append(
+                {
+                    "source": relative,
+                    "reason": "recognized report passed must be a boolean",
+                }
+            )
+            continue
         points.append(
             HistoryPoint(
                 ordinal=len(points) + 1,
                 label=_label(value, path),
                 source=relative,
                 report_type=report_type,
-                passed=bool(value.get("passed")),
+                passed=value["passed"],
                 metrics=_metrics(value, report_type),
             )
         )

@@ -29,6 +29,11 @@ from .compat import run_compatibility_smoke
 from .contracts import ContractPolicy
 from .history import HistoryPoint, HistoryReport, build_history_report
 from .framework import FrameworkTraceRecorder, record_framework_run
+from .framework_integrations import (
+    trace_from_langgraph_result,
+    trace_from_openai_agents_result,
+    trace_from_pydantic_ai_result,
+)
 from .mcp import (
     McpProtocolError,
     McpEventStream,
@@ -133,6 +138,9 @@ __all__ = [
     "DEFAULT_REDACTION_POLICY",
     "FixtureTools",
     "FrameworkTraceRecorder",
+    "trace_from_langgraph_result",
+    "trace_from_openai_agents_result",
+    "trace_from_pydantic_ai_result",
     "McpProtocolError",
     "McpEventStream",
     "McpToolExecutor",

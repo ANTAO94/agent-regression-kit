@@ -15,6 +15,16 @@ _MISSING = object()
 _IGNORED = object()
 
 
+def _reject_unknown_fields(
+    value: Mapping[str, Any],
+    allowed: set[str],
+    label: str,
+) -> None:
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ValueError(f"unsupported {label} fields: " + ", ".join(map(str, unknown)))
+
+
 def _tokens(path: str) -> List[str]:
     if not isinstance(path, str) or not path.strip():
         raise ValueError("contract paths must be non-empty strings")
@@ -141,12 +151,18 @@ class ContractPolicy:
         for normalizer in self.normalizers:
             if not isinstance(normalizer, dict):
                 raise ValueError("contract.normalizers must contain objects")
+            _reject_unknown_fields(normalizer, {"path", "type"}, "normalizer")
             _tokens(normalizer.get("path", ""))
             if normalizer.get("type") not in {"timestamp", "sort"}:
                 raise ValueError("normalizer.type must be 'timestamp' or 'sort'")
         for assertion in self.assertions:
             if not isinstance(assertion, dict) or not isinstance(assertion.get("path"), str):
                 raise ValueError("contract.assertions must contain path objects")
+            _reject_unknown_fields(
+                assertion,
+                {"path", "equals", "contains", "exists"},
+                "assertion",
+            )
             _tokens(assertion["path"])
             operators = {"equals", "contains", "exists"} & set(assertion)
             if len(operators) != 1:
@@ -155,10 +171,12 @@ class ContractPolicy:
             rule = {"tool": raw_rule} if isinstance(raw_rule, str) else raw_rule
             if not isinstance(rule, dict) or not isinstance(rule.get("tool"), str) or not rule["tool"]:
                 raise ValueError("contract tool rules must contain a non-empty tool")
+            _reject_unknown_fields(rule, {"tool", "arguments"}, "tool rule")
             if "arguments" in rule and not isinstance(rule["arguments"], dict):
                 raise ValueError("contract tool rule arguments must be an object")
         if not isinstance(self.path_rules, dict):
             raise ValueError("contract.path_rules must be an object")
+        _reject_unknown_fields(self.path_rules, {"any_of", "ordered"}, "path_rules")
         alternatives = self.path_rules.get("any_of", [])
         if not isinstance(alternatives, list) or not alternatives:
             if self.path_rules:
@@ -170,6 +188,11 @@ class ContractPolicy:
                 rule = {"tool": raw_rule} if isinstance(raw_rule, str) else raw_rule
                 if not isinstance(rule, dict) or not isinstance(rule.get("tool"), str) or not rule["tool"]:
                     raise ValueError("path rules must contain tool names")
+                _reject_unknown_fields(
+                    rule,
+                    {"tool", "arguments", "result", "is_error"},
+                    "path rule",
+                )
                 if "arguments" in rule and not isinstance(rule["arguments"], dict):
                     raise ValueError("path rule arguments must be an object")
                 if "result" in rule and not isinstance(
@@ -183,6 +206,7 @@ class ContractPolicy:
         for effect in self.side_effects:
             if not isinstance(effect, dict) or not isinstance(effect.get("path"), str):
                 raise ValueError("contract.side_effects must contain path objects")
+            _reject_unknown_fields(effect, {"path", "from", "to"}, "side effect")
             _tokens(effect["path"])
             if "from" not in effect and "to" not in effect:
                 raise ValueError("a side effect needs at least one of from or to")

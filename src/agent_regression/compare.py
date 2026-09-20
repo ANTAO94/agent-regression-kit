@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Set
 
 from .contracts import ContractPolicy, _IGNORED
@@ -43,6 +44,29 @@ class ComparisonPolicy:
 
 def _events(trace: AgentTrace, event_type: str) -> List[Dict[str, Any]]:
     return [event for event in trace.events if event["type"] == event_type]
+
+
+def _normalized_execution(trace: AgentTrace) -> Any:
+    """Replace run-scoped call IDs in execution metadata with call ordinals."""
+    execution = trace.metadata.get("execution")
+    if execution is None:
+        return None
+    normalized = deepcopy(execution)
+    if not isinstance(normalized, dict):
+        return normalized
+    call_ordinals = {
+        event["call_id"]: ordinal
+        for ordinal, event in enumerate(_events(trace, "tool_call"), start=1)
+    }
+    groups = normalized.get("parallel_groups")
+    if isinstance(groups, list):
+        for group in groups:
+            if not isinstance(group, dict) or not isinstance(group.get("call_ids"), list):
+                continue
+            group["call_ids"] = [
+                call_ordinals.get(call_id, call_id) for call_id in group["call_ids"]
+            ]
+    return normalized
 
 
 def _add_diff(
@@ -224,8 +248,8 @@ def compare_traces(
             _add_diff(diffs, "final_answer", text_path, baseline_text, candidate_text)
     if contract:
         diffs.extend(contract.check(baseline, candidate))
-    baseline_execution = baseline.metadata.get("execution")
-    candidate_execution = candidate.metadata.get("execution")
+    baseline_execution = _normalized_execution(baseline)
+    candidate_execution = _normalized_execution(candidate)
     if baseline_execution is not None or candidate_execution is not None:
         _add_diff(
             diffs,

@@ -174,6 +174,25 @@ class ReportIndexTests(unittest.TestCase):
                     ),
                 )
 
+    def test_unknown_explicit_report_type_is_not_inferred_from_shape(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._write(
+                root,
+                "unknown.json",
+                {
+                    "report_type": "made_up",
+                    "baseline_run_id": "b",
+                    "candidate_run_id": "c",
+                    "passed": True,
+                    "difference_count": 0,
+                    "blocking_difference_count": 0,
+                },
+            )
+            report = build_report_index(root)
+        self.assertEqual(0, report["report_count"])
+        self.assertEqual("unrecognized regression report", report["skipped"][0]["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

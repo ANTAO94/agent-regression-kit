@@ -8,6 +8,7 @@ from pathlib import Path
 from agent_regression import (
     CallableAgentAdapter,
     ComparisonPolicy,
+    ContractPolicy,
     FixtureTools,
     ScenarioCase,
     ScriptedAgentAdapter,
@@ -60,6 +61,23 @@ def make_trace(run_id, *, text="paid", path=None):
 
 
 class StabilityTests(unittest.TestCase):
+    def test_claims_metric_uses_the_same_contract_normalization_as_comparison(self):
+        baseline = make_trace("baseline")
+        candidate = make_trace("candidate")
+        baseline.events[-1]["claims"]["request_id"] = "old"
+        candidate.events[-1]["claims"]["request_id"] = "new"
+        report = evaluate_stability(
+            baseline,
+            [candidate],
+            comparison_policy=ComparisonPolicy(
+                contract=ContractPolicy(
+                    ignore_paths=["final_answer.claims.request_id"]
+                )
+            ),
+        )
+        self.assertTrue(report.passed)
+        self.assertEqual(1.0, report.claims_match_rate)
+
     def test_identical_repeated_traces_pass_stability_thresholds(self):
         report = evaluate_stability(
             make_trace("baseline"),

@@ -35,6 +35,7 @@ class FrameworkTraceRecorder:
         self._redaction = redaction_policy or DEFAULT_REDACTION_POLICY
         self._events: list[Dict[str, Any]] = []
         self._pending: Dict[str, str] = {}
+        self._seen_call_ids: set[str] = set()
         self._call_counter = 0
         self._final_seen = False
 
@@ -67,8 +68,9 @@ class FrameworkTraceRecorder:
         if call_id is None:
             self._call_counter += 1
             call_id = f"call-{self._call_counter}"
-        if not isinstance(call_id, str) or not call_id or call_id in self._pending:
+        if not isinstance(call_id, str) or not call_id or call_id in self._seen_call_ids:
             raise ValueError("framework call_id must be unique and non-empty")
+        self._seen_call_ids.add(call_id)
         self._pending[call_id] = tool
         event: Dict[str, Any] = {
             "type": "tool_call",

@@ -114,6 +114,19 @@ class ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported contract fields"):
             ContractPolicy.from_dict({"must_not_cal": ["delete_order"]})
 
+    def test_contract_rejects_unknown_nested_rule_fields(self):
+        cases = [
+            ({"must_call": [{"tool": "get_order", "argument": {}}]}, "tool rule"),
+            ({"assertions": [{"path": "final_answer.text", "equals": "ok", "equal": "ok"}]}, "assertion"),
+            ({"normalizers": [{"path": "final_answer.text", "type": "timestamp", "format": "iso"}]}, "normalizer"),
+            ({"path_rules": {"any_of": [[{"tool": "get_order", "reslt": {}}]]}}, "path rule"),
+            ({"side_effects": [{"path": "count", "from": 0, "too": 1}]}, "side effect"),
+        ]
+        for value, label in cases:
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(ValueError, f"unsupported {label} fields"):
+                    ContractPolicy.from_dict(value)
+
 
 if __name__ == "__main__":
     unittest.main()
