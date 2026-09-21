@@ -1,19 +1,44 @@
 # Independent consumer pilot / 独立消费项目验证
 
 v4.15 introduced an end-to-end consumer repository that is separate from the
-core checkout. After the v4.34 release, that consumer was upgraded and
-re-verified against the immutable v4.34 wheel:
+core checkout. After the v4.35 release, that consumer was upgraded and
+re-verified against the immutable v4.35 wheel. The v4.34 details remain below
+as historical evidence:
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.34 发布后，消费项目又升级到
-v4.34 wheel 并重新验收：
+v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.35 发布后，消费项目又升级到
+v4.35 wheel 并重新验收；v4.34 细节保留为历史证据：
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-## Consumer boundary / 消费边界
+## v4.35 acceptance / v4.35 验收
 
-The pilot installs exactly this immutable Release asset for the current
+The current consumer commit is
+[`93baf5c`](https://github.com/ANTAO94/agent-regression-pilot/commit/93baf5c53ffcfb59fd187e12e0bf104d70dff7a6),
+and its [GitHub Actions run 35551245268](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35551245268)
+passed. The consumer installs only this immutable asset:
+
+```text
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.35.0/agent_regression_kit-4.35.0-py3-none-any.whl
+sha256: 86cf6608847e269b8f5c11dbd0764c65bfc0880089492a8f64b2a7a3635b300b
+```
+
+The workflow verifies `__version__ == 4.35.0`, builds and runs an independent
+sampling-study bundle, independently checks the final report SHA-256 sidecar,
+and invokes `readiness` with a consumer-generated manifest. The readiness
+command returns `1` and reports `ready=false` because
+`independent-user-study` is intentionally pending. The workflow also runs the
+normal two-tool order Agent and requires exit code `1` for these injected
+regressions: wrong resource, skipped `get_balance`, and a misread final result.
+
+v4.35 消费验收使用不可变 wheel，断言版本为 `4.35.0`，由消费项目独立生成 sampling-study bundle，并重新计算最终
+报告 SHA-256 sidecar；同时调用 readiness，明确验证 `independent-user-study` 为 pending、`ready=false`、退出码为 `1`。
+正常两工具订单 Agent 通过，wrong resource、跳过 `get_balance`、错误解读最终结果三类注入均被退出码 `1` 阻断。
+
+## Historical v4.34 consumer boundary / 历史 v4.34 消费边界
+
+The pilot installed exactly this immutable Release asset for the historical
 v4.34 evidence:
 
 ```text

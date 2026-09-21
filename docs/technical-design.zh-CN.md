@@ -431,7 +431,8 @@ manifest 和旧 CLI 行为，详见[v4.34 验收](v4.34-acceptance.md)。
 
 v4.35 增加 `readiness`：读取 final-v4 readiness manifest，校验 benchmark/performance 报告的实际结构化字段、
 引用文件 SHA-256 和最终样本/指标/性能门槛。真实首次用户研究和真正未见任务域属于 external check；没有独立
-证据时保持 pending 并返回退出码 1，不会用维护者本地运行结果冒充外部验证。完整格式见[成熟度审计说明](readiness-audit.md)。
+证据时保持 pending 并返回退出码 1，不会用维护者本地运行结果冒充外部验证。完整格式见[成熟度审计说明](readiness-audit.md)
+和[v4.35 验收](v4.35-acceptance.md)。
 
 当前发布：[v4.35.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.35.0)。
 
