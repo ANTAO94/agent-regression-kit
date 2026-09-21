@@ -72,6 +72,10 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 模型族矩阵 | v4.27 | Claude 3.5 Sonnet 的 `important_instructions` 四 suite 样本、3 条通过和 1 条预期阻断进入独立 CI；仍不是在线方差或通用泛化 |
 | 重复运行采样证据 | v4.28 | Stability 输出 Wilson 95% 区间，支持 `--min-runs`，核心 CI 执行 30 次重复；仍不是在线模型质量或总体可靠性 |
 | 记录式采样研究 | v4.29 | `study` 导入脱敏 Trace，绑定 provider/model、输入/工具 schema 哈希、run ID 和 Contract；仍不负责供应商执行或总体可靠性 |
+| 证据文件完整性 | v4.30 | baseline、run Trace 和 comparison policy 绑定 SHA-256，篡改返回状态 2；仍不证明隐藏输入正确或具有代表性 |
+| 证据来源清单 | v4.31 | evidence role、路径、摘要、required role 和 content-free index；仍不证明来源语义正确或完整 |
+| 证据语义绑定 | v4.32 | input/tool schema/adapter descriptor 字段与 provenance 绑定，刷新哈希不能绕过语义门禁 |
+| 运行身份绑定 | v4.33 | provider/model/dataset revision descriptor 字段与 provenance 绑定，独立 consumer 通过发布 wheel 验证；仍不证明外部声明真实 |
 
 ## 迭代顺序
 

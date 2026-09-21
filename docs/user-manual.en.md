@@ -855,11 +855,9 @@ descriptor to a manifest provenance value:
 }
 ```
 
-The supported targets are `provenance.input_sha256`,
-`provenance.tool_schema_sha256`, `provenance.adapter`, `provenance.provider`,
-`provenance.model` and `provenance.dataset_revision`; they require the
-`input`, `tool_schema`, `adapter`, `provider_output`, `provider_output` and
-`dataset` roles respectively, with matching field names. The
+The v4.32 targets are `provenance.input_sha256`,
+`provenance.tool_schema_sha256` and `provenance.adapter`; they require the
+`input`, `tool_schema` and `adapter` roles and matching field names. The
 evaluator checks the file digest first, then reads the declared field and
 compares it with provenance. A hash-valid but mismatched value, wrong role or
 missing required target returns CLI status `2`. Reports contain binding IDs and
