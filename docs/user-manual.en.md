@@ -873,6 +873,26 @@ sampling run. Bind `provenance.provider` and `provenance.model` to separate
 The report stays content-free: it records binding IDs, targets and verification
 status, not descriptor contents. See the [v4.33 acceptance](v4.33-acceptance.md).
 
+### v4.34: study report handoff sidecar
+
+When a report is uploaded as a CI artifact, audit record or cross-team
+attachment, ask the CLI to write a standard SHA-256 sidecar after rendering the
+final report:
+
+```bash
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --format markdown \
+  --out work/order-123-study/report.md \
+  --checksum-out work/order-123-study/report.md.sha256
+```
+
+The sidecar contains one `<sha256>  <filename>` line and requires `--out`, so
+the digest covers the exact bytes uploaded to CI or a review system. Verify it
+with `shasum -a 256` or an equivalent tool. It proves that the report was not
+replaced during handoff; it does not prove that the report inputs or business
+conclusions are correct. See the [v4.34 acceptance](v4.34-acceptance.md).
+
 ### v4.21: independent AgentDojo source intake
 
 v4.21 adds a runtime-free bridge for an exported AgentDojo run. It converts

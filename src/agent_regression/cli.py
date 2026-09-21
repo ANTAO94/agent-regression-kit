@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shlex
 import sys
@@ -94,6 +95,20 @@ def _write_text(value: str, out: str | None = None) -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(value, encoding="utf-8")
     print(value, end="")
+
+
+def _write_report_checksum(report_path: str | None, checksum_path: str | None) -> None:
+    if not checksum_path:
+        return
+    if not report_path:
+        raise ValueError("--checksum-out requires --out so the rendered report can be hashed")
+    output_path = Path(report_path).expanduser().resolve()
+    if not output_path.is_file():
+        raise ValueError(f"report output does not exist: {report_path}")
+    digest = hashlib.sha256(output_path.read_bytes()).hexdigest()
+    sidecar = Path(checksum_path)
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    sidecar.write_text(f"{digest}  {output_path.name}\n", encoding="utf-8")
 
 
 def _write_json_file(value: Dict[str, Any], path: Path) -> None:
@@ -523,6 +538,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     study.add_argument("--manifest", required=True)
     study.add_argument("--out")
+    study.add_argument(
+        "--checksum-out",
+        help="write a SHA-256 sidecar for the rendered report; requires --out",
+    )
     study.add_argument("--format", choices=["json", "junit", "markdown"], default="json")
     study.add_argument(
         "--secret-value", action="append", default=[], help="literal secret value to redact; repeatable"
@@ -922,6 +941,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if report.passed else 1
 
         if args.command == "study":
+            if args.checksum_out and not args.out:
+                raise ValueError(
+                    "--checksum-out requires --out so the rendered report can be hashed"
+                )
             report = evaluate_sampling_study(
                 args.manifest,
                 redaction_policy=redaction_policy,
@@ -933,6 +956,7 @@ def main(argv: list[str] | None = None) -> int:
                 _write_text(render_sampling_study_markdown(report_value), args.out)
             else:
                 _write_output(report_value, args.out)
+            _write_report_checksum(args.out, args.checksum_out)
             return 0 if report.passed else 1
 
         if args.command == "session-record":

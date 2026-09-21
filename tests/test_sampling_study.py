@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import tempfile
@@ -444,6 +445,33 @@ class SamplingStudyTests(unittest.TestCase):
                 "provenance.dataset_revision",
                 report["evidence_bindings"]["targets"],
             )
+
+    def test_study_writes_a_sha256_sidecar_for_the_rendered_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = self.make_manifest(root)
+            for format_name, suffix in (("json", ".json"), ("markdown", ".md"), ("junit", ".xml")):
+                report_path = root / "reports" / f"study-{format_name}{suffix}"
+                checksum_path = root / "reports" / f"study-{format_name}{suffix}.sha256"
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(
+                        0,
+                        main(
+                            [
+                                "study",
+                                "--manifest",
+                                str(manifest),
+                                "--format",
+                                format_name,
+                                "--out",
+                                str(report_path),
+                                "--checksum-out",
+                                str(checksum_path),
+                            ]
+                        ),
+                    )
+                digest = hashlib.sha256(report_path.read_bytes()).hexdigest()
+                self.assertEqual(f"{digest}  {report_path.name}\n", checksum_path.read_text())
 
     def test_provenance_rejects_secret_like_parameters(self):
         with self.assertRaisesRegex(ValueError, "must not contain credentials"):

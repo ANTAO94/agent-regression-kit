@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.33）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.34）
 
-> 状态：v4.33 已落地，继续扩展在线随机性和真实用户验证
-> 当前基线版本：v4.33.0
+> 状态：v4.34 已落地，继续扩展在线随机性和真实用户验证
+> 当前基线版本：v4.34.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.33 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.34 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.33 目标 |
+| 维度 | v4.12 现状 | v4.34 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -48,6 +48,7 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
 | 重复运行不确定性 | 只有通过率和固定重复性 | stability 报告输出 Wilson 95% 区间，`min_runs` 可阻断样本不足；仍不等于在线模型质量 |
 | 外部采样 provenance | 真实供应商结果缺少统一文件边界 | `study` 固定 provider/model、输入和工具 schema 哈希、run ID、Contract 与样本策略；仍不替供应商执行 |
 | 运行身份归因 | provider/model/dataset 只以 manifest 字段表达 | provider、model、dataset revision 各自绑定到带角色 descriptor；旧 manifest 继续兼容 |
+| 报告交接 | 报告生成后依赖存储系统保证未被替换 | 最终报告可生成标准 SHA-256 sidecar，接收方可以独立复核字节 |
 
 ### 最终通过条件
 
@@ -723,6 +724,18 @@ v4.33 处理 v4.32 之后仍存在的归因歧义：即使 input、tool schema �
 - [x] v4.33 本地测试达到 286 项，发布 wheel 与干净环境安装验证纳入验收。
 - [ ] 绑定仍只证明“声明之间一致”，不证明供应商、模型或数据集声明真实、代表性充分或适用于全部任务。
 
+### 7.22 v4.34：study 报告流转完整性（已落地）
+
+study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最终 JSON/Markdown/JUnit 报告在
+上传到 CI artifact、审计系统或跨团队附件时仍依赖外部存储的完整性。v4.34 增加可选的
+`--checksum-out`，在报告写出后对最终字节生成标准 SHA-256 sidecar。
+
+- [x] `study` 支持 `--checksum-out PATH`，且没有 `--out` 时 fail closed，避免摘要对应不可复核的 stdout。
+- [x] sidecar 使用 `<sha256>  <filename>` 的通用格式，覆盖 JSON、Markdown 和 JUnit 三种报告格式。
+- [x] 旧 manifest、旧调用方式和 PUBLIC_API_VERSION=4 保持兼容。
+- [x] v4.34 本地测试达到 287 项，构建/安装/文档命令纳入发布验收。
+- [ ] sidecar 不是密码学签名、供应商 attestation、内容正确性证明或未见任务泛化证明。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -761,6 +774,7 @@ v4.33 处理 v4.32 之后仍存在的归因歧义：即使 input、tool schema �
 | `docs/v4.31-acceptance.md` | study evidence index 角色、必需角色、来源摘要和篡改负向 CI 验收 |
 | `docs/v4.32-acceptance.md` | study evidence binding 语义一致性、哈希刷新绕过负向 CI 和发布/消费验收 |
 | `docs/v4.33-acceptance.md` | provider/model/dataset revision 运行身份绑定、兼容性、发布/消费和负向验收 |
+| `docs/v4.34-acceptance.md` | study 最终报告 SHA-256 sidecar、stdout fail-closed、发布/消费和兼容性验收 |
 
 ## 9. CI 结构
 
@@ -792,7 +806,7 @@ v4.33 处理 v4.32 之后仍存在的归因歧义：即使 input、tool schema �
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.33 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.34 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -820,7 +834,7 @@ v4.33 处理 v4.32 之后仍存在的归因歧义：即使 input、tool schema �
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.33 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性、记录式采样证据、证据清单、语义绑定、运行身份归因和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.34 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性、记录式采样证据、证据清单、语义绑定、运行身份归因、报告交接和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -847,6 +861,7 @@ v4.33 处理 v4.32 之后仍存在的归因歧义：即使 input、tool schema �
 19. **v4.31**：study evidence index 来源角色、必需角色校验、content-free 报告索引和来源描述文件篡改门禁。
 20. **v4.32**：study evidence binding 将受控 descriptor 字段与 input/tool schema/adapter provenance 绑定，并验证同步刷新文件哈希仍会被语义门禁阻断。
 21. **v4.33**：study evidence binding 扩展到 provider、model 和 dataset revision，显式验证运行身份归因，保持旧 manifest 兼容。
+22. **v4.34**：study 对最终 JSON/Markdown/JUnit 报告生成可复核的 SHA-256 sidecar，显式拒绝无 `--out` 的不可复核摘要。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布

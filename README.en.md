@@ -8,7 +8,7 @@
 
 [中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥3.9 · Release v4.33.0 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.34.0 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.33.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.34.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.33.0`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.34.0`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -278,7 +278,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.33.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.34.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -329,7 +329,7 @@ time regression on like-for-like environments.
 
 ## 8. Evidence and current limits
 
-Suitable for local development and team CI pilots. The v4.33 release records **286 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, multiple task-domain validations, independent AgentDojo model-family evidence, finite-sample stability intervals and a recorded sampling-study boundary with file-integrity, evidence-index, provenance-binding and run-identity checks.
+Suitable for local development and team CI pilots. The v4.34 release records **287 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, multiple task-domain validations, independent AgentDojo model-family evidence, finite-sample stability intervals and a recorded sampling-study boundary with file-integrity, evidence-index, provenance-binding, run-identity and report-sidecar checks.
 
 | Evidence | Result and scope |
 | --- | --- |
@@ -355,6 +355,7 @@ Suitable for local development and team CI pilots. The v4.33 release records **2
 | Evidence source index | [v4.31 acceptance](docs/v4.31-acceptance.md): declares input/tool-schema/adapter roles, validates paths/digests/required roles and emits an evidence index | Lets reviewers see which files a conclusion depends on; does not prove semantic correctness or completeness |
 | Evidence semantic binding | [v4.32 acceptance](docs/v4.32-acceptance.md): binds controlled descriptor fields to provenance input/tool-schema/adapter values and returns status 2 for semantic mismatch even after hash refresh | Prevents an unchanged-but-wrong source binding; does not prove the provenance declaration itself is true |
 | Run-identity binding | [v4.33 acceptance](docs/v4.33-acceptance.md): additionally binds provider, model and dataset revision, with required evidence roles | Prevents attributing a study to the wrong provider, model or dataset revision; does not prove the external declarations are true |
+| Report handoff integrity | [v4.34 acceptance](docs/v4.34-acceptance.md): `study` writes a standard SHA-256 sidecar for the final JSON/Markdown/JUnit report | Detects silent replacement during report upload or handoff; does not prove the report content is correct |
 
 τ² equivalence rules were adjusted using errors from this dataset, then retested on the same data. **These are not held-out generalization results.** This integration imports published trajectories; it does not run the upstream simulator or imply upstream adoption.
 
@@ -362,7 +363,7 @@ The kit checks recorded evidence and configured rules. You supply state snapshot
 
 ## 9. Troubleshooting and reference
 
-Current sampling evidence: [v4.33 acceptance](docs/v4.33-acceptance.md).
+Current sampling evidence: [v4.34 acceptance](docs/v4.34-acceptance.md).
 
 | Symptom | Check |
 | --- | --- |

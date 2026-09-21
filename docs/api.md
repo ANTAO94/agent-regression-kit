@@ -411,6 +411,23 @@ sampling run. Bind `provenance.provider` and `provenance.model` to separate
 `dataset` descriptor. The previous v4.32 targets remain compatible; the new
 targets are optional unless listed in `required_evidence_bindings`.
 
+### Report sidecars in v4.34
+
+`study` can hash the rendered report after it has been written:
+
+```bash
+agent-regression study \
+  --manifest work/study/study.json \
+  --format markdown \
+  --out work/study/report.md \
+  --checksum-out work/study/report.md.sha256
+```
+
+The sidecar uses the conventional `<sha256>  <filename>` format. It requires
+`--out`, so the digest is computed over the exact bytes uploaded to CI or a
+review system. This protects report handoff integrity; it does not attest to
+the truth of the report's inputs or conclusions.
+
 ## Async and parallel events
 
 Use the async boundary when one Agent run awaits multiple tools concurrently:

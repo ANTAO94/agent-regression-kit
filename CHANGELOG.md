@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.34.0 - 2026-09-21
+
+- Add optional `study --checksum-out` report sidecars for JSON, Markdown and
+  JUnit output; the flag fails closed unless an explicit `--out` is provided.
+- Document report handoff integrity without changing study manifests or the
+  public API compatibility boundary.
+
 ## 4.33.0 - 2026-09-21
 
 - Extend study evidence bindings to provider, model and dataset-revision

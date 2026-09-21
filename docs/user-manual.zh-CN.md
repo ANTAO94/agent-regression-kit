@@ -842,6 +842,23 @@ v4.33 在 v4.32 的语义绑定之上，补齐运行归因所需的三类身份�
 继续兼容。报告只保留 binding ID、target 和校验状态，不写入描述文件原文。
 完整示例见[v4.33 验收](v4.33-acceptance.md)。
 
+### v4.34：study 报告交接摘要
+
+如果报告要作为 CI artifact、审计材料或跨团队附件流转，可以让 CLI 在写出最终报告后生成标准
+SHA-256 sidecar：
+
+```bash
+agent-regression study \
+  --manifest work/order-123-study/study.json \
+  --format markdown \
+  --out work/order-123-study/report.md \
+  --checksum-out work/order-123-study/report.md.sha256
+```
+
+sidecar 内容是一行 `<sha256>  <文件名>`。它必须和 `--out` 一起使用，因此摘要对应的是实际上传的
+报告字节，而不是内存中的对象。接收方可以用 `shasum -a 256` 或同等工具复核。它只能证明报告在交接
+过程中未被替换，不能证明报告输入或业务结论本身正确。完整示例见[v4.34 验收](v4.34-acceptance.md)。
+
 ### v4.21：独立来源 AgentDojo 接入
 
 v4.21 增加了一个不依赖 AgentDojo 运行时的外部轨迹导入器。它把 AgentDojo 导出的

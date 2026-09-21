@@ -4,6 +4,22 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.33.0 → v4.34.0
+
+v4.34 is additive and does not change Trace, study manifest or public API
+compatibility. The `study` command accepts an optional `--checksum-out PATH`
+when `--out PATH` is also supplied. It writes one conventional
+`<sha256>  <filename>` line for the exact rendered JSON, Markdown or JUnit
+report. Existing invocations need no change.
+
+See the [v4.34 acceptance record](docs/v4.34-acceptance.md).
+
+## v4.33.0 → v4.34.0（中文）
+
+v4.34 是兼容的增量版本，不改变 Trace、study manifest 或公共 API。`study` 新增可选的
+`--checksum-out PATH`，但必须同时提供 `--out PATH`；它会对最终写出的 JSON、Markdown 或 JUnit 报告
+生成一行 `<sha256>  <文件名>`。已有调用方式不需要修改。详见[v4.34 验收记录](docs/v4.34-acceptance.md)。
+
 ## v4.32.0 → v4.33.0
 
 v4.33 is additive. Existing v4.32 bindings and earlier study manifests remain

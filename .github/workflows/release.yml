@@ -103,6 +103,7 @@ jobs:
           test -f "$DOC_ROOT/v4.31-acceptance.md"
           test -f "$DOC_ROOT/v4.32-acceptance.md"
           test -f "$DOC_ROOT/v4.33-acceptance.md"
+          test -f "$DOC_ROOT/v4.34-acceptance.md"
           test -f "$DOC_ROOT/performance.md"
           test -f "$DOC_ROOT/consumer-pilot.md"
           test -f "$DOC_ROOT/state-equivalence.md"

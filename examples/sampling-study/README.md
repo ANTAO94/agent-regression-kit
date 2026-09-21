@@ -18,7 +18,8 @@ python examples/sampling-study/create_demo_study.py \
 agent-regression study \
   --manifest work/order-123-study/study.json \
   --format markdown \
-  --out work/order-123-study/report.md
+  --out work/order-123-study/report.md \
+  --checksum-out work/order-123-study/report.md.sha256
 ```
 
 The report contains the provider/model identifiers, input and tool-schema
@@ -104,3 +105,8 @@ responsibility.
 
 报告不会宣称总体可靠率，只描述观察到的样本及其不确定性；供应商采样设计、账号隔离以及
 Contract 本身是否正确，仍由接入方负责。
+
+The optional checksum sidecar is over the final report bytes. It makes CI or
+audit handoff verifiable, but it is not a signature or a correctness proof.
+
+可选的 checksum sidecar 针对最终报告字节生成，让 CI 或审计交接可以复核；它不是签名，也不是结论正确性证明。
