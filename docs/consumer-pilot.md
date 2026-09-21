@@ -1,16 +1,62 @@
 # Independent consumer pilot / 独立消费项目验证
 
 v4.15 introduced an end-to-end consumer repository that is separate from the
-core checkout. After the v4.36.1 release, that consumer was upgraded and
-re-verified against the immutable v4.36.1 wheel. Earlier release details remain
-below as historical evidence:
+core checkout. After the v4.37.0 release, that consumer was upgraded and
+re-verified against the immutable v4.37.0 wheel with a ten-case business
+matrix. Earlier release details remain below as historical evidence:
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.36.1 发布后，消费项目又升级到
-v4.36.1 wheel 并重新验收；早期版本细节保留为历史证据：
+v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.37.0 发布后，消费项目升级到
+v4.37.0 wheel，并用十条业务用例矩阵重新验收；早期版本细节保留为历史证据：
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
+
+## v4.37.0 acceptance / v4.37.0 验收
+
+The current consumer commit is
+[`38416db`](https://github.com/ANTAO94/agent-regression-pilot/commit/38416db2433fc1a339fbe7a86e5afb49155b4171),
+and its [GitHub Actions run 35571639737](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35571639737)
+passed. The matrix implementation was introduced in commit
+[`1dbc4d3`](https://github.com/ANTAO94/agent-regression-pilot/commit/1dbc4d3a52647ddcb4987131ea72d3dce8d863e1);
+the follow-up commit records the final consumer commit in `upstream.lock.json`.
+The consumer downloads only this tagged Release asset and verifies its hash
+during installation:
+
+```text
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.37.0/agent_regression_kit-4.37.0-py3-none-any.whl
+sha256: 85562f97caa9d707d005d7c2af1592a9885c27f5797db5e8c56839ade4fd1980
+```
+
+The workflow verifies `__version__ == 4.37.0`, records ten traces from a
+consumer-owned two-tool order Agent, validates the batch config, and compares
+the whole matrix with per-case `case_contracts`. The cases cover shipped,
+not-shipped, cancelled, pending, missing-order and missing-customer outcomes;
+five additional cases vary only presentation wording to demonstrate that the
+reviewed business claims are the gate rather than the final prose. CI then
+injects wrong-resource, skipped-tool and result-misread changes into selected
+cases. All three return exit code `1` and expose the expected blocking
+categories. This is independent released-wheel evidence, not an assertion that
+every Agent framework is automatically compatible.
+
+消费项目当前 commit 是
+[`38416db`](https://github.com/ANTAO94/agent-regression-pilot/commit/38416db2433fc1a339fbe7a86e5afb49155b4171)，
+[GitHub Actions run 35571639737](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35571639737)
+已通过。矩阵实现先在 commit
+[`1dbc4d3`](https://github.com/ANTAO94/agent-regression-pilot/commit/1dbc4d3a52647ddcb4987131ea72d3dce8d863e1)
+加入，随后提交把最终消费 commit 写入 `upstream.lock.json`。消费项目只按 URL 和 SHA-256
+安装下面这个正式 Release wheel：
+
+```text
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.37.0/agent_regression_kit-4.37.0-py3-none-any.whl
+sha256: 85562f97caa9d707d005d7c2af1592a9885c27f5797db5e8c56839ade4fd1980
+```
+
+工作流断言 `__version__ == 4.37.0`，由消费方自己的两工具订单 Agent 录制十条 Trace，校验
+批量配置，并用逐用例 `case_contracts` 比较整套业务矩阵。用例覆盖已发货、未发货、已取消、待处理、
+订单不存在、客户余额不存在等结果；另外五条只变化展示文案，证明门禁关注审核过的业务 claims，
+而不是最终自然语言。CI 再向指定用例注入错误资源、漏工具调用和结果误读，三类都返回退出码 `1`
+并暴露预期的阻断分类。这是独立发布 wheel 的真实消费证据，不表示所有 Agent 框架都能自动兼容。
 
 ## v4.36.1 acceptance / v4.36.1 验收
 

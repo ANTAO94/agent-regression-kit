@@ -276,7 +276,7 @@ Exit codes: **0 = pass, 1 = regression, 2 = invalid input, configuration, or exe
 
 ## Validation status
 
-The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **303 tests and 35 subtests**.
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **306 tests and 35 subtests**.
 
 | Evidence | What it verifies | What it does not prove |
 | --- | --- | --- |
