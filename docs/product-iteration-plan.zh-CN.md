@@ -140,3 +140,8 @@ v4.38 增加了第二条独立项目验证：固定 commit 的 HelpPilot 公开 
 构建并安装当前版本后复现这些结果。该证据仍由维护者执行，seed/demo 数据和确定性替身不等于生产质量，
 也没有替代 P3 的真实项目负责人、历史回归和连续改动周期证据。下一阶段应优先寻找愿意审核业务 baseline
 并保留 CI 门禁的独立项目，而不是继续堆叠第三个演示案例。
+
+本轮正式发布的 [HelpPilot workflow run 35579053020](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35579053020)
+和 [Release workflow run 35579053030](https://github.com/ANTAO94/agent-regression-kit/actions/runs/35579053030) 均已通过；
+发布 wheel 在独立 `.venv` 中导入并完成正常/负向矩阵。它把“可以复现”提升为公开 CI 证据，但没有改变
+P3/P4 对真实项目负责人和连续使用周期的要求。
