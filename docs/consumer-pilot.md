@@ -1,16 +1,44 @@
 # Independent consumer pilot / 独立消费项目验证
 
 v4.15 introduced an end-to-end consumer repository that is separate from the
-core checkout. After the v4.35 release, that consumer was upgraded and
-re-verified against the immutable v4.35 wheel. The v4.34 details remain below
-as historical evidence:
+core checkout. After the v4.36.1 release, that consumer was upgraded and
+re-verified against the immutable v4.36.1 wheel. Earlier release details remain
+below as historical evidence:
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
 
-v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.35 发布后，消费项目又升级到
-v4.35 wheel 并重新验收；v4.34 细节保留为历史证据：
+v4.15 增加了一个与核心仓库分离的端到端消费项目；v4.36.1 发布后，消费项目又升级到
+v4.36.1 wheel 并重新验收；早期版本细节保留为历史证据：
 
 [ANTAO94/agent-regression-pilot](https://github.com/ANTAO94/agent-regression-pilot)
+
+## v4.36.1 acceptance / v4.36.1 验收
+
+The current consumer commit is
+[`71e136d`](https://github.com/ANTAO94/agent-regression-pilot/commit/71e136d2b01ee7400d5fbe86e67f6f7e1887264b),
+and its [GitHub Actions run 35569732974](https://github.com/ANTAO94/agent-regression-pilot/actions/runs/35569732974)
+passed. The consumer downloads only this tagged Release asset and verifies its
+hash during installation:
+
+```text
+https://github.com/ANTAO94/agent-regression-kit/releases/download/v4.36.1/agent_regression_kit-4.36.1-py3-none-any.whl
+sha256: d6cab3a5f92f3157aba3e48d098797a36c07347a001ab73c55bd47371726c069
+```
+
+The workflow verifies `__version__ == 4.36.1`, records the consumer-owned
+two-tool Agent, passes the normal Contract comparison, and requires exit code
+`1` for wrong-resource, skipped-tool and result-misread regressions. It also
+rebuilds the consumer-owned sampling study, verifies its report checksum, and
+confirms that readiness remains `ready=false` while independent-user evidence
+is pending. This proves public release compatibility for this Agent; it does
+not convert the producer-side LangGraph pilot into independent adoption of
+that feature.
+
+消费项目只按 URL 和 SHA-256 安装正式发布的 v4.36.1 wheel，断言版本正确，并重新运行
+由消费方维护的两工具 Agent、Contract、三类负向回归、sampling study 和 readiness。
+正常场景通过，错误资源、跳过工具和结果误读均以退出码 `1` 被阻断；独立用户证据仍为
+pending，因此 readiness 保持 `ready=false`。这证明了该 Agent 的公开发布兼容性，但不把
+主仓库里的 LangGraph 技术预演包装成外部采用证据。
 
 ## v4.35 acceptance / v4.35 验收
 
