@@ -73,7 +73,7 @@ the published artifact, not only from the core checkout.
 v4.34 消费项目从发布 wheel 导入公开的 `sha256_file`，对审核过的 baseline 计算哈希，并在
 运行 Agent 边界前断言 `__version__ == 4.34.0`；同时由独立消费方创建 sampling-study bundle，
 通过发布的 `study` CLI 校验 `input`、`tool_schema`、`adapter`、`provider_output`、`dataset` 五类
-必需 evidence role，并把六个描述字段绑定到对应 provenance 值。这证明 v4.33 运行身份绑定边界确实
+必需 evidence role，并把六个描述字段绑定到对应 provenance 值。这证明 v4.34 运行身份和报告交接边界确实
 随发布包可用，而不是只在核心仓库源码路径中可用；报告 sidecar 也由消费方独立重算校验。
 
 The v4.29 evidence binding is recorded in consumer follow-up commit `9660c8b`
