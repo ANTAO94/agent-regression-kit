@@ -111,6 +111,7 @@ jobs:
           test -f "$DOC_ROOT/v4.36-acceptance.md"
           test -f "$DOC_ROOT/v4.36.1-acceptance.md"
           test -f "$DOC_ROOT/v4.37.0-acceptance.md"
+          test -f "$DOC_ROOT/v4.38.0-acceptance.md"
           test -f "$DOC_ROOT/readiness-audit.md"
           test -f "$DOC_ROOT/performance.md"
           test -f "$DOC_ROOT/consumer-pilot.md"

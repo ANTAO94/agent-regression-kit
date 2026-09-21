@@ -1,0 +1,94 @@
+{
+  "baseline": "baseline.trace.json",
+  "candidate": "../../../work/helppilot/candidate.trace.json",
+  "report": "../../../work/helppilot/compare.json",
+  "format": "json",
+  "final_answer_mode": "claims-only",
+  "contract": {
+    "required_claims": [
+      "final_answer.claims.route",
+      "final_answer.claims.order_status",
+      "final_answer.claims.approval_required",
+      "final_answer.claims.approval_decision",
+      "final_answer.claims.refund_issued",
+      "final_answer.claims.refund_order_id",
+      "final_answer.claims.refund_amount",
+      "final_answer.claims.grounded",
+      "final_answer.claims.citations"
+    ],
+    "assertions": [
+      {"path": "final_answer.claims.route", "equals": "use_tools"},
+      {"path": "final_answer.claims.order_status", "equals": "lost"},
+      {"path": "final_answer.claims.approval_required", "equals": true},
+      {"path": "final_answer.claims.approval_decision", "equals": "approved"},
+      {"path": "final_answer.claims.refund_issued", "equals": true},
+      {"path": "final_answer.claims.refund_order_id", "equals": "ORD-5001"},
+      {"path": "final_answer.claims.refund_amount", "equals": 129.99},
+      {"path": "final_answer.claims.grounded", "equals": true},
+      {"path": "final_answer.claims.citations", "contains": "refund-policy"}
+    ],
+    "must_call": [
+      {"tool": "get_order"},
+      {"tool": "get_tracking"},
+      {"tool": "check_refund_policy"},
+      {"tool": "create_refund_draft"},
+      {"tool": "issue_refund"}
+    ],
+    "must_not_call": ["delete_order", "charge_card"],
+    "tool_limits": [
+      {"tool": "get_order", "min_calls": 1, "max_calls": 1},
+      {"tool": "get_tracking", "min_calls": 1, "max_calls": 1},
+      {"tool": "check_refund_policy", "min_calls": 1, "max_calls": 1},
+      {"tool": "create_refund_draft", "min_calls": 1, "max_calls": 1},
+      {"tool": "issue_refund", "min_calls": 1, "max_calls": 1}
+    ],
+    "tool_allowlist": [
+      "get_order",
+      "get_tracking",
+      "check_refund_policy",
+      "create_refund_draft",
+      "issue_refund"
+    ],
+    "argument_rules": [
+      {
+        "tool": "get_order",
+        "path": "order_id",
+        "operator": "equals",
+        "value": "ORD-5001",
+        "message": "refund verification must inspect the requested order"
+      },
+      {
+        "tool": "get_tracking",
+        "path": "order_id",
+        "operator": "equals",
+        "value": "ORD-5001",
+        "message": "tracking must remain bound to the requested order"
+      },
+      {
+        "tool": "create_refund_draft",
+        "path": "order_id",
+        "operator": "equals",
+        "value": "ORD-5001",
+        "message": "the draft must remain bound to the requested order"
+      },
+      {
+        "tool": "issue_refund",
+        "path": "order_id",
+        "operator": "equals",
+        "value": "ORD-5001",
+        "message": "the approved action must remain bound to the requested order"
+      },
+      {
+        "tool": "issue_refund",
+        "path": "amount",
+        "operator": "equals",
+        "value": 129.99,
+        "message": "the issued amount must match the reviewed order amount"
+      }
+    ],
+    "max_steps": 5,
+    "normalizers": [
+      {"path": "tool_results[*].result.created_at", "type": "timestamp"}
+    ]
+  }
+}

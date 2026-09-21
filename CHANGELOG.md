@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 4.38.0 - 2026-09-21
+
+- Add a pinned external HelpPilot business-flow pilot covering a LangGraph
+  graph, SQLite tools, deterministic retrieval, human approval and refund
+  execution without using payment or customer credentials.
+- Add a reviewed HelpPilot baseline and Contract that reject wrong-resource,
+  skipped-tool and result-misread mutations with explainable difference
+  categories.
+- Add a dedicated GitHub Actions workflow that builds the release wheel,
+  installs it into the independent HelpPilot environment, reruns the graph,
+  and uploads traces and comparison reports.
+- Package the v4.38 acceptance record and document the evidence boundary: this
+  is a maintainer-run integration pilot, not upstream adoption or production
+  quality evidence.
+
 ## 4.37.0 - 2026-09-21
 
 - Add reviewed per-case Contracts to `batch-compare` through the

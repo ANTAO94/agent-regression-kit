@@ -2,7 +2,7 @@
 
 [English](technical-design.en.md) · [使用手册](user-manual.zh-CN.md) · [API](api.md)
 
-依据 v4.37.0 源码整理；产品版本 4.37.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance/study/readiness 另有独立 schema=0.1。
+依据 v4.38.0 源码整理；产品版本 4.38.0、PUBLIC_API_VERSION=4、AgentTrace/AgentSession/Contract/Report schema=0.1 是相互独立的兼容边界；Benchmark manifest/decision/score/performance/study/readiness 另有独立 schema=0.1。
 
 ## 1. 目标和适用场景
 
@@ -230,7 +230,8 @@ call_id 关联和生命周期错误。`record_framework_run` 是一个更薄的�
 `tool_input_resolver(event, ordinal)` 显式提供；对象参数保持对象，字符串等标量会
 转换为 `{"input": value}`。没有可靠采集时保留空对象，不从结果或自然语言猜测参数。
 独立项目技术预演见
-[P1 LangGraph 接入记录](p1-langgraph-agent-stack-validation.md)。
+[P1 LangGraph 接入记录](p1-langgraph-agent-stack-validation.md)；贴近业务流程的
+[HelpPilot 验收记录](v4.38.0-acceptance.md)还覆盖 SQLite 工具、RAG 和人工审批边界。
 
 采用 claims-only 并不自动证明业务正确；空 claims 或过宽忽略规则会削弱测试。允许替代路径时，补上结果断言、副作用约束与分支用例，避免单纯放宽路径。
 
@@ -444,7 +445,9 @@ v4.35 增加 `readiness`：读取 final-v4 readiness manifest，校验 benchmark
 证据时保持 pending 并返回退出码 1，不会用维护者本地运行结果冒充外部验证。完整格式见[成熟度审计说明](readiness-audit.md)
 和[v4.35 验收](v4.35-acceptance.md)。
 
-当前发布：[v4.37.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.37.0)。
+当前发布：[v4.38.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.0)。
+
+本轮外部业务流程证据见 [HelpPilot v4.38.0 验收记录](v4.38.0-acceptance.md)；它验证独立项目的 graph、SQLite 工具、RAG 和人工审批边界，但不替代外部采用或生产质量证据。
 
 字段映射、限制、样例 Trace 和 CI 行为见[完整方法说明](tau2-independent-validation.md)、
 [状态等价契约](state-equivalence.md)、[v4.12 验收记录](v4.12-acceptance.md)与

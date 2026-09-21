@@ -1,0 +1,139 @@
+{
+  "schema_version": "0.1",
+  "run_id": "helppilot-none",
+  "agent": {
+    "name": "helppilot",
+    "version": "0.1.0",
+    "framework": "langgraph",
+    "source_commit": "3767824fb90b89a8b19fc4169d912645aaf6fe0b"
+  },
+  "events": [
+    {
+      "type": "tool_call",
+      "call_id": "call-1",
+      "tool": "get_order",
+      "arguments": {"order_id": "ORD-5001"},
+      "sequence": 1
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-1",
+      "result": {
+        "id": "ORD-5001",
+        "customer_id": "CUST-1001",
+        "item": "Wireless Headphones",
+        "amount": 129.99,
+        "status": "lost",
+        "carrier": "UPS",
+        "tracking_number": "1Z999AA10123456784",
+        "last_scan": "Lost in transit — reported by carrier"
+      },
+      "is_error": false,
+      "sequence": 2
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-2",
+      "tool": "get_tracking",
+      "arguments": {"order_id": "ORD-5001"},
+      "sequence": 3
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-2",
+      "result": {
+        "order_id": "ORD-5001",
+        "carrier": "UPS",
+        "tracking_number": "1Z999AA10123456784",
+        "status": "lost",
+        "last_scan": "Lost in transit — reported by carrier",
+        "is_lost": true
+      },
+      "is_error": false,
+      "sequence": 4
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-3",
+      "tool": "check_refund_policy",
+      "arguments": {"query": "lost package refund"},
+      "sequence": 5
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-3",
+      "result": {"doc_ids": ["refund-policy"]},
+      "is_error": false,
+      "sequence": 6
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-4",
+      "tool": "create_refund_draft",
+      "arguments": {"order_id": "ORD-5001", "amount": 129.99},
+      "sequence": 7
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-4",
+      "result": {
+        "draft_id": "DRAFT-ORD-5001",
+        "order_id": "ORD-5001",
+        "amount": 129.99,
+        "status": "drafted",
+        "note": "Awaiting human approval before the refund is issued."
+      },
+      "is_error": false,
+      "sequence": 8
+    },
+    {
+      "type": "tool_call",
+      "call_id": "call-5",
+      "tool": "issue_refund",
+      "arguments": {"order_id": "ORD-5001", "amount": 129.99},
+      "sequence": 9
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-5",
+      "result": {
+        "refund_id": "RF-ORD-5001",
+        "order_id": "ORD-5001",
+        "amount": 129.99,
+        "status": "refunded"
+      },
+      "is_error": false,
+      "sequence": 10
+    },
+    {
+      "type": "final_answer",
+      "text": "Order ORD-5001 is lost and qualifies for a full refund [refund-policy].\n\nYour refund of $129.99 for order ORD-5001 has been approved and issued (ref RF-ORD-5001); expect it in 5-7 business days.\n\nSources: [refund-policy]",
+      "claims": {
+        "route": "use_tools",
+        "order_id": "ORD-5001",
+        "order_status": "lost",
+        "approval_required": true,
+        "approval_decision": "approved",
+        "refund_issued": true,
+        "refund_order_id": "ORD-5001",
+        "refund_amount": 129.99,
+        "grounded": true,
+        "citations": ["refund-policy"]
+      },
+      "sequence": 11
+    }
+  ],
+  "metadata": {
+    "input": {
+      "query": "My package never arrived and it has been two weeks. Order ORD-5001. Refund please.",
+      "customer_id": "CUST-1001",
+      "order_id": "ORD-5001"
+    },
+    "source_repository": "poysa213/HelpPilot",
+    "source_commit": "3767824fb90b89a8b19fc4169d912645aaf6fe0b",
+    "scenario": "lost-order-refund-with-human-approval",
+    "mutation": "none",
+    "approval_before_resume": true,
+    "approved_by": "human"
+  }
+}

@@ -9,7 +9,7 @@
 
 [中文](README.md) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥ 3.9 · Current release `v4.37.0` · No required third-party core runtime dependencies
+Python ≥ 3.9 · Current release `v4.38.0` · No required third-party core runtime dependencies
 
 ## Contents
 
@@ -86,7 +86,7 @@ This example is fully offline and needs no model API key. Commands target macOS,
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
 agent-regression --version
 ```
 
@@ -169,6 +169,8 @@ Subsequent runs generate only a candidate. **Never overwrite the Baseline automa
 
 The repository also includes a pinned [independent LangGraph project pilot](docs/p1-langgraph-agent-stack-validation.md). It leaves the candidate business graph unchanged, records the exact tool evidence consumed by the Agent, and tests argument regression, skipped retrieval, result misinterpretation, and corrupted evidence. This is deterministic integration evidence, not upstream adoption or online-model quality evidence.
 
+This release adds a more business-shaped [HelpPilot independent workflow](docs/v4.38.0-acceptance.md): it runs a public LangGraph support project through order lookup, tracking, refund-policy retrieval, refund drafting, human approval, refund execution, and a cited reply, then rejects wrong-resource, skipped-tool, and result-misread mutations. It pins the external commit and uses seeded/demo data plus deterministic substitutes; no payment or customer credentials are used. This is reproducible integration evidence, not upstream adoption or production-quality evidence.
+
 ## Configure business rules and noise filters
 
 The Baseline stores reference behavior; the config stores decision rules. This example permits wording changes while still checking tools, arguments, and business conclusions:
@@ -247,7 +249,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare
@@ -276,12 +278,13 @@ Exit codes: **0 = pass, 1 = regression, 2 = invalid input, configuration, or exe
 
 ## Validation status
 
-The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **306 tests and 35 subtests**.
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **310 tests and 35 subtests**.
 
 | Evidence | What it verifies | What it does not prove |
 | --- | --- | --- |
 | [Independent consumer repository](docs/consumer-pilot.md) | Released wheel, public API, CLI, and three regression gates work outside this checkout | Zero-code compatibility with every Agent |
 | [Independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) | Real external graph events, fixed evidence, and four negative scenarios | Upstream adoption or online-model quality |
+| [HelpPilot independent business workflow](docs/v4.38.0-acceptance.md) | External graph, SQLite tools, RAG, human approval, and three business-shaped regressions | Production quality, upstream adoption, or real-money safety |
 | [DeepSeek live run](docs/deepseek-live.md) | Real model order lookup and a two-tool dependency | Reliability across every model and business domain |
 | [τ²-bench](docs/tau2-independent-validation.md) | Rule behavior and false-alarm/missed-failure evidence on pinned public trajectories | Generalization to unseen data |
 | AgentDojo acceptance matrix | Contracts, hashes, and repeatability on pinned public security trajectories | A complete security rate |

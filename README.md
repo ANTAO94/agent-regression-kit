@@ -9,7 +9,7 @@
 
 [English](README.en.md) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
 
-Python ≥ 3.9 · 当前 Release `v4.37.0` · 核心无必需第三方运行时依赖
+Python ≥ 3.9 · 当前 Release `v4.38.0` · 核心无必需第三方运行时依赖
 
 ## Contents
 
@@ -86,7 +86,7 @@ flowchart TD
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
 agent-regression --version
 ```
 
@@ -169,6 +169,8 @@ agent-regression baseline accept \
 
 仓库还提供一条固定 commit 的[独立 LangGraph 项目接入验证](docs/p1-langgraph-agent-stack-validation.md)：不修改候选项目业务图，从真实事件流记录 Agent 实际消费的工具证据，并验证参数回归、漏调用、结果误读和证据正文损坏。它是确定性技术预演，不代表上游采用或在线模型质量。
 
+本版本还提供一条更贴近业务流程的[HelpPilot 独立项目验证](docs/v4.38.0-acceptance.md)：在公开的 LangGraph 客服项目中实际跑通“查询订单 → 查询物流 → 检查退款政策 → 创建退款草稿 → 人工审批 → 执行退款 → 回复引用”的跨步骤链路，并验证错误资源、漏工具和结果误读。它使用固定 commit、seed/demo 数据和确定性替身，不使用支付或客户凭证；这是可复现的接入证据，不代表 HelpPilot 上游采用或生产质量。
+
 ## 配置业务规则与噪音过滤
 
 Baseline 保存参考行为，config 保存判断规则。下面的配置允许回答措辞变化，但仍检查工具、参数和业务结论：
@@ -248,7 +250,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare
@@ -277,12 +279,13 @@ jobs:
 
 ## 已验证到什么程度
 
-当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；当前源码树通过 **306 个测试和 35 个子测试**。
+当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；当前源码树通过 **310 个测试和 35 个子测试**。
 
 | 证据 | 已验证 | 不能说明 |
 | --- | --- | --- |
 | [独立消费仓库](docs/consumer-pilot.md) | 发布 wheel、公开 API、CLI 和三类回归门禁可在独立仓库运行 | 不代表无代码兼容所有 Agent |
 | [独立 LangGraph 技术预演](docs/p1-langgraph-agent-stack-validation.md) | 真实外部 graph 的事件接入、固定资料和四类负向场景 | 不代表上游采用或在线模型质量 |
+| [HelpPilot 独立业务流程](docs/v4.38.0-acceptance.md) | 真实外部 graph、SQLite 工具、RAG、人工审批和三类业务形状回归 | 不代表生产质量、上游采用或真实资金安全 |
 | [DeepSeek 实测](docs/deepseek-live.md) | 真实模型的订单查询和两步工具依赖 | 不代表所有模型或所有业务可靠 |
 | [τ²-bench](docs/tau2-independent-validation.md) | 固定公开轨迹上的规则验证和误报/漏报记录 | 不代表未见数据泛化 |
 | AgentDojo 验收矩阵 | 固定公开安全轨迹的 Contract、哈希和重复性 | 不代表完整安全率 |

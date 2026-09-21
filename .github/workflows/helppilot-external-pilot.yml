@@ -1,0 +1,143 @@
+name: HelpPilot external pilot
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/agent_regression/**"
+      - "examples/external-pilot/helppilot/**"
+      - "tests/test_external_helppilot.py"
+      - ".github/workflows/helppilot-external-pilot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Agent Regression Kit
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build the wheel used by the independent candidate environment
+        run: |
+          python -m pip install --upgrade build
+          python -m build --wheel --outdir dist
+
+      - name: Check out the pinned HelpPilot project
+        env:
+          HELPPILOT_COMMIT: 3767824fb90b89a8b19fc4169d912645aaf6fe0b
+        run: |
+          git clone https://github.com/poysa213/HelpPilot.git "$RUNNER_TEMP/helppilot"
+          git -C "$RUNNER_TEMP/helppilot" checkout "$HELPPILOT_COMMIT"
+          test "$(git -C "$RUNNER_TEMP/helppilot" rev-parse HEAD)" = "$HELPPILOT_COMMIT"
+          uv sync --directory "$RUNNER_TEMP/helppilot"
+          uv pip install --python "$RUNNER_TEMP/helppilot/.venv/bin/python" "$GITHUB_WORKSPACE"/dist/*.whl
+
+      - name: Verify the installed wheel is outside the source checkout
+        working-directory: ${{ runner.temp }}/helppilot
+        run: |
+          .venv/bin/python - <<'PY'
+          from importlib.metadata import version
+          from pathlib import Path
+          import agent_regression
+
+          location = Path(agent_regression.__file__).resolve()
+          assert "/src/agent_regression/" not in str(location), location
+          assert version("agent-regression-kit") == "4.38.0"
+          print(f"agent-regression-kit {version('agent-regression-kit')} from {location}")
+          PY
+
+      - name: Record and compare the normal HelpPilot run
+        env:
+          KIT: ${{ github.workspace }}
+          HELPPILOT: ${{ runner.temp }}/helppilot
+          HELPPILOT_COMMIT: 3767824fb90b89a8b19fc4169d912645aaf6fe0b
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/agent-regression-helppilot"
+          mkdir -p "$WORK"
+          PY="$HELPPILOT/.venv/bin/python"
+          CAP="$KIT/examples/external-pilot/helppilot/record_trace.py"
+          BASELINE="$KIT/examples/external-pilot/helppilot/baseline.trace.json"
+          CONFIG="$KIT/examples/external-pilot/helppilot/compare.config.json"
+
+          test "$(git -C "$HELPPILOT" rev-parse HEAD)" = "$HELPPILOT_COMMIT"
+          cp "$BASELINE" "$WORK/baseline.trace.json"
+          "$PY" -m agent_regression validate --trace "$WORK/baseline.trace.json"
+          "$PY" "$CAP" --project-dir "$HELPPILOT" \
+            --out "$WORK/candidate.trace.json" | tee "$WORK/normal.capture.json"
+          "$PY" -m agent_regression compare --config "$CONFIG" \
+            --baseline "$WORK/baseline.trace.json" \
+            --candidate "$WORK/candidate.trace.json" \
+            --out "$WORK/normal.compare.json"
+
+          "$PY" - "$WORK/candidate.trace.json" "$HELPPILOT_COMMIT" <<'PY'
+          import json
+          import sys
+
+          trace = json.load(open(sys.argv[1], encoding="utf-8"))
+          expected = sys.argv[2]
+          assert trace["agent"]["source_commit"] == expected
+          assert trace["metadata"]["approval_before_resume"] is True
+          assert trace["events"][-1]["type"] == "final_answer"
+          assert trace["events"][-1]["claims"]["refund_issued"] is True
+          PY
+
+      - name: Verify HelpPilot regressions fail with explainable categories
+        env:
+          KIT: ${{ github.workspace }}
+          HELPPILOT: ${{ runner.temp }}/helppilot
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/agent-regression-helppilot"
+          PY="$HELPPILOT/.venv/bin/python"
+          CAP="$KIT/examples/external-pilot/helppilot/record_trace.py"
+          CONFIG="$KIT/examples/external-pilot/helppilot/compare.config.json"
+
+          expect_regression() {
+            local mutation="$1"
+            local expected_category="$2"
+            "$PY" "$CAP" --project-dir "$HELPPILOT" --mutation "$mutation" \
+              --out "$WORK/$mutation.trace.json"
+            set +e
+            "$PY" -m agent_regression compare --config "$CONFIG" \
+              --baseline "$WORK/baseline.trace.json" \
+              --candidate "$WORK/$mutation.trace.json" \
+              --out "$WORK/$mutation.compare.json"
+            local code=$?
+            set -e
+            test "$code" -eq 1
+            "$PY" - "$WORK/$mutation.compare.json" "$expected_category" <<'PY'
+          import json
+          import sys
+
+          report = json.load(open(sys.argv[1], encoding="utf-8"))
+          expected = sys.argv[2]
+          categories = {
+              item["category"]
+              for item in report["differences"]
+              if not item["allowed"]
+          }
+          assert expected in categories, (expected, sorted(categories))
+          PY
+          }
+
+          expect_regression wrong-resource tool_argument_policy
+          expect_regression skip-tool required_tool
+          expect_regression misread-result contract_assertion
+
+      - name: Upload HelpPilot traces and compare reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: helppilot-external-pilot
+          path: ${{ runner.temp }}/agent-regression-helppilot

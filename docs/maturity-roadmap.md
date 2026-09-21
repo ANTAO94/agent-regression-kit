@@ -80,6 +80,9 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 运行身份绑定 | v4.33 | provider/model/dataset revision descriptor 字段与 provenance 绑定，独立 consumer 通过发布 wheel 验证；仍不证明外部声明真实 |
 | 报告流转完整性 | v4.34 | `study --checksum-out` 对最终报告写出 SHA-256 sidecar，验证报告上传/交接未被替换；仍不证明报告内容正确 |
 | 最终成熟度审计 | v4.35 | `readiness` 校验 final-v4 样本/指标/性能门槛和证据摘要，显式保留 external pending；仍需真实用户和真正未见任务证据 |
+| LangGraph 生命周期预演 | v4.36 | 独立 graph event stream、工具参数补回、固定资料和结果误读门禁；仍不是上游采用或在线模型质量证据 |
+| 逐用例 Contract 与独立消费 | v4.37 | 发布 wheel 在独立消费项目中运行 10/10 正常案例，并阻断三类注入；仍不是多项目持续采用证据 |
+| HelpPilot 业务流程预演 | v4.38 | 独立客服 graph、SQLite 工具、RAG、人工审批和退款副作用边界；仍缺业务负责人审核、真实改动周期和生产质量证据 |
 
 ## 迭代顺序
 

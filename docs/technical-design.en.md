@@ -2,7 +2,7 @@
 
 [中文](technical-design.zh-CN.md) · [User manual](user-manual.en.md) · [API](api.md)
 
-Based on v4.37.0 source. Package version 4.37.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance/study/readiness use their own schema 0.1.
+Based on v4.38.0 source. Package version 4.38.0, PUBLIC_API_VERSION=4 and Trace/Session/Contract/Report schema=0.1 are independent compatibility boundaries; benchmark manifest/decision/score/performance/study/readiness use their own schema 0.1.
 
 ## 1. Purpose and ownership
 
@@ -494,7 +494,9 @@ task domain are `external` checks; without independent evidence they remain
 pending and return exit code 1 rather than being inferred from maintainer runs.
 See the [readiness audit guide](readiness-audit.md).
 
-Current release: [v4.37.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.37.0).
+Current release: [v4.38.0](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.0).
+
+This release's external business-flow evidence is documented in the [HelpPilot v4.38.0 acceptance record](v4.38.0-acceptance.md). It validates the independent project's graph, SQLite tools, RAG and human-approval boundaries, but does not replace external adoption or production-quality evidence.
 
 See [the full methodology](tau2-independent-validation.md), the
 [state-equivalence guide](state-equivalence.md), the [v4.12 acceptance

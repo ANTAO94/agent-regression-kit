@@ -4,6 +4,30 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.37.0 → v4.38.0
+
+v4.38 adds the pinned HelpPilot external-business pilot and does not change the
+Trace schema, public API version, comparison exit codes, or existing Contract
+configuration. It adds the committed HelpPilot baseline, Contract and
+reproduction adapter under `examples/external-pilot/helppilot/`, plus a
+dedicated external-project workflow. The workflow uses seeded/demo data and
+deterministic model/retrieval substitutions; it does not require or accept
+payment, customer, Groq or LangSmith credentials.
+
+The HelpPilot evidence is a maintainer-run technical/business pilot. Do not
+interpret a passing run as upstream adoption, online-model quality, or
+production payment safety. See the [v4.38 acceptance record](docs/v4.38.0-acceptance.md).
+
+## v4.37.0 → v4.38.0（中文）
+
+v4.38 增加固定版本 HelpPilot 独立业务流程预演，不改变 Trace schema、公开 API 版本、比较退出码或既有
+Contract 配置。新增的 baseline、Contract 和复现脚本位于
+`examples/external-pilot/helppilot/`，并增加独立项目 workflow。workflow 使用 seed/demo 数据和确定性
+模型/检索替身，不需要也不会使用支付、客户、Groq 或 LangSmith 凭证。
+
+HelpPilot 证据是维护者执行的技术/业务预演，不能解释为上游采用、在线模型质量或生产支付安全。详见
+[v4.38 验收记录](docs/v4.38.0-acceptance.md)。
+
 ## v4.35.0 → v4.35.1
 
 v4.35.1 is a maintenance release. It clarifies that `agent-regression init`
