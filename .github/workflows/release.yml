@@ -70,6 +70,7 @@ jobs:
           test -f "$DOC_ROOT/limitations.md"
           test -f "$DOC_ROOT/maturity-roadmap.md"
           test -f "$DOC_ROOT/maturity-evolution-plan.zh-CN.md"
+          test -f "$DOC_ROOT/product-iteration-plan.zh-CN.md"
           test -f "$DOC_ROOT/v4-acceptance.md"
           test -f "$DOC_ROOT/v4.1-acceptance.md"
           test -f "$DOC_ROOT/v4.2-acceptance.md"

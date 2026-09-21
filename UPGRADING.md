@@ -4,6 +4,17 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.35.0 → v4.35.1
+
+v4.35.1 is a maintenance release. It clarifies that `agent-regression init`
+creates a deterministic starter baseline for the template, not a business
+approval. After replacing the example Agent, review its actual Trace and run
+`baseline accept` explicitly. The framework comparison and Trace compatibility
+contracts are unchanged. The bundled PydanticAI, OpenAI Agents SDK and LangGraph
+examples now derive claims from their actual final output.
+
+后续迭代按[真实接入与回归价值迭代方案](docs/product-iteration-plan.zh-CN.md)执行，优先验证真实项目接入和外部使用反馈。
+
 ## v4.34.0 → v4.35.0
 
 v4.35 is additive. Existing Trace, Contract, benchmark, performance and

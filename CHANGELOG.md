@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 4.35.1 - 2026-09-21
+
+- Clarify that `agent-regression init` creates a deterministic starter baseline,
+  not a business-approved baseline, and update the generated onboarding guide.
+- Make the PydanticAI, OpenAI Agents SDK and LangGraph examples derive claims
+  from the Agent's actual final output instead of hardcoding expected claims.
+- Add the real-adoption iteration plan and package it with the release docs.
+
 ## 4.35.0 - 2026-09-21
 
 - Add the `readiness` command and public `evaluate_readiness` API for a

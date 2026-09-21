@@ -31,6 +31,9 @@ class CliTests(unittest.TestCase):
             ]
             for relative in expected:
                 self.assertTrue((root / relative).exists(), relative)
+            starter_docs = (root / "AGENT_REGRESSION.md").read_text(encoding="utf-8")
+            self.assertIn("not a business approval", starter_docs)
+            self.assertIn("explicitly accept a real Agent baseline", starter_docs)
             with redirect_stdout(io.StringIO()):
                 self.assertEqual(
                     0,
@@ -41,7 +44,7 @@ class CliTests(unittest.TestCase):
                     main(["compare", "--config", str(root / ".agent-regression/config.json")]),
                 )
             workflow = (root / ".github/workflows/agent-regression.yml").read_text(encoding="utf-8")
-            self.assertIn("@4.35.0", workflow)
+            self.assertIn("@4.35.1", workflow)
             script = root / "scripts/record_agent.py"
             original = script.read_text(encoding="utf-8")
             script.write_text("custom\n", encoding="utf-8")

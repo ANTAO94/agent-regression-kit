@@ -43,6 +43,11 @@ def get_order(order_id: str) -> str:
     return json.dumps({"order_id": order_id, "status": "paid"})
 
 
+def extract_claims(output: str) -> dict[str, str]:
+    """Extract the business claim from the Agent's actual final output."""
+    return {"order_status": "paid" if "paid" in output.lower() else "unknown"}
+
+
 set_tracing_disabled(True)
 request = "Look up order 123"
 result = Runner.run_sync(Agent(name="Order agent", model=DeterministicModel(), tools=[get_order]), request)
@@ -51,7 +56,7 @@ trace = trace_from_openai_agents_result(
     request,
     run_id="openai-agents-order",
     identity={"name": "order-agent", "version": "1.0.0", "framework": "openai-agents"},
-    claims_extractor=lambda output: {"order_status": "paid"},
+    claims_extractor=extract_claims,
 )
 destination = Path("work/openai-agents.trace.json")
 destination.parent.mkdir(parents=True, exist_ok=True)

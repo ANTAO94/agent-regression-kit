@@ -379,7 +379,7 @@ python scripts/record_agent.py --out work/my-agent.trace.json
 agent-regression validate --trace work/my-agent.trace.json
 ```
 
-init 生成 scripts/record_agent.py、比较配置、baseline 说明和 CI 模板。默认保留已有文件，并不自动生成已审核 baseline。先运行生成的订单示例，审查结果后首次接受：
+init 生成 scripts/record_agent.py、比较配置、starter baseline、baseline 说明和 CI 模板。starter baseline 由本地确定性 Fixture 产生，只用于证明模板能运行，不是你的业务审核结果。默认保留已有文件；替换示例 Agent 后，先运行、审查实际 Trace，再显式接受业务 baseline：
 
 ```bash
 agent-regression baseline accept --trace work/my-agent.trace.json --out baselines/my-agent.trace.json
@@ -563,7 +563,7 @@ agent-regression compare --config .agent-regression/config.json
 
 `init` 会生成并预置：
 
-- `baselines/my-agent.trace.json`：由本地 MCP Fixture 生成的可审核 baseline；
+- `baselines/my-agent.trace.json`：由本地 MCP Fixture 生成的 starter baseline，接入真实业务前必须重新审核；
 - `work/my-agent.trace.json`：初始 candidate，便于第一次 `check` 直接通过；
 - `.agent-regression/config.json`：包含 required claims、工具参数、禁用工具和步数限制；
 - `AGENT_REGRESSION.md`：中英文起步说明；
@@ -571,7 +571,7 @@ agent-regression compare --config .agent-regression/config.json
 
 `scripts/record_agent.py` 的 `normal` 会通过，`wrong-resource`、`skip-tool`、
 `misread-result` 是故意失败的教学变体，预期比较退出码为 1。把其中的
-`ExampleAgent` 替换成你的真实 Agent，保留 `context.call_tool` 和结构化 `claims`。
+`ExampleAgent` 替换成你的真实 Agent，保留 `context.call_tool` 和结构化 `claims`。不要把配置里的 expected claims 复制成 Agent 输出；claims 必须从实际工具结果和 Agent 最终输出中产生。
 
 预检命令除了校验路径和 Trace，还会给出 `guidance` 与 `next_actions`；它们是建议，不会
 改变 compare 的阻断语义。Markdown/JSON compare 报告也会把阻断类别映射成下一步动作。

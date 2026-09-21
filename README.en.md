@@ -6,9 +6,9 @@
 
 **Regression tests for AI Agents: catch wrong tools, changed arguments and incorrect business conclusions after changing a prompt, model or code.**
 
-[中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
+[中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [后续迭代方案](docs/product-iteration-plan.zh-CN.md)
 
-Python ≥3.9 · Release v4.35.0 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.35.1 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.35.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.35.1 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.35.0`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.35.1`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -278,7 +278,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.35.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.35.1"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -307,11 +307,14 @@ agent-regression check --config .agent-regression/config.json
 agent-regression compare --config .agent-regression/config.json
 ```
 
-The template creates a reviewed baseline, candidate Trace, strict Contract,
-bilingual starter notes and GitHub Actions pinned to the current Release tag.
-The normal variant exits 0; `wrong-resource`, `skip-tool` and `misread-result`
-are intentional failures that exit 1. See the generated `AGENT_REGRESSION.md`
-and the [performance baseline](docs/performance.md).
+The template creates a deterministic starter baseline, candidate Trace, strict
+Contract, bilingual starter notes and GitHub Actions pinned to the current
+Release tag. The starter baseline only proves the template runs; it is not a
+business approval. Replace the example Agent, review its actual Trace, and
+accept a real baseline explicitly. The normal variant exits 0;
+`wrong-resource`, `skip-tool` and `misread-result` are intentional failures
+that exit 1. See the generated `AGENT_REGRESSION.md` and the [performance
+baseline](docs/performance.md).
 
 ```bash
 agent-regression performance run --out work/performance-baseline.json

@@ -382,7 +382,7 @@ python scripts/record_agent.py --out work/my-agent.trace.json
 agent-regression validate --trace work/my-agent.trace.json
 ```
 
-init creates a recording script, config, baseline instructions and CI templates. It preserves existing files by default and does not create an approved baseline. Review the initial run, then accept it explicitly:
+init creates a recording script, config, a deterministic starter baseline, baseline instructions and CI templates. It preserves existing files by default. The starter baseline proves the template runs but is not a business approval; replace the example Agent, review its actual Trace, then accept a real baseline explicitly:
 
 ```bash
 agent-regression baseline accept --trace work/my-agent.trace.json --out baselines/my-agent.trace.json
@@ -572,12 +572,14 @@ agent-regression check --config .agent-regression/config.json
 agent-regression compare --config .agent-regression/config.json
 ```
 
-`init` creates a seeded `baselines/my-agent.trace.json`, an initial candidate,
+`init` creates a deterministic starter `baselines/my-agent.trace.json`, an initial candidate,
 a strict Contract, bilingual `AGENT_REGRESSION.md` instructions and GitHub
 Actions pinned to the current Release tag. The `normal` variant passes;
 `wrong-resource`, `skip-tool` and `misread-result` are intentional teaching
 failures and should exit 1. Replace `ExampleAgent` with your real integration,
 while keeping tool calls and structured `claims` at the recording boundary.
+Claims must come from the actual tool result and Agent output; do not copy
+expected claims from the Contract into the Agent implementation.
 
 `check` reports `guidance` and `next_actions` in addition to validating paths
 and Trace shape. These are suggestions and do not change compare semantics.

@@ -14,6 +14,11 @@ def get_order(order_id: str) -> dict:
     return {"order_id": order_id, "status": "paid"}
 
 
+def extract_claims(output: str) -> dict[str, str]:
+    """Extract the business claim from the Agent's actual final output."""
+    return {"order_status": "paid" if "paid" in output.lower() else "unknown"}
+
+
 def model(messages, info):
     del info
     if len(messages) == 1:
@@ -28,7 +33,7 @@ trace = trace_from_pydantic_ai_result(
     "Look up order 123",
     run_id="pydantic-ai-order",
     identity={"name": "order-agent", "version": "1.0.0", "framework": "pydantic-ai"},
-    claims_extractor=lambda output: {"order_status": "paid"},
+    claims_extractor=extract_claims,
 )
 destination = Path("work/pydantic-ai.trace.json")
 destination.parent.mkdir(parents=True, exist_ok=True)

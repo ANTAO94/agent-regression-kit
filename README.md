@@ -6,9 +6,9 @@
 
 **给 AI Agent 加回归测试：改了 Prompt、模型或代码后，检查它是否调用了错误工具、传错参数，或得出了错误的业务结论。**
 
-[English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
+[English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [后续迭代方案](docs/product-iteration-plan.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.35.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.35.1 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.35.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.35.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.35.1 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.35.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.35.1`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.35.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.35.1"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -317,8 +317,8 @@ agent-regression check --config .agent-regression/config.json
 agent-regression compare --config .agent-regression/config.json
 ```
 
-模板会生成已审核的 baseline、候选 Trace、严格 Contract、双语说明和固定到当前
-Release 的 GitHub Actions。正常场景退出 0；用 `--variant wrong-resource`、
+模板会生成一个由本地 Fixture 产生的 starter baseline、候选 Trace、严格 Contract、双语说明和固定到当前
+Release 的 GitHub Actions。starter baseline 只证明模板能运行，不代表你的业务已经审核通过；接入真实 Agent 后必须重新审查并显式接受 baseline。正常场景退出 0；用 `--variant wrong-resource`、
 `skip-tool` 或 `misread-result` 会故意制造可解释的回归并退出 1。完整接入边界见生成在
 你项目中的 `AGENT_REGRESSION.md` 和[使用手册](docs/user-manual.zh-CN.md)。
 

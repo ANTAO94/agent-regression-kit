@@ -1,5 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
+后续迭代以[真实接入与回归价值迭代方案](product-iteration-plan.zh-CN.md)为准。以下内容保留为既有能力和历史路线记录。
+
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
 [v4.13–v4.35 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 

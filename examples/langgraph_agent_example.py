@@ -18,6 +18,11 @@ def get_order(order_id: str) -> dict:
     return {"order_id": order_id, "status": "paid"}
 
 
+def extract_claims(output: str) -> dict[str, str]:
+    """Extract the business claim from the Agent's actual final output."""
+    return {"order_status": "paid" if "paid" in output.lower() else "unknown"}
+
+
 def model_node(state: MessagesState):
     if not any(getattr(message, "type", "") == "tool" for message in state["messages"]):
         return {"messages": [AIMessage(content="", tool_calls=[{
@@ -43,7 +48,7 @@ trace = trace_from_langgraph_result(
     request,
     run_id="langgraph-order",
     identity={"name": "order-agent", "version": "1.0.0", "framework": "langgraph"},
-    claims_extractor=lambda output: {"order_status": "paid"},
+    claims_extractor=extract_claims,
 )
 destination = Path(os.environ.get("AGENT_TRACE_OUT", "work/langgraph.trace.json"))
 destination.parent.mkdir(parents=True, exist_ok=True)
