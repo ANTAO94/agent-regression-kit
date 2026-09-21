@@ -111,10 +111,33 @@ def main() -> int:
             }
             for role, path in evidence_files.items()
         ],
+        "evidence_bindings": [
+            {
+                "evidence_id": "input-descriptor",
+                "target": "provenance.input_sha256",
+                "field": "input_sha256",
+            },
+            {
+                "evidence_id": "tool_schema-descriptor",
+                "target": "provenance.tool_schema_sha256",
+                "field": "tool_schema_sha256",
+            },
+            {
+                "evidence_id": "adapter-descriptor",
+                "target": "provenance.adapter",
+                "field": "adapter",
+            },
+        ],
         "integrity": {
             "require_trace_hashes": True,
             "require_evidence_index": True,
             "required_evidence_roles": ["adapter", "input", "tool_schema"],
+            "require_evidence_bindings": True,
+            "required_evidence_bindings": [
+                "provenance.adapter",
+                "provenance.input_sha256",
+                "provenance.tool_schema_sha256",
+            ],
             "baseline_sha256": sha256_file(baseline),
             "comparison_policy_sha256": canonical_sha256(
                 ComparisonPolicy(

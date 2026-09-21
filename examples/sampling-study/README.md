@@ -1,11 +1,11 @@
 # Recorded sampling study / 记录式采样研究
 
-This example demonstrates the v4.31 `study` evidence-index boundary. A real Agent is run by
+This example demonstrates the v4.32 `study` evidence-index and provenance-binding boundary. A real Agent is run by
 the caller, its redacted Trace files are stored beside a manifest, and the
 framework evaluates the repeated evidence without receiving an API key or
 the raw prompt.
 
-这个示例演示 v4.31 的 `study` evidence index 来源边界：真实 Agent 由接入方运行，脱敏后的 Trace 和
+这个示例演示 v4.32 的 `study` evidence index 和 provenance 绑定边界：真实 Agent 由接入方运行，脱敏后的 Trace 和
 manifest 放在同一个目录，框架只读取公开 provenance、Trace 和 Contract，不接收 API Key，
 也不会把原始 Prompt 写入研究报告。
 
@@ -66,6 +66,18 @@ not an online model quality result.
 7. v4.31 中，将非敏感描述文件以 role 和 SHA-256 写入 `evidence`，设置
    `integrity.require_evidence_index` 为 `true`，并在 `required_evidence_roles` 中列出
    `input`、`tool_schema`、`adapter` 等角色。报告只记录路径和摘要，不记录描述文件原文。
+
+8. For v4.32, add `evidence_bindings` entries that bind the descriptor field
+   `input_sha256`, `tool_schema_sha256` or `adapter` to the matching
+   `provenance.*` target. Set `integrity.require_evidence_bindings` to `true`
+   and list mandatory targets in `required_evidence_bindings` when needed.
+   The evaluator first checks the file hash, then checks the declared JSON
+   value; a hash-valid but semantically mismatched descriptor returns status 2.
+
+8. v4.32 中，增加 `evidence_bindings`，把描述文件中的 `input_sha256`、`tool_schema_sha256` 或
+   `adapter` 字段绑定到对应的 `provenance.*` target。需要强制所有绑定存在时，设置
+   `integrity.require_evidence_bindings: true`，并在 `required_evidence_bindings` 列出目标。
+   评估器先校验文件摘要，再校验声明的 JSON 值；即使文件摘要更新正确但语义绑定错误，也会返回状态 2。
 
 If a Trace is changed after the manifest is written, the command returns
 status `2` with a SHA-256 mismatch instead of evaluating stale evidence.

@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.31.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.32.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.31.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.31.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.32.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.31.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.32.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.31.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.32.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -342,9 +342,9 @@ agent-regression performance gate \
 
 ## 8. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.31 发布记录 **282 项测试通过**，并验证构建、干净环境安装、
+当前适合本地开发与团队 CI 试点。v4.32 发布记录 **285 项测试通过**，并验证构建、干净环境安装、
 首用模板、性能 smoke、独立消费仓库升级、多个任务域的公开/前瞻评测，以及记录式 study 证据的
-baseline/run/policy 完整性校验和 evidence index 来源清单。
+baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 语义绑定。
 
 | 验证类型 | 已有证据 | 能说明什么 |
 | --- | --- | --- |
@@ -368,6 +368,7 @@ baseline/run/policy 完整性校验和 evidence index 来源清单。
 | 记录式采样研究 | [v4.29 验收](docs/v4.29-acceptance.md)：`study` 读取脱敏 Trace、provider/model provenance、输入/工具 schema 哈希和逐次运行证据 | 让真实 Agent 的外部采样可审计接入；仍不负责供应商执行或总体可靠性结论 |
 | 证据文件完整性 | [v4.30 验收](docs/v4.30-acceptance.md)：为 baseline、每个 run Trace 和规范化 comparison policy 绑定 SHA-256，并验证篡改返回状态 2 | 防止 study bundle 在生成后被静默修改；不证明隐藏输入正确或样本具有代表性 |
 | 证据来源清单 | [v4.31 验收](docs/v4.31-acceptance.md)：声明 input/tool schema/adapter 等来源角色，校验路径、摘要和必需角色并输出 evidence index | 让 reviewer 能复核结论依赖了哪些文件；不证明来源文件语义正确或覆盖完整 |
+| 证据语义绑定 | [v4.32 验收](docs/v4.32-acceptance.md)：将 evidence descriptor 的受控字段绑定到 provenance.input/tool schema/adapter，哈希通过但语义错配仍返回状态 2 | 防止“文件未被修改但绑定了错误来源对象”；不证明 provenance 声明本身真实 |
 
 τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
@@ -375,7 +376,7 @@ baseline/run/policy 完整性校验和 evidence index 来源清单。
 
 ## 9. 常见问题与文档
 
-当前版本的采样证据：[v4.31 验收记录](docs/v4.31-acceptance.md)。
+当前版本的采样证据：[v4.32 验收记录](docs/v4.32-acceptance.md)。
 
 | 问题 | 先检查 |
 | --- | --- |

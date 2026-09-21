@@ -4,6 +4,36 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.31.0 → v4.32.0
+
+v4.32 is additive. Existing v4.31 evidence indexes and earlier study
+manifests remain valid. No migration is required. To bind an indexed descriptor
+to declared provenance, add `evidence_bindings` entries with `evidence_id`, a
+supported `target` (`provenance.input_sha256`,
+`provenance.tool_schema_sha256` or `provenance.adapter`) and its matching JSON
+`field`. Set `integrity.require_evidence_bindings: true` and list the expected
+targets in `required_evidence_bindings` when every binding is mandatory.
+
+The evaluator first verifies the evidence file SHA-256, then reads only the
+declared JSON field and compares it with the provenance value. A hash-valid but
+semantically mismatched descriptor returns status `2`; descriptor contents are
+not copied into the report.
+
+See the [v4.32 acceptance record](docs/v4.32-acceptance.md) for the complete
+manifest and CI negative test.
+
+## v4.31.0 → v4.32.0（中文）
+
+v4.32 是增量兼容版本，已有 v4.31 evidence index 和更早的 study manifest 都能继续使用，不需要
+迁移。要把来源描述文件绑定到 provenance，可以增加 `evidence_bindings`，每项包含 `evidence_id`、
+受支持的 `target`（`provenance.input_sha256`、`provenance.tool_schema_sha256` 或
+`provenance.adapter`）以及对应的 JSON `field`。如果所有绑定都必须存在，同时设置
+`integrity.require_evidence_bindings: true` 和 `required_evidence_bindings`。
+
+评估器先校验 evidence 文件 SHA-256，再只读取声明的 JSON 字段与 provenance 值比较。即使文件哈希
+更新正确、但语义绑定错误，也会返回状态 `2`；描述文件内容不会写入报告。完整结构见
+[v4.32 验收记录](docs/v4.32-acceptance.md)。
+
 ## v4.30.0 → v4.31.0
 
 v4.31 is additive. Existing Trace, Contract, baseline, stability and v4.30

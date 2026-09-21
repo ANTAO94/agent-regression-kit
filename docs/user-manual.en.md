@@ -2,7 +2,7 @@
 
 [中文](user-manual.zh-CN.md) · [Technical design](technical-design.en.md) · [Home](../README.md)
 
-For v4.31.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
+For v4.32.0. Commands assume Bash/Zsh on macOS/Linux, run from the repository root unless stated otherwise. Python ≥3.9 is required; CI tests 3.9, 3.11 and 3.13. Installation needs network access; default offline examples need no model credentials.
 
 ## 1. What is being tested?
 
@@ -27,7 +27,7 @@ Claims are not extracted from prose automatically. Instrument the conclusion or 
 
 
 ```bash
-git clone --branch v4.31.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.32.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -451,7 +451,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.31.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.32.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -474,7 +474,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.31.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.32.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -826,6 +826,42 @@ Reports add `evidence_index` with roles, relative paths and digests only; source
 contents are not embedded. A changed descriptor, duplicate ID/path, path escape
 or missing required role returns CLI status `2`. Older v4.30 manifests without
 `evidence` remain valid. See the [v4.31 acceptance](v4.31-acceptance.md).
+
+### v4.32: study provenance semantic bindings
+
+When file identity alone is not enough, add `evidence_bindings` on top of the
+v4.31 `evidence` index. Each binding connects one controlled JSON field in a
+descriptor to a manifest provenance value:
+
+```json
+{
+  "evidence_bindings": [
+    {
+      "evidence_id": "input-descriptor",
+      "target": "provenance.input_sha256",
+      "field": "input_sha256"
+    },
+    {
+      "evidence_id": "adapter-descriptor",
+      "target": "provenance.adapter",
+      "field": "adapter"
+    }
+  ],
+  "integrity": {
+    "require_evidence_index": true,
+    "require_evidence_bindings": true,
+    "required_evidence_bindings": ["provenance.input_sha256", "provenance.adapter"]
+  }
+}
+```
+
+The supported targets are `provenance.input_sha256`,
+`provenance.tool_schema_sha256` and `provenance.adapter`; they require the
+`input`, `tool_schema` and `adapter` roles and matching field names. The
+evaluator checks the file digest first, then reads the declared field and
+compares it with provenance. A hash-valid but mismatched value, wrong role or
+missing required target returns CLI status `2`. Reports contain binding IDs and
+targets, not descriptor contents. See the [v4.32 acceptance](v4.32-acceptance.md).
 
 ### v4.21: independent AgentDojo source intake
 

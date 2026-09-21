@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.31 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.32 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -439,6 +439,13 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] 校验角色、唯一 ID/路径、路径 containment、SHA-256 和 required roles，并输出 content-free index。
 - [x] CI 验证来源描述文件被篡改时返回状态 2，旧 manifest 继续兼容。
 - [ ] evidence index 不替代签名、语义正确性、来源完整性或真实用户研究。
+
+### v4.32：study provenance 语义绑定
+
+- [x] `evidence_bindings` 把 input、tool schema、adapter descriptor 的受控字段绑定到对应 provenance 值。
+- [x] 绑定前强制 evidence index；文件 SHA-256 通过但字段语义错配时仍返回状态 2。
+- [x] 报告只输出 binding ID/target，独立消费仓库通过发布 wheel 验证新边界。
+- [ ] 绑定范围是有限的显式字段，不替代签名、来源真实性证明或在线供应商实验。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

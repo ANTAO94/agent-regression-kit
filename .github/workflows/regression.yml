@@ -121,6 +121,35 @@ jobs:
           exit_code=$?
           set -e
           test "$exit_code" -eq 2
+      - name: Verify study evidence bindings block semantic mismatch
+        if: always() && steps.install.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -R work/order-123-study work/order-123-study-semantic-tampered
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path("work/order-123-study-semantic-tampered")
+          evidence = root / "evidence/input-descriptor.json"
+          evidence.write_text(json.dumps({"input_sha256": "0" * 64}) + "\n", encoding="utf-8")
+          manifest = root / "study.json"
+          raw = json.loads(manifest.read_text(encoding="utf-8"))
+          digest = hashlib.sha256(evidence.read_bytes()).hexdigest()
+          for entry in raw["evidence"]:
+              if entry["id"] == "input-descriptor":
+                  entry["sha256"] = digest
+          manifest.write_text(json.dumps(raw, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+          set +e
+          agent-regression study \
+            --manifest work/order-123-study-semantic-tampered/study.json \
+            --out work/ci-reports/order-123.study-semantic-tampered.json
+          exit_code=$?
+          set -e
+          test "$exit_code" -eq 2
       - name: Record coverage evidence
         if: always() && steps.install.outcome == 'success'
         shell: bash

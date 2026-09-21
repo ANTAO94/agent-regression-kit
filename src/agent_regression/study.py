@@ -60,6 +60,8 @@ _INTEGRITY_FIELDS = {
     "comparison_policy_sha256",
     "require_evidence_index",
     "required_evidence_roles",
+    "require_evidence_bindings",
+    "required_evidence_bindings",
 }
 _EVIDENCE_FIELDS = {"id", "role", "path", "sha256"}
 _EVIDENCE_ROLES = {
@@ -70,6 +72,12 @@ _EVIDENCE_ROLES = {
     "environment",
     "provider_output",
     "other",
+}
+_EVIDENCE_BINDING_FIELDS = {"evidence_id", "target", "field"}
+_EVIDENCE_BINDING_TARGETS = {
+    "provenance.input_sha256": ("input", "input_sha256"),
+    "provenance.tool_schema_sha256": ("tool_schema", "tool_schema_sha256"),
+    "provenance.adapter": ("adapter", "adapter"),
 }
 
 
@@ -198,6 +206,7 @@ class SamplingStudyReport:
     stability: StabilityReport
     evidence_integrity: Dict[str, Any] = field(default_factory=dict)
     evidence_index: Dict[str, Any] = field(default_factory=dict)
+    evidence_bindings: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def passed(self) -> bool:
@@ -214,6 +223,7 @@ class SamplingStudyReport:
                 "provenance": self.provenance.to_dict(),
                 "evidence_integrity": dict(self.evidence_integrity),
                 "evidence_index": dict(self.evidence_index),
+                "evidence_bindings": dict(self.evidence_bindings),
             }
         )
         return value
@@ -296,6 +306,8 @@ def _integrity_policy(value: Any) -> Dict[str, Any]:
             "comparison_policy_sha256": None,
             "require_evidence_index": False,
             "required_evidence_roles": [],
+            "require_evidence_bindings": False,
+            "required_evidence_bindings": [],
         }
     if not isinstance(value, Mapping):
         raise ValueError("integrity must be an object")
@@ -330,6 +342,27 @@ def _integrity_policy(value: Any) -> Dict[str, Any]:
         raise ValueError(
             "integrity.require_evidence_index must be true when evidence roles are required"
         )
+    require_evidence_bindings = value.get("require_evidence_bindings", False)
+    if not isinstance(require_evidence_bindings, bool):
+        raise ValueError("integrity.require_evidence_bindings must be boolean")
+    required_bindings = value.get("required_evidence_bindings", [])
+    if not isinstance(required_bindings, list) or not all(
+        isinstance(target, str) and target in _EVIDENCE_BINDING_TARGETS
+        for target in required_bindings
+    ):
+        raise ValueError(
+            "integrity.required_evidence_bindings must be an array of supported targets"
+        )
+    if len(set(required_bindings)) != len(required_bindings):
+        raise ValueError("integrity.required_evidence_bindings must not contain duplicates")
+    if required_bindings and not require_evidence_bindings:
+        raise ValueError(
+            "integrity.require_evidence_bindings must be true when evidence bindings are required"
+        )
+    if require_evidence_bindings and not require_evidence_index:
+        raise ValueError(
+            "integrity.require_evidence_index must be true when evidence bindings are required"
+        )
     if require and baseline_sha256 is None:
         raise ValueError(
             "integrity.baseline_sha256 is required when trace hashes are required"
@@ -340,6 +373,8 @@ def _integrity_policy(value: Any) -> Dict[str, Any]:
         "comparison_policy_sha256": comparison_sha256,
         "require_evidence_index": require_evidence_index,
         "required_evidence_roles": required_roles,
+        "require_evidence_bindings": require_evidence_bindings,
+        "required_evidence_bindings": required_bindings,
     }
 
 
@@ -416,6 +451,114 @@ def _evidence_index(
     }
 
 
+def _evidence_bindings(
+    value: Any,
+    root: Path,
+    provenance: SamplingProvenance,
+    evidence_index: Mapping[str, Any],
+    integrity_policy: Mapping[str, Any],
+) -> Dict[str, Any]:
+    require = bool(integrity_policy["require_evidence_bindings"])
+    required_targets = set(integrity_policy["required_evidence_bindings"])
+    if value is None:
+        if require:
+            raise ValueError(
+                "evidence_bindings must be a non-empty array when evidence bindings are required"
+            )
+        return {
+            "required": False,
+            "verified": True,
+            "binding_count": 0,
+            "targets": [],
+            "bindings": [],
+        }
+    if not isinstance(value, list) or (require and not value):
+        raise ValueError(
+            "evidence_bindings must be a non-empty array when evidence bindings are required"
+        )
+    index_by_id = {
+        entry["id"]: entry for entry in evidence_index.get("entries", [])
+    }
+    provenance_values = provenance.to_dict()
+    bindings: List[Dict[str, str]] = []
+    seen_ids: set[str] = set()
+    seen_targets: set[str] = set()
+    for index, item in enumerate(value):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"evidence_bindings[{index}] must be an object")
+        unknown = sorted(set(item) - _EVIDENCE_BINDING_FIELDS)
+        if unknown:
+            raise ValueError(
+                f"unsupported evidence_bindings[{index}] fields: " + ", ".join(unknown)
+            )
+        missing = sorted(_EVIDENCE_BINDING_FIELDS - set(item))
+        if missing:
+            raise ValueError(
+                f"evidence_bindings[{index}] must contain: " + ", ".join(missing)
+            )
+        evidence_id = _text(item["evidence_id"], f"evidence_bindings[{index}].evidence_id")
+        target = _text(item["target"], f"evidence_bindings[{index}].target")
+        field = _text(item["field"], f"evidence_bindings[{index}].field")
+        if target not in _EVIDENCE_BINDING_TARGETS:
+            raise ValueError(
+                f"evidence_bindings[{index}].target must be one of: "
+                + ", ".join(sorted(_EVIDENCE_BINDING_TARGETS))
+            )
+        expected_role, expected_field = _EVIDENCE_BINDING_TARGETS[target]
+        if field != expected_field:
+            raise ValueError(
+                f"evidence_bindings[{index}].field must be {expected_field!r} for {target}"
+            )
+        if evidence_id in seen_ids:
+            raise ValueError(f"duplicate evidence binding id: {evidence_id}")
+        if target in seen_targets:
+            raise ValueError(f"duplicate evidence binding target: {target}")
+        seen_ids.add(evidence_id)
+        seen_targets.add(target)
+        evidence = index_by_id.get(evidence_id)
+        if evidence is None:
+            raise ValueError(
+                f"evidence binding {evidence_id!r} must reference an evidence index entry"
+            )
+        if evidence["role"] != expected_role:
+            raise ValueError(
+                f"evidence binding {evidence_id!r} must use role {expected_role!r}"
+            )
+        expected_value = provenance_values.get(target.split(".", 1)[1])
+        if expected_value is None:
+            raise ValueError(f"{target} is not declared in provenance")
+        descriptor_path = root / evidence["path"]
+        try:
+            descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(
+                f"evidence binding {evidence_id!r} descriptor must be valid JSON"
+            ) from exc
+        if not isinstance(descriptor, Mapping):
+            raise ValueError(
+                f"evidence binding {evidence_id!r} descriptor must be a JSON object"
+            )
+        if descriptor.get(field) != expected_value:
+            raise ValueError(
+                f"evidence binding {evidence_id!r} does not match {target}"
+            )
+        bindings.append(
+            {"evidence_id": evidence_id, "target": target, "field": field}
+        )
+    missing_targets = sorted(required_targets - seen_targets)
+    if missing_targets:
+        raise ValueError(
+            "missing required evidence bindings: " + ", ".join(missing_targets)
+        )
+    return {
+        "required": require,
+        "verified": True,
+        "binding_count": len(bindings),
+        "targets": sorted(seen_targets),
+        "bindings": bindings,
+    }
+
+
 def evaluate_sampling_study(
     manifest_path: str | Path,
     *,
@@ -446,6 +589,7 @@ def evaluate_sampling_study(
         "policy",
         "integrity",
         "evidence",
+        "evidence_bindings",
     }
     unknown = sorted(set(raw) - allowed)
     if unknown:
@@ -459,6 +603,13 @@ def evaluate_sampling_study(
     root = manifest_file.parent
     integrity_policy = _integrity_policy(raw.get("integrity"))
     evidence_index = _evidence_index(raw.get("evidence"), root, integrity_policy)
+    evidence_bindings = _evidence_bindings(
+        raw.get("evidence_bindings"),
+        root,
+        provenance,
+        evidence_index,
+        integrity_policy,
+    )
     baseline_path = _relative_file(root, raw.get("baseline"), "baseline")
     observed_baseline_sha256 = sha256_file(baseline_path)
     expected_baseline_sha256 = integrity_policy["baseline_sha256"]
@@ -546,9 +697,12 @@ def evaluate_sampling_study(
             "comparison_policy_sha256": observed_comparison_sha256,
             "evidence_index_required": integrity_policy["require_evidence_index"],
             "evidence_index_verified": evidence_index["verified"],
+            "evidence_bindings_required": integrity_policy["require_evidence_bindings"],
+            "evidence_bindings_verified": evidence_bindings["verified"],
             "runs": run_evidence,
         },
         evidence_index=evidence_index,
+        evidence_bindings=evidence_bindings,
     )
 
 

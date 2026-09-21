@@ -273,6 +273,115 @@ class SamplingStudyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "missing required evidence roles"):
                 evaluate_sampling_study(manifest)
 
+    def add_evidence_bindings(self, manifest: Path) -> Path:
+        root = manifest.parent
+        raw = json.loads(manifest.read_text(encoding="utf-8"))
+        descriptors = {
+            "input": {"input_sha256": raw["provenance"]["input_sha256"]},
+            "tool_schema": {
+                "tool_schema_sha256": raw["provenance"]["tool_schema_sha256"]
+            },
+            "adapter": {"adapter": raw["provenance"]["adapter"]},
+        }
+        entries = []
+        for role, descriptor in descriptors.items():
+            path = root / "evidence" / f"{role}-descriptor.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(descriptor) + "\n", encoding="utf-8")
+            entries.append(
+                {
+                    "id": f"{role}-descriptor",
+                    "role": role,
+                    "path": str(path.relative_to(root)),
+                    "sha256": sha256_file(path),
+                }
+            )
+        raw["evidence"] = entries
+        raw["evidence_bindings"] = [
+            {
+                "evidence_id": "input-descriptor",
+                "target": "provenance.input_sha256",
+                "field": "input_sha256",
+            },
+            {
+                "evidence_id": "tool_schema-descriptor",
+                "target": "provenance.tool_schema_sha256",
+                "field": "tool_schema_sha256",
+            },
+            {
+                "evidence_id": "adapter-descriptor",
+                "target": "provenance.adapter",
+                "field": "adapter",
+            },
+        ]
+        raw["integrity"] = {
+            "require_evidence_index": True,
+            "required_evidence_roles": ["adapter", "input", "tool_schema"],
+            "require_evidence_bindings": True,
+            "required_evidence_bindings": [
+                "provenance.adapter",
+                "provenance.input_sha256",
+                "provenance.tool_schema_sha256",
+            ],
+        }
+        manifest.write_text(
+            json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return manifest
+
+    def test_evidence_bindings_match_provenance_without_exposing_contents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.add_evidence_bindings(self.make_manifest(Path(directory)))
+
+            report = evaluate_sampling_study(manifest).to_dict()
+
+            bindings = report["evidence_bindings"]
+            self.assertTrue(bindings["required"])
+            self.assertTrue(bindings["verified"])
+            self.assertEqual(3, bindings["binding_count"])
+            self.assertEqual(
+                [
+                    "provenance.adapter",
+                    "provenance.input_sha256",
+                    "provenance.tool_schema_sha256",
+                ],
+                bindings["targets"],
+            )
+            self.assertTrue(report["evidence_integrity"]["evidence_bindings_verified"])
+            self.assertNotIn("fixture-provider", json.dumps(bindings))
+
+    def test_evidence_bindings_reject_semantic_mismatch_even_when_file_hash_is_updated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.add_evidence_bindings(self.make_manifest(Path(directory)))
+            root = manifest.parent
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            descriptor = root / "evidence/input-descriptor.json"
+            descriptor.write_text(json.dumps({"input_sha256": "0" * 64}) + "\n", encoding="utf-8")
+            for entry in raw["evidence"]:
+                if entry["id"] == "input-descriptor":
+                    entry["sha256"] = sha256_file(descriptor)
+            manifest.write_text(
+                json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "does not match provenance.input_sha256"):
+                evaluate_sampling_study(manifest)
+
+    def test_evidence_bindings_require_indexed_roles_and_targets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.add_evidence_bindings(self.make_manifest(Path(directory)))
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            raw["evidence_bindings"] = raw["evidence_bindings"][:1]
+            manifest.write_text(
+                json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "missing required evidence bindings"):
+                evaluate_sampling_study(manifest)
+
     def test_provenance_rejects_secret_like_parameters(self):
         with self.assertRaisesRegex(ValueError, "must not contain credentials"):
             SamplingProvenance(

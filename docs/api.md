@@ -366,6 +366,43 @@ unique IDs/paths, digest equality and required-role coverage. The resulting
 contents. Missing or changed required evidence maps to CLI status `2`. The
 complete bilingual example is in [`v4.31-acceptance.md`](v4.31-acceptance.md).
 
+### Evidence semantic bindings in v4.32
+
+When a project needs more than file identity, add `evidence_bindings` to bind a
+controlled JSON field in an indexed descriptor to a declared provenance value:
+
+```json
+{
+  "evidence_bindings": [
+    {
+      "evidence_id": "input-descriptor",
+      "target": "provenance.input_sha256",
+      "field": "input_sha256"
+    },
+    {
+      "evidence_id": "adapter-descriptor",
+      "target": "provenance.adapter",
+      "field": "adapter"
+    }
+  ],
+  "integrity": {
+    "require_evidence_index": true,
+    "require_evidence_bindings": true,
+    "required_evidence_bindings": ["provenance.input_sha256", "provenance.adapter"]
+  }
+}
+```
+
+The supported targets are `provenance.input_sha256`,
+`provenance.tool_schema_sha256` and `provenance.adapter`; the matching fields
+are `input_sha256`, `tool_schema_sha256` and `adapter`, and each binding must
+reference an indexed entry with the corresponding role. The evaluator checks
+the file digest first, then reads only the declared JSON field and compares it
+to the provenance value. A hash-valid semantic mismatch, missing target or
+wrong role raises `ValueError` and the CLI returns status `2`. The report
+contains binding IDs and targets, not descriptor contents. See
+[`v4.32-acceptance.md`](v4.32-acceptance.md).
+
 ## Async and parallel events
 
 Use the async boundary when one Agent run awaits multiple tools concurrently:

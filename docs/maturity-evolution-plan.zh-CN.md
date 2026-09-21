@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.31）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.32）
 
-> 状态：v4.31 已落地，继续扩展在线随机性和真实用户验证
-> 当前基线版本：v4.31.0
+> 状态：v4.32 已落地，继续扩展在线随机性和真实用户验证
+> 当前基线版本：v4.32.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.31 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.32 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.31 目标 |
+| 维度 | v4.12 现状 | v4.32 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -697,6 +697,19 @@ manifest 可以声明 input、tool schema、adapter、dataset、environment 或 
 - [ ] evidence index 是 provenance inventory，不是签名系统、语义 oracle 或来源完整性证明；在线供应商
   实验和真实用户研究仍需后续独立完成。
 
+### 7.20 v4.32：study provenance 语义绑定（已落地）
+
+v4.32 继续收紧 v4.31 的来源边界：文件摘要只能证明“这个文件没有被替换”，不能证明它确实描述了
+manifest 声明的输入、工具 schema 或 adapter。新增 `evidence_bindings`，在已通过 evidence index
+和 SHA-256 校验的前提下，再读取描述文件中受控的 JSON 字段，与 `provenance` 的对应值做一致性检查。
+
+- [x] 支持 `provenance.input_sha256`、`provenance.tool_schema_sha256`、`provenance.adapter` 三类 target，分别要求 input、tool_schema、adapter role 和匹配字段。
+- [x] 支持 `integrity.require_evidence_bindings`、`required_evidence_bindings`，绑定前强制 evidence index，缺失 target、错误 role、字段错配或值不一致时 fail closed。
+- [x] 报告输出不含 descriptor 原文的 `evidence_bindings` 摘要以及 `evidence_integrity.evidence_bindings_verified`。
+- [x] 核心 CI 增加“先修改 descriptor、再同步更新其文件 SHA-256”负向用例，证明语义错配不能靠刷新摘要绕过。
+- [x] v4.32 本地测试达到 285 项，独立消费仓库用发布 wheel 创建自己的 study bundle 并通过 CI。
+- [ ] 语义绑定只验证声明的一小组字段，不证明 provenance 或 descriptor 的业务真实性；签名、在线供应商实验和真实用户研究仍需后续独立完成。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -733,6 +746,7 @@ manifest 可以声明 input、tool schema、adapter、dataset、environment 或 
 | `docs/v4.29-acceptance.md` | 记录式采样研究格式、退出码、隐私边界和验收 |
 | `docs/v4.30-acceptance.md` | study baseline/run/policy SHA-256 完整性、篡改负向 CI 和兼容性验收 |
 | `docs/v4.31-acceptance.md` | study evidence index 角色、必需角色、来源摘要和篡改负向 CI 验收 |
+| `docs/v4.32-acceptance.md` | study evidence binding 语义一致性、哈希刷新绕过负向 CI 和发布/消费验收 |
 
 ## 9. CI 结构
 
@@ -764,7 +778,7 @@ manifest 可以声明 input、tool schema、adapter、dataset、environment 或 
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.31 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.32 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -792,7 +806,7 @@ manifest 可以声明 input、tool schema、adapter、dataset、environment 或 
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.29 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性、记录式采样证据和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.32 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性、记录式采样证据、证据清单、语义绑定和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -817,6 +831,7 @@ manifest 可以声明 input、tool schema、adapter、dataset、environment 或 
 17. **v4.29**：记录式 sampling study、provider/model 与输入/工具 schema provenance、敏感字段和路径边界、逐次 Trace 绑定及核心 CI required study evidence。
 18. **v4.30**：study baseline、逐次 Trace 与规范化 comparison policy 的 SHA-256 完整性、篡改失败状态和报告 integrity 摘要。
 19. **v4.31**：study evidence index 来源角色、必需角色校验、content-free 报告索引和来源描述文件篡改门禁。
+20. **v4.32**：study evidence binding 将受控 descriptor 字段与 input/tool schema/adapter provenance 绑定，并验证同步刷新文件哈希仍会被语义门禁阻断。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布

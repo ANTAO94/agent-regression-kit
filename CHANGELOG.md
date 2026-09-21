@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.32.0 - 2026-09-21
+
+- Add opt-in study `evidence_bindings` that binds controlled descriptor fields
+  to declared provenance input, tool-schema and adapter values.
+- Require the evidence index when semantic bindings are enabled, validate the
+  descriptor JSON/value without copying descriptor contents into reports, and
+  fail closed with status `2` when a hash-valid descriptor binds the wrong
+  provenance value.
+- Extend the deterministic example, bilingual documentation, consumer pilot
+  and core CI with semantic-mismatch evidence.
+
 ## 4.31.0 - 2026-09-21
 
 - Add an optional study `evidence` index for non-secret input, tool-schema,
