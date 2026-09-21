@@ -248,7 +248,10 @@ If a LangGraph tool runs inside an ordinary Python node, the completed
 `trace_from_langgraph_events(events, final_output, request, ...)` to map
 `on_tool_start`, `on_tool_end` and `on_tool_error` into the same Trace events.
 Missing inputs remain empty objects; the adapter does not invent business
-arguments. See the [P1 LangGraph validation](p1-langgraph-agent-stack-validation.md).
+arguments. If the runtime hides the input, capture it at the actual tool
+boundary and pass `tool_input_resolver(event, ordinal)` explicitly. The resolver
+receives the one-based tool-start ordinal; objects remain objects and scalar
+inputs become `{"input": value}`. See the [P1 LangGraph validation](p1-langgraph-agent-stack-validation.md).
 
 Empty claims and broad ignores weaken coverage. When accepting alternative paths, retain outcome assertions, side-effect constraints and branch scenarios.
 

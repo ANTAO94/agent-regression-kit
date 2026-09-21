@@ -1,0 +1,103 @@
+name: LangGraph external pilot
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/agent_regression/framework_integrations.py"
+      - "tests/test_framework_integrations.py"
+      - "examples/external-pilot/langgraph-agent-stack/**"
+      - ".github/workflows/langgraph-external-pilot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Agent Regression Kit
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build the wheel used by the independent candidate environment
+        run: |
+          python -m pip install --upgrade build
+          python -m build --wheel --outdir dist
+
+      - name: Check out the pinned independent LangGraph project
+        env:
+          CANDIDATE_COMMIT: a8a2dac566d46c48619ba94c69dfffb1b370520d
+        run: |
+          git clone https://github.com/Brescou/langgraph-agent-stack.git "$RUNNER_TEMP/langgraph-agent-stack"
+          git -C "$RUNNER_TEMP/langgraph-agent-stack" checkout "$CANDIDATE_COMMIT"
+          test "$(git -C "$RUNNER_TEMP/langgraph-agent-stack" rev-parse HEAD)" = "$CANDIDATE_COMMIT"
+          uv sync --directory "$RUNNER_TEMP/langgraph-agent-stack"
+          uv pip install --python "$RUNNER_TEMP/langgraph-agent-stack/.venv/bin/python" "$GITHUB_WORKSPACE"/dist/*.whl
+
+      - name: Run the candidate's own deterministic eval
+        working-directory: ${{ runner.temp }}/langgraph-agent-stack
+        run: |
+          LLM_PROVIDER=mock SEARCH_PROVIDER=mock \
+            .venv/bin/python -m evals --all --json --thresholds
+
+      - name: Capture and compare a fresh baseline and candidate
+        env:
+          KIT: ${{ github.workspace }}
+          STACK: ${{ runner.temp }}/langgraph-agent-stack
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/agent-regression-langgraph-pilot"
+          mkdir -p "$WORK"
+          PY="$STACK/.venv/bin/python"
+          CAP="$KIT/examples/external-pilot/langgraph-agent-stack/capture_trace.py"
+          CONFIG="$KIT/examples/external-pilot/langgraph-agent-stack/compare.config.json"
+
+          "$PY" "$CAP" --project-dir "$STACK" --run-id baseline \
+            --output "$WORK/baseline.trace.json" | tee "$WORK/baseline.capture.json"
+          "$PY" "$CAP" --project-dir "$STACK" --run-id candidate \
+            --output "$WORK/candidate.trace.json" | tee "$WORK/candidate.capture.json"
+          "$PY" -m agent_regression compare --config "$CONFIG" \
+            --baseline "$WORK/baseline.trace.json" \
+            --candidate "$WORK/candidate.trace.json" \
+            --out "$WORK/normal.compare.json"
+
+          "$PY" "$CAP" --project-dir "$STACK" --run-id wording \
+            --vary-presentation --output "$WORK/wording.trace.json"
+          "$PY" -m agent_regression compare --config "$CONFIG" \
+            --baseline "$WORK/baseline.trace.json" \
+            --candidate "$WORK/wording.trace.json" \
+            --out "$WORK/wording.compare.json"
+
+          expect_regression() {
+            local name="$1"
+            shift
+            "$PY" "$CAP" --project-dir "$STACK" --run-id "$name" "$@" \
+              --output "$WORK/$name.trace.json"
+            set +e
+            "$PY" -m agent_regression compare --config "$CONFIG" \
+              --baseline "$WORK/baseline.trace.json" \
+              --candidate "$WORK/$name.trace.json" \
+              --out "$WORK/$name.compare.json"
+            local code=$?
+            set -e
+            test "$code" -eq 1
+          }
+
+          expect_regression wrong-query --mutate-search-query "unrelated topic"
+          expect_regression skipped-search --skip-search
+          expect_regression misread --mutate-summary-confidence 0.10
+
+      - name: Upload traces and compare reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: langgraph-external-pilot
+          path: ${{ runner.temp }}/agent-regression-langgraph-pilot

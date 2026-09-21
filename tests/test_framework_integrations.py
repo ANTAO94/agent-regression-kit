@@ -165,6 +165,69 @@ class FrameworkIntegrationTests(unittest.TestCase):
         self.assertTrue(trace.events[1]["is_error"])
         self.assertEqual("upstream unavailable", trace.events[1]["error"])
 
+    def test_langgraph_event_resolver_recovers_input_lost_by_runtime(self):
+        captured = ["official docs query", {"query": "second query"}]
+        trace = trace_from_langgraph_events(
+            [
+                {
+                    "event": "on_tool_start",
+                    "name": "web_search",
+                    "run_id": "tool-run-3",
+                    "data": {"input": {}},
+                },
+                {
+                    "event": "on_tool_end",
+                    "name": "web_search",
+                    "run_id": "tool-run-3",
+                    "data": {"output": "first result"},
+                },
+                {
+                    "event": "on_tool_start",
+                    "name": "web_search",
+                    "run_id": "tool-run-4",
+                    "data": {"input": {}},
+                },
+                {
+                    "event": "on_tool_end",
+                    "name": "web_search",
+                    "run_id": "tool-run-4",
+                    "data": {"output": "second result"},
+                },
+            ],
+            "done",
+            "research",
+            run_id="langgraph-resolved-input",
+            tool_input_resolver=lambda _event, ordinal: captured[ordinal - 1],
+        )
+        self.assertEqual(
+            [{"input": "official docs query"}, {"query": "second query"}],
+            [event["arguments"] for event in trace.events if event["type"] == "tool_call"],
+        )
+
+    def test_langgraph_event_without_run_id_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "require a non-empty run_id"):
+            trace_from_langgraph_events(
+                [
+                    {
+                        "event": "on_tool_start",
+                        "name": "web_search",
+                        "data": {"input": "query"},
+                    }
+                ],
+                "done",
+                "research",
+                run_id="langgraph-missing-run-id",
+            )
+
+    def test_langgraph_non_tool_event_without_run_id_is_ignored(self):
+        trace = trace_from_langgraph_events(
+            [{"event": "on_chain_start", "name": "research", "data": {}}],
+            "done",
+            "research",
+            run_id="langgraph-chain-event",
+        )
+        self.assertEqual(["final_answer"], [event["type"] for event in trace.events])
+
 
 if __name__ == "__main__":
     unittest.main()

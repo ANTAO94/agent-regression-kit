@@ -261,10 +261,12 @@ Python nodes, so the completed `messages` state contains no tool lifecycle. In
 that case collect `graph.astream_events(..., version="v2")` and use
 `trace_from_langgraph_events(...)`.
 
-The preview result was 8/8 upstream mock-eval cases passed, three real
-`web_search` calls captured, exit 0 for the unchanged comparison, and exit 1
-after changing the actual output claim `confidence` to `0.10`. This is technical
-integration evidence, not upstream adoption or online model-quality evidence.
+The preview result was 8/8 upstream mock-eval cases passed, the actual
+`sub-query 1/2/3` inputs captured at the tool boundary, exit 0 for a fresh
+baseline/candidate run and a wording-only variation, and exit 1 for a wrong
+search argument, skipped search and an in-run summary misinterpretation. This
+is technical integration evidence, not upstream adoption or online model-quality
+evidence.
 See the runnable [pilot example](examples/external-pilot/langgraph-agent-stack/README.md).
 
 ## 6. Run in CI
@@ -369,7 +371,7 @@ Suitable for local development and team CI pilots. The v4.36 release records **2
 | Evidence | Result and scope |
 | --- | --- |
 | [Framework compatibility CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) | Real PydanticAI, OpenAI Agents, LangGraph and LangChain Core runtimes with deterministic model/tool behavior; validates integration |
-| [Independent LangGraph project preview](docs/p1-langgraph-agent-stack-validation.md) | `Brescou/langgraph-agent-stack`: 8/8 mock-eval cases, three event-stream tool calls, normal compare exit 0, injected result regression exit 1 | Proves a real project's lifecycle can be ingested; not upstream adoption or online model quality |
+| [Independent LangGraph project preview](docs/p1-langgraph-agent-stack-validation.md) | `Brescou/langgraph-agent-stack`: 8/8 mock-eval cases, real tool-boundary inputs, legal variation exit 0, three in-run regressions exit 1 | Proves an independent project's lifecycle and runtime regressions can be checked; not upstream adoption or online model quality |
 | [Hosted DeepSeek runs](docs/deepseek-live.md) | Actual single-tool and two-step model runs; tool order is constrained by test policy |
 | [Published τ²-bench retail trajectories](docs/tau2-independent-validation.md) | 420 eligible scenarios: 267 true passes, 153 true blocks, 0 false alarms and 0 missed failures |
 | [Independent consumer pilot](docs/consumer-pilot.md) | Normal run exits 0; wrong resource, skipped tool and result misread each exit 1 |

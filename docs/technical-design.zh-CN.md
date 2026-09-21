@@ -225,8 +225,11 @@ call_id 关联和生命周期错误。`record_framework_run` 是一个更薄的�
 如果 LangGraph 工具在普通 Python 节点里执行，完成后的 `messages` 可能没有工具
 生命周期。此时收集 `graph.astream_events(..., version="v2")`，调用
 `trace_from_langgraph_events(events, final_output, request, ...)`，将
-`on_tool_start`、`on_tool_end` 和 `on_tool_error` 转为同一套 Trace 事件；输入缺失
-时保留空对象，不替业务方猜测参数。独立项目技术预演见
+`on_tool_start`、`on_tool_end` 和 `on_tool_error` 转为同一套 Trace 事件。如果
+`on_tool_start.data.input` 因为运行时封装而为空，应在真实工具边界记录输入，再通过
+`tool_input_resolver(event, ordinal)` 显式提供；对象参数保持对象，字符串等标量会
+转换为 `{"input": value}`。没有可靠采集时保留空对象，不从结果或自然语言猜测参数。
+独立项目技术预演见
 [P1 LangGraph 接入记录](p1-langgraph-agent-stack-validation.md)。
 
 采用 claims-only 并不自动证明业务正确；空 claims 或过宽忽略规则会削弱测试。允许替代路径时，补上结果断言、副作用约束与分支用例，避免单纯放宽路径。

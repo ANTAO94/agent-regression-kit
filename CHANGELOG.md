@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Extend `trace_from_langgraph_events` with an explicit
+  `tool_input_resolver(event, ordinal)` for runtimes that hide tool arguments
+  inside ordinary Python nodes; tool events without a `run_id` now fail closed.
+- Expand the independent LangGraph pilot with tool-boundary argument capture,
+  fresh baseline/candidate execution, legal-variation coverage and three
+  runtime regression cases. Add an independent-wheel GitHub Actions workflow.
+
 ## 4.36.0 - 2026-09-21
 
 - Add `trace_from_langgraph_events` for LangGraph/LangChain v2 lifecycle events,

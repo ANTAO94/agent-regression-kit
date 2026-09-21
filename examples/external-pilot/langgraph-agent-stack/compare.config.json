@@ -16,6 +16,27 @@
         "path": "final_answer.claims.summary_present",
         "equals": true
       }
+    ],
+    "must_call": [
+      {
+        "tool": "web_search",
+        "arguments": {"input": "sub-query 1"}
+      },
+      {
+        "tool": "web_search",
+        "arguments": {"input": "sub-query 2"}
+      },
+      {
+        "tool": "web_search",
+        "arguments": {"input": "sub-query 3"}
+      }
+    ],
+    "tool_limits": [
+      {
+        "tool": "web_search",
+        "min_calls": 3,
+        "max_calls": 3
+      }
     ]
   }
 }

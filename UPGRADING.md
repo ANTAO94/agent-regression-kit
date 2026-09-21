@@ -15,6 +15,21 @@ examples now derive claims from their actual final output.
 
 后续迭代按[真实接入与回归价值迭代方案](docs/product-iteration-plan.zh-CN.md)执行，优先验证真实项目接入和外部使用反馈。
 
+## Unreleased after v4.36.0
+
+`trace_from_langgraph_events` now accepts the optional
+`tool_input_resolver(event, ordinal)` callback. Use it only when the Agent
+runtime has captured the actual value at the tool boundary but the lifecycle
+event contains an empty or missing input. The resolver is one-based over tool
+start events; object inputs stay objects and scalar inputs become
+`{"input": value}`. Tool lifecycle events without a `run_id` now fail closed;
+non-tool lifecycle events without one remain ignored.
+
+The independent LangGraph pilot also runs a fresh candidate, checks a wording
+variation, and injects wrong arguments, a skipped tool and a summary
+misinterpretation during execution. It remains deterministic mock-provider
+evidence, not upstream adoption or online model-quality evidence.
+
 ## v4.35.1 → v4.36.0
 
 v4.36 is additive. Existing Trace, Contract, comparison configuration and

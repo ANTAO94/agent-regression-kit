@@ -11,6 +11,7 @@ from .model import AgentTrace
 from .redaction import RedactionPolicy
 
 ClaimsExtractor = Callable[[Any], Mapping[str, Any]]
+LangGraphToolInputResolver = Callable[[Mapping[str, Any], int], Any]
 
 
 def _field(value: Any, name: str, default: Any = None) -> Any:
@@ -196,6 +197,7 @@ def trace_from_langgraph_events(
     identity: Mapping[str, Any] | None = None,
     claims_extractor: ClaimsExtractor | None = None,
     redaction_policy: RedactionPolicy | None = None,
+    tool_input_resolver: LangGraphToolInputResolver | None = None,
 ) -> AgentTrace:
     """Convert LangGraph/LangChain lifecycle events into an ``AgentTrace``.
 
@@ -208,9 +210,12 @@ def trace_from_langgraph_events(
     The adapter records ``on_tool_start``/``on_tool_end`` pairs (and
     ``on_tool_error`` as an errored result) and derives the final answer from
     the caller-supplied ``final_output``. Tool inputs that are scalar or
-    missing are represented as ``{"input": value}`` or ``{}`` respectively;
-    the adapter never invents business arguments that the framework did not
-    expose.
+    missing are represented as ``{"input": value}`` or ``{}`` respectively.
+    Some runtimes execute a tool inside a custom node and emit an empty event
+    input; in that case an explicit ``tool_input_resolver`` may supply the
+    value captured at the actual tool boundary. The resolver receives the raw
+    lifecycle event and its one-based tool-start ordinal. The adapter never
+    guesses business arguments from a tool result.
     """
     recorder = FrameworkTraceRecorder(
         identity
@@ -220,7 +225,7 @@ def trace_from_langgraph_events(
         redaction_policy=redaction_policy,
     )
     pending: set[str] = set()
-    generated_call_number = 0
+    tool_start_ordinal = 0
 
     for event in events:
         if not isinstance(event, Mapping):
@@ -229,9 +234,13 @@ def trace_from_langgraph_events(
         data = event.get("data")
         data = data if isinstance(data, Mapping) else {}
         event_call_id = event.get("run_id")
-        if not isinstance(event_call_id, str) or not event_call_id:
-            generated_call_number += 1
-            event_call_id = f"langgraph-call-{generated_call_number}"
+        is_tool_event = kind in {"on_tool_start", "on_tool_end", "on_tool_error"}
+        if is_tool_event and (
+            not isinstance(event_call_id, str) or not event_call_id
+        ):
+            raise ValueError(
+                "LangGraph lifecycle tool events require a non-empty run_id"
+            )
         name = event.get("name")
         metadata = event.get("metadata")
         metadata = dict(metadata) if isinstance(metadata, Mapping) else None
@@ -239,7 +248,12 @@ def trace_from_langgraph_events(
         if kind == "on_tool_start":
             if not isinstance(name, str) or not name:
                 raise ValueError("LangGraph on_tool_start requires a non-empty name")
+            tool_start_ordinal += 1
             raw_input = data.get("input")
+            if tool_input_resolver is not None:
+                resolved_input = tool_input_resolver(event, tool_start_ordinal)
+                if resolved_input is not None:
+                    raw_input = resolved_input
             if raw_input is None:
                 arguments: dict[str, Any] = {}
             elif isinstance(raw_input, Mapping):

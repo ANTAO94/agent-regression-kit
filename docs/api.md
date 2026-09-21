@@ -630,7 +630,10 @@ do not appear in the completed `messages` state, collect the v2 event stream
 and use `trace_from_langgraph_events(events, final_output, request, ...)`.
 It converts `on_tool_start`, `on_tool_end` and `on_tool_error` into the same
 validated Trace boundary without guessing arguments that the framework did not
-expose. See [`docs/framework-integrations.md`](framework-integrations.md) and
+expose. When the event input is empty, pass an explicit
+`tool_input_resolver(event, ordinal)` backed by instrumentation at the actual
+tool boundary; it receives the one-based `on_tool_start` ordinal and may return
+the captured object or scalar input. See [`docs/framework-integrations.md`](framework-integrations.md) and
 the independent project preview in
 [`docs/p1-langgraph-agent-stack-validation.md`](p1-langgraph-agent-stack-validation.md).
 

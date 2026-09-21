@@ -268,10 +268,11 @@ Python 节点中执行工具，最终 `messages` 里没有工具调用；这时�
 `graph.astream_events(..., version="v2")` 收集生命周期，再调用
 `trace_from_langgraph_events(...)`。
 
-本次技术预演结果：上游 mock eval 为 8/8 通过；真实 event stream 采集到 3 次
-`web_search`；正常比较退出 0；把实际输出中的 `confidence` 改为 `0.10` 后比较
-退出 1。它是技术接入证据，不代表上游维护者采用，也不替代业务负责人审核的
-10–20 个真实案例。运行命令见[示例目录](examples/external-pilot/langgraph-agent-stack/README.md)。
+本次技术预演结果：上游 mock eval 为 8/8 通过；通过工具边界采集到真实的
+`sub-query 1/2/3` 参数；重新执行的 baseline/candidate 比较退出 0；合法措辞变化
+退出 0；错误搜索参数、跳过搜索、运行中误读总结分别退出 1。它是技术接入证据，
+不代表上游维护者采用，也不替代业务负责人审核的 10–20 个真实案例。完整命令和
+差异类别见[示例目录](examples/external-pilot/langgraph-agent-stack/README.md)。
 
 ## 6. 怎么放进 CI？
 
@@ -379,7 +380,7 @@ baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 
 | 验证类型 | 已有证据 | 能说明什么 |
 | --- | --- | --- |
 | 真实框架 + 确定性模型/工具 | PydanticAI、OpenAI Agents、LangGraph、LangChain Core 的[兼容 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) | 框架运行和 Trace 接入可用，不等于在线模型质量验证 |
-| 独立 LangGraph 项目技术预演 | [Brescou/langgraph-agent-stack 接入记录](docs/p1-langgraph-agent-stack-validation.md)：mock eval 8/8、event stream 3 次工具调用、正常比较 0、注入结果回归 1 | 证明真实项目的事件生命周期可以接入；不代表上游采用或在线模型质量 |
+| 独立 LangGraph 项目技术预演 | [Brescou/langgraph-agent-stack 接入记录](docs/p1-langgraph-agent-stack-validation.md)：mock eval 8/8、真实参数采集、合法变化 0、三类运行时回归 1 | 证明独立项目可以从工具边界接入并阻断回归；不代表上游采用或在线模型质量 |
 | 在线模型 | [DeepSeek 实测](docs/deepseek-live.md)：订单查询和两步工具依赖 | 已记录真实模型调用，工具顺序由测试策略约束 |
 | 外部公开轨迹 | [τ²-bench 零售数据](docs/tau2-independent-validation.md)：420 个适用场景，267 正确放行、153 正确阻断、0 误报、0 漏报 | 当前规则在这份固定数据上的结果 |
 | 独立消费仓库 | [agent-regression-pilot](docs/consumer-pilot.md)：正常退出 0，错资源/漏工具/结果误读均退出 1 | 发布 wheel、公开 API、Contract 和 CLI 在独立仓库中的接入边界 |

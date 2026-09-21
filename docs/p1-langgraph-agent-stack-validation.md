@@ -7,13 +7,14 @@
 已对独立公开项目
 [`Brescou/langgraph-agent-stack`](https://github.com/Brescou/langgraph-agent-stack)
 做技术预演，固定上游 commit：
-`a8a2dac566d46c48619ba94c69dfffb1b370520d8`。
+`a8a2dac566d46c48619ba94c69dfffb1b370520d`。
 
 结果：候选项目自带的 mock eval 在本机通过；真实 `ResearchAgent` LangGraph
-event stream 能被 Agent Regression Kit 转换为有效 Trace；把最终业务结果中的
-`confidence` 从实际值改成 `0.10` 后，compare 返回退出码 `1` 并指出
-`final_answer.claims`（报告中的 candidate 值包含 `confidence: 0.10`）。这是 P1 的技术接入证据，不是上游项目采用声明，
-也不是在线模型质量结论。
+event stream 能被 Agent Regression Kit 转换为有效 Trace；工具事件虽然只暴露空
+输入，但外部工具边界采集到了实际传入的 `sub-query 1/2/3`。重新执行的
+baseline/candidate 和合法措辞变化均通过；错误搜索参数、跳过必要搜索、运行中
+误读总结均被 compare 以退出码 `1` 阻断。这是 P1 的技术接入证据，不是上游项目
+采用声明，也不是在线模型质量结论。
 
 ## 可复现结果
 
@@ -22,12 +23,22 @@ event stream 能被 Agent Regression Kit 转换为有效 Trace；把最终业务
 | 上游环境 | `uv sync`，Python 3.13.15 | 完成 |
 | 上游 mock eval | `LLM_PROVIDER=mock SEARCH_PROVIDER=mock uv run python -m evals --all --json --thresholds` | 3 个数据集、8 个案例、8/8 通过、退出码 0 |
 | 上游真实 API smoke | `TestClient` 调用 `POST /run`，mock provider | HTTP 200，返回结构化研究结果 |
-| 事件流采集 | `capture_trace.py` | 真实 `on_tool_start/end` 与最终结果进入 Trace |
-| 正常比较 | `compare.config.json` | 退出码 0 |
-| 结果回归注入 | `--mutate-confidence 0.10` | 退出码 1，定位 `final_answer.claims`，报告同时给出 baseline/candidate claims |
+| 事件流采集 | `capture_trace.py` + 工具边界 instrumentation | 真实 `on_tool_start/end`、`sub-query 1/2/3` 参数与最终结果进入 Trace |
+| wheel 独立环境 | 当前构建 wheel 安装到候选项目 `.venv` | `agent_regression` 从 site-packages 导入，未使用核心仓库 `src/` |
+| 正常重新执行 | `compare.config.json` | 退出码 0，`passed: true`，无阻断差异 |
+| 合法变化 | `--vary-presentation` | 退出码 0；claims-only 忽略展示文字变化 |
+| 错误搜索参数 | `--mutate-search-query "unrelated topic"` | 退出码 1；定位工具参数、工具结果和 Contract required tool |
+| 跳过必要搜索 | `--skip-search` | 退出码 1；定位工具数量、结果关联、claims 和 required tool |
+| 运行中结果误读 | `--mutate-summary-confidence 0.10` | 退出码 1；定位 `final_answer.claims` |
+| 比较器专项 | `--mutate-confidence 0.10` | 退出码 1；只证明比较器识别 Trace 变化，不冒充运行时缺陷 |
 
 上游 mock eval 的所有案例成本为 `$0.00`。候选项目的测试和评测是它自己的质量
 证据；本项目只负责接入其运行证据、比较和回归门禁。
+
+`capture_trace.py` 是本项目的外部验证 harness。为了观察候选 graph 并制造确定性
+负向用例，它访问候选项目的私有 `_graph` 和 `_invoke_llm_with_retry`；这不应被理解
+为业务项目的长期接入要求。长期接入只需要框架事件、真实工具边界采集和业务方的
+claims/Contract。
 
 ## 本轮实现
 
@@ -36,7 +47,8 @@ event stream 能被 Agent Regression Kit 转换为有效 Trace；把最终业务
 - `on_tool_start` → `tool_call`；
 - `on_tool_end` → 成功 `tool_result`；
 - `on_tool_error` → 带 `is_error=true` 的 `tool_result`；
-- 工具输入缺失时保留 `{}`，不猜测业务参数；
+- 工具输入缺失时默认保留 `{}`；若接入方在真实工具边界采集了参数，可通过
+  `tool_input_resolver(event, ordinal)` 显式补入；
 - 最终输出和 claims 仍由调用方提供，claims 必须从实际输出提取；
 - 对未闭合的工具生命周期、未知 `run_id` 和无效事件返回明确错误。
 
@@ -51,6 +63,7 @@ event stream 能被 Agent Regression Kit 转换为有效 Trace；把最终业务
    baseline。
 4. 尚未完成 P3 的 3 名独立使用者、3 个项目和持续两个周期的试点。
 
-下一步进入 P1/P2 交界：把 event-stream 适配器加入框架兼容 CI，补一组工具参数、
-工具结果错误和允许路径变化的真实项目契约样例，再根据实际失败样本改进规则，而
-不是继续扩展与接入无关的评测矩阵。
+当前 P1 的技术预演和 wheel 边界已完成；下一步不是继续增加注入开关，而是获得
+项目负责人审核的业务 baseline，并记录真实改动周期中的误报/漏报。只有出现实际
+噪音和排障样本后，才进入 P2，针对动态字段、无害额外查询或允许路径变化做成对
+规则。维护者采用、业务案例和 P3 外部试点仍未完成。

@@ -59,6 +59,35 @@ trace = trace_from_langgraph_events(
 )
 ```
 
+如果 event stream 的 `on_tool_start.data.input` 是空对象或缺失，而工具在普通
+Python 节点中实际收到了参数，应在真实工具边界记录参数，再通过显式 resolver
+交给适配器。不要从工具结果或最终答案反推参数：
+
+```python
+observed_inputs = []
+
+def run_search(query):
+    observed_inputs.append(query)
+    return real_search_tool.invoke(query)
+
+def resolve_tool_input(_event, ordinal):
+    return observed_inputs[ordinal - 1]
+
+trace = trace_from_langgraph_events(
+    events,
+    final_output,
+    request,
+    run_id="research-123",
+    tool_input_resolver=resolve_tool_input,
+    claims_extractor=extract_claims_from_actual_output,
+)
+```
+
+`ordinal` 从 1 开始，只按 `on_tool_start` 计数。resolver 返回的值会按同一套
+规则转换：对象保留为工具参数，字符串等标量会变成
+`{"input": "..."}`。如果没有可靠的运行时采集，就保留空对象并把“参数未暴露”
+作为接入限制记录下来；适配器不会猜测业务参数。
+
 ### 离线运行三个真实示例
 
 ```bash
@@ -140,6 +169,12 @@ collect the LangGraph v2 lifecycle dictionaries and use
 The adapter reads framework-owned call IDs, tool names, arguments, tool outputs
 and final output. `claims_extractor` remains application-owned because only the
 application knows which business facts must be regression-tested.
+
+If `on_tool_start.data.input` is empty because a tool is called inside an ordinary
+Python node, capture the value at the actual tool boundary and pass an explicit
+`tool_input_resolver(event, ordinal)`. The resolver is called for each tool start;
+objects remain objects and scalar inputs become `{"input": value}`. Do not infer
+arguments from tool output or final prose.
 
 ## Runnable offline examples
 
