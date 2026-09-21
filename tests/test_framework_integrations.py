@@ -1,6 +1,7 @@
 import unittest
 
 from agent_regression import (
+    trace_from_langgraph_events,
     trace_from_langgraph_result,
     trace_from_openai_agents_result,
     trace_from_pydantic_ai_result,
@@ -37,7 +38,11 @@ class PydanticResult:
 
 class ToolCallItem:
     def __init__(self):
-        self.raw_item = {"name": "get_order", "arguments": '{"order_id":"123"}', "call_id": "oa-1"}
+        self.raw_item = {
+            "name": "get_order",
+            "arguments": '{"order_id":"123"}',
+            "call_id": "oa-1",
+        }
 
 
 class ToolCallOutputItem:
@@ -84,7 +89,11 @@ class FrameworkIntegrationTests(unittest.TestCase):
     def test_langgraph_message_state_becomes_a_valid_trace(self):
         result = {
             "messages": [
-                AIMessage(tool_calls=[{"name": "get_order", "args": {"order_id": "123"}, "id": "lg-1"}]),
+                AIMessage(
+                    tool_calls=[
+                        {"name": "get_order", "args": {"order_id": "123"}, "id": "lg-1"}
+                    ]
+                ),
                 ToolMessage('{"status":"paid"}', "lg-1"),
                 AIMessage("Order 123 is paid"),
             ]
@@ -95,8 +104,66 @@ class FrameworkIntegrationTests(unittest.TestCase):
             run_id="langgraph",
             claims_extractor=lambda output: {"order_status": "paid"},
         )
-        self.assertEqual(["tool_call", "tool_result", "final_answer"], [e["type"] for e in trace.events])
+        self.assertEqual(
+            ["tool_call", "tool_result", "final_answer"],
+            [e["type"] for e in trace.events],
+        )
         self.assertEqual("Order 123 is paid", trace.events[-1]["text"])
+
+    def test_langgraph_event_stream_records_tools_hidden_from_message_state(self):
+        events = [
+            {
+                "event": "on_tool_start",
+                "name": "web_search",
+                "run_id": "tool-run-1",
+                "data": {"input": {}},
+                "metadata": {"langgraph_node": "research"},
+            },
+            {
+                "event": "on_tool_end",
+                "name": "web_search",
+                "run_id": "tool-run-1",
+                "data": {"input": None, "output": "result"},
+            },
+        ]
+        trace = trace_from_langgraph_events(
+            events,
+            {"summary": "done"},
+            "research LangGraph",
+            run_id="langgraph-events",
+            claims_extractor=lambda output: {"summary": output["summary"]},
+        )
+        self.assertEqual(
+            ["tool_call", "tool_result", "final_answer"],
+            [e["type"] for e in trace.events],
+        )
+        self.assertEqual("web_search", trace.events[0]["tool"])
+        self.assertEqual({}, trace.events[0]["arguments"])
+        self.assertEqual("result", trace.events[1]["result"])
+        self.assertEqual({"summary": "done"}, trace.events[-1]["claims"])
+
+    def test_langgraph_event_stream_records_tool_errors(self):
+        trace = trace_from_langgraph_events(
+            [
+                {
+                    "event": "on_tool_start",
+                    "name": "web_search",
+                    "run_id": "tool-run-2",
+                    "data": {"input": "query"},
+                },
+                {
+                    "event": "on_tool_error",
+                    "name": "web_search",
+                    "run_id": "tool-run-2",
+                    "data": {"error": "upstream unavailable"},
+                },
+            ],
+            "fallback",
+            "research LangGraph",
+            run_id="langgraph-error-events",
+        )
+        self.assertTrue(trace.events[1]["is_error"])
+        self.assertEqual("upstream unavailable", trace.events[1]["error"])
 
 
 if __name__ == "__main__":

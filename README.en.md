@@ -6,9 +6,9 @@
 
 **Regression tests for AI Agents: catch wrong tools, changed arguments and incorrect business conclusions after changing a prompt, model or code.**
 
-[中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [后续迭代方案](docs/product-iteration-plan.zh-CN.md)
+[中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [Product iteration plan](docs/product-iteration-plan.zh-CN.md) · [P1 external project pilot](docs/p1-langgraph-agent-stack-validation.md)
 
-Python ≥3.9 · Release v4.35.1 · No required third-party core runtime dependencies.
+Python ≥3.9 · Release v4.36.0 · No required third-party core runtime dependencies.
 
 ## 1. What does it check?
 
@@ -32,7 +32,7 @@ Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on W
 ### Install
 
 ```bash
-git clone --branch v4.35.1 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.36.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -40,7 +40,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-Expect `agent-regression 4.35.1`. Keep the environment active and run subsequent commands from the repository root.
+Expect `agent-regression 4.36.0`. Keep the environment active and run subsequent commands from the repository root.
 
 ### Record and compare a passing candidate
 
@@ -251,6 +251,22 @@ The example builds an answer from tool results. With a model Agent, capture its 
 
 **baseline accept validates and stores a file; it does not review business correctness.** Review first and commit the baseline to Git. Subsequent runs regenerate only the candidate. Do not automatically overwrite the baseline in CI. Intentionally break an argument once to verify the gate detects it.
 
+### 5.1 Technical preview with an independent LangGraph project
+
+The repository includes a reproducible [independent-project validation](docs/p1-langgraph-agent-stack-validation.md)
+for the public `Brescou/langgraph-agent-stack` project. It does not modify that
+project and runs its built-in `LLM_PROVIDER=mock` mode. The preview found a real
+integration gap: some LangGraph applications execute tools inside ordinary
+Python nodes, so the completed `messages` state contains no tool lifecycle. In
+that case collect `graph.astream_events(..., version="v2")` and use
+`trace_from_langgraph_events(...)`.
+
+The preview result was 8/8 upstream mock-eval cases passed, three real
+`web_search` calls captured, exit 0 for the unchanged comparison, and exit 1
+after changing the actual output claim `confidence` to `0.10`. This is technical
+integration evidence, not upstream adoption or online model-quality evidence.
+See the runnable [pilot example](examples/external-pilot/langgraph-agent-stack/README.md).
+
 ## 6. Run in CI
 
 Prepare these files in your own repository:
@@ -278,7 +294,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.35.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -348,11 +364,12 @@ evidence they remain `pending` and the command returns 1. See the [readiness aud
 
 ## 8. Evidence and current limits
 
-Suitable for local development and team CI pilots. The v4.35 release records **291 passing tests**, package builds, clean-environment installation, first-use scaffold checks, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, multiple task-domain validations, independent AgentDojo model-family evidence, finite-sample stability intervals and a recorded sampling-study boundary with file-integrity, evidence-index, provenance-binding, run-identity and report-sidecar checks.
+Suitable for local development and team CI pilots. The v4.36 release records **293 passing tests**, package builds, clean-environment installation, first-use scaffold checks, a real independent-project LangGraph technical preview, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, multiple task-domain validations, independent AgentDojo model-family evidence, finite-sample stability intervals and a recorded sampling-study boundary with file-integrity, evidence-index, provenance-binding, run-identity and report-sidecar checks.
 
 | Evidence | Result and scope |
 | --- | --- |
 | [Framework compatibility CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) | Real PydanticAI, OpenAI Agents, LangGraph and LangChain Core runtimes with deterministic model/tool behavior; validates integration |
+| [Independent LangGraph project preview](docs/p1-langgraph-agent-stack-validation.md) | `Brescou/langgraph-agent-stack`: 8/8 mock-eval cases, three event-stream tool calls, normal compare exit 0, injected result regression exit 1 | Proves a real project's lifecycle can be ingested; not upstream adoption or online model quality |
 | [Hosted DeepSeek runs](docs/deepseek-live.md) | Actual single-tool and two-step model runs; tool order is constrained by test policy |
 | [Published τ²-bench retail trajectories](docs/tau2-independent-validation.md) | 420 eligible scenarios: 267 true passes, 153 true blocks, 0 false alarms and 0 missed failures |
 | [Independent consumer pilot](docs/consumer-pilot.md) | Normal run exits 0; wrong resource, skipped tool and result misread each exit 1 |
@@ -383,7 +400,7 @@ The kit checks recorded evidence and configured rules. You supply state snapshot
 
 ## 9. Troubleshooting and reference
 
-Current sampling evidence: [v4.35 acceptance](docs/v4.35-acceptance.md).
+Current integration and release evidence: [v4.36 acceptance](docs/v4.36-acceptance.md).
 
 | Symptom | Check |
 | --- | --- |

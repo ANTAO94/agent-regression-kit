@@ -35,11 +35,29 @@ trace = trace_from_pydantic_ai_result(
 
 OpenAI Agents SDK 使用 `trace_from_openai_agents_result(result, ...)`；LangGraph
 使用 `trace_from_langgraph_result(state, ...)`，其中 `state` 包含 `messages`。
+如果工具是在普通 Python 节点里执行、最终 `messages` 没有工具生命周期，则收集
+`graph.astream_events(..., version="v2")` 的事件，使用
+`trace_from_langgraph_events(events, final_output, ...)`；它会记录
+`on_tool_start`、`on_tool_end` 和 `on_tool_error`。
 
 转换器会读取框架产生的调用 ID、工具名、参数、工具结果和最终输出。
 `claims_extractor` 由业务方提供，因为只有业务方知道哪些事实必须保持稳定。例如，
 “订单已经付款”和“订单状态为 paid”文字不同，但可以产生相同的
 `{"order_status": "paid"}`，从而避免把措辞变化误判成业务回归。
+
+```python
+events = [event async for event in graph.astream_events(state, version="v2")]
+trace = trace_from_langgraph_events(
+    events,
+    final_output,
+    request,
+    run_id="research-123",
+    claims_extractor=lambda output: {
+        "confidence": output["confidence"],
+        "findings_count": len(output["findings"]),
+    },
+)
+```
 
 ### 离线运行三个真实示例
 
@@ -115,7 +133,9 @@ trace = trace_from_pydantic_ai_result(
 
 Use `trace_from_openai_agents_result(result, ...)` for an OpenAI Agents SDK
 `RunResult`, and `trace_from_langgraph_result(state, ...)` for a LangGraph state
-containing `messages`.
+containing `messages`. When a graph hides tool execution inside a Python node,
+collect the LangGraph v2 lifecycle dictionaries and use
+`trace_from_langgraph_events(events, final_output, ...)` instead.
 
 The adapter reads framework-owned call IDs, tool names, arguments, tool outputs
 and final output. `claims_extractor` remains application-owned because only the

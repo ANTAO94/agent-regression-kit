@@ -48,7 +48,7 @@ of the evidence files.
 {
   "schema_version": "0.1",
   "profile": "final-v4",
-  "target_version": "4.35.1",
+  "target_version": "4.36.0",
   "checks": [
     {
       "id": "heldout-quality",

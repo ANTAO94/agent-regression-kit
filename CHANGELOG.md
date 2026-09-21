@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 4.36.0 - 2026-09-21
+
+- Add `trace_from_langgraph_events` for LangGraph/LangChain v2 lifecycle events,
+  including tool start, tool end and tool error boundaries when tools are
+  hidden inside ordinary Python nodes.
+- Add a pinned, reproducible technical preview against the independent
+  `Brescou/langgraph-agent-stack` project, with mock eval, event-stream capture,
+  normal comparison and an injected result-regression gate.
+- Document the P1 boundary: technical integration evidence is not upstream
+  adoption, online model quality, or independent business-user validation.
+
 ## 4.35.1 - 2026-09-21
 
 - Clarify that `agent-regression init` creates a deterministic starter baseline,

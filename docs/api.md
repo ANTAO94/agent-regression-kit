@@ -625,6 +625,15 @@ policy, and returns a validated `AgentTrace`. `record_framework_run` is a
 convenience wrapper for a callback runner that receives the recorder. The
 framework and model provider remain integration-owned.
 
+For LangGraph graphs whose tools run inside ordinary Python nodes and therefore
+do not appear in the completed `messages` state, collect the v2 event stream
+and use `trace_from_langgraph_events(events, final_output, request, ...)`.
+It converts `on_tool_start`, `on_tool_end` and `on_tool_error` into the same
+validated Trace boundary without guessing arguments that the framework did not
+expose. See [`docs/framework-integrations.md`](framework-integrations.md) and
+the independent project preview in
+[`docs/p1-langgraph-agent-stack-validation.md`](p1-langgraph-agent-stack-validation.md).
+
 ## DeepSeek live tool Agent
 
 `record_deepseek_tool_run` provides one small, dependency-free OpenAI-compatible

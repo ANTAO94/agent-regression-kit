@@ -15,6 +15,25 @@ examples now derive claims from their actual final output.
 
 后续迭代按[真实接入与回归价值迭代方案](docs/product-iteration-plan.zh-CN.md)执行，优先验证真实项目接入和外部使用反馈。
 
+## v4.35.1 → v4.36.0
+
+v4.36 is additive. Existing Trace, Contract, comparison configuration and
+framework result-converter calls remain valid. It adds
+`trace_from_langgraph_events(events, final_output, request, ...)` for LangGraph
+v2 lifecycle dictionaries. Use it when a graph executes tools inside ordinary
+Python nodes and the completed `messages` state does not expose those calls.
+The adapter records only events the framework actually exposes; it does not
+invent missing business arguments. See the [framework integration guide](docs/framework-integrations.md)
+and [v4.36 acceptance](docs/v4.36-acceptance.md).
+
+## v4.35.1 → v4.36.0（中文）
+
+v4.36 是兼容的增量版本。已有 Trace、Contract、比较配置和框架结果转换器调用方式继续有效。
+新增 `trace_from_langgraph_events(events, final_output, request, ...)`，用于接入 LangGraph
+v2 生命周期事件。当工具在普通 Python 节点里执行、完成后的 `messages` 没有工具调用时，使用
+这个入口记录 start/end/error；它只记录框架真实暴露的事件，不猜测缺失的业务参数。详见[框架接入说明](docs/framework-integrations.md)
+和[v4.36 验收记录](docs/v4.36-acceptance.md)。
+
 ## v4.34.0 → v4.35.0
 
 v4.35 is additive. Existing Trace, Contract, benchmark, performance and

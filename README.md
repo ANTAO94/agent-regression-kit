@@ -6,9 +6,9 @@
 
 **给 AI Agent 加回归测试：改了 Prompt、模型或代码后，检查它是否调用了错误工具、传错参数，或得出了错误的业务结论。**
 
-[English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [后续迭代方案](docs/product-iteration-plan.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
+[English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [后续迭代方案](docs/product-iteration-plan.zh-CN.md) · [P1 真实项目接入](docs/p1-langgraph-agent-stack-validation.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.35.1 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.36.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.35.1 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.35.1 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.36.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.35.1`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.36.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -259,6 +259,20 @@ agent-regression compare \
 
 **baseline accept 只校验并保存文件，不判断业务正确性。** 基线应人工审核并提交 Git。后续每次只生成 candidate 并比较，不要在 CI 中自动覆盖 baseline。接入后故意改错一次参数，确认门禁失败。
 
+### 5.1 用一个独立 LangGraph 项目做技术预演
+
+仓库提供一条可复现的[独立项目接入验证](docs/p1-langgraph-agent-stack-validation.md)，
+候选项目是公开的 `Brescou/langgraph-agent-stack`，不改候选项目源码，使用它的
+`LLM_PROVIDER=mock` 运行模式。它验证了一个实际接入问题：有些 LangGraph 在普通
+Python 节点中执行工具，最终 `messages` 里没有工具调用；这时应从
+`graph.astream_events(..., version="v2")` 收集生命周期，再调用
+`trace_from_langgraph_events(...)`。
+
+本次技术预演结果：上游 mock eval 为 8/8 通过；真实 event stream 采集到 3 次
+`web_search`；正常比较退出 0；把实际输出中的 `confidence` 改为 `0.10` 后比较
+退出 1。它是技术接入证据，不代表上游维护者采用，也不替代业务负责人审核的
+10–20 个真实案例。运行命令见[示例目录](examples/external-pilot/langgraph-agent-stack/README.md)。
+
 ## 6. 怎么放进 CI？
 
 在你自己的项目中准备：
@@ -286,7 +300,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.35.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -358,13 +372,14 @@ agent-regression readiness \
 
 ## 8. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.35 发布记录 **291 项测试通过**，并验证构建、干净环境安装、
+当前适合本地开发与团队 CI 试点。v4.36 发布记录 **293 项测试通过**，并验证构建、干净环境安装、
 首用模板、性能 smoke、独立消费仓库升级、多个任务域的公开/前瞻评测，以及记录式 study 证据的
 baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 语义绑定。
 
 | 验证类型 | 已有证据 | 能说明什么 |
 | --- | --- | --- |
 | 真实框架 + 确定性模型/工具 | PydanticAI、OpenAI Agents、LangGraph、LangChain Core 的[兼容 CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) | 框架运行和 Trace 接入可用，不等于在线模型质量验证 |
+| 独立 LangGraph 项目技术预演 | [Brescou/langgraph-agent-stack 接入记录](docs/p1-langgraph-agent-stack-validation.md)：mock eval 8/8、event stream 3 次工具调用、正常比较 0、注入结果回归 1 | 证明真实项目的事件生命周期可以接入；不代表上游采用或在线模型质量 |
 | 在线模型 | [DeepSeek 实测](docs/deepseek-live.md)：订单查询和两步工具依赖 | 已记录真实模型调用，工具顺序由测试策略约束 |
 | 外部公开轨迹 | [τ²-bench 零售数据](docs/tau2-independent-validation.md)：420 个适用场景，267 正确放行、153 正确阻断、0 误报、0 漏报 | 当前规则在这份固定数据上的结果 |
 | 独立消费仓库 | [agent-regression-pilot](docs/consumer-pilot.md)：正常退出 0，错资源/漏工具/结果误读均退出 1 | 发布 wheel、公开 API、Contract 和 CLI 在独立仓库中的接入边界 |
@@ -395,7 +410,7 @@ baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 
 
 ## 9. 常见问题与文档
 
-当前版本的采样证据：[v4.35 验收记录](docs/v4.35-acceptance.md)。
+当前版本的接入和发布证据：[v4.36 验收记录](docs/v4.36-acceptance.md)。
 
 | 问题 | 先检查 |
 | --- | --- |

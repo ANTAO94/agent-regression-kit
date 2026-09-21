@@ -1,0 +1,21 @@
+{
+  "baseline": "baseline.trace.json",
+  "candidate": "candidate.trace.json",
+  "report": "compare.json",
+  "format": "json",
+  "final_answer_mode": "claims-only",
+  "contract": {
+    "required_claims": [
+      "final_answer.claims.summary_present",
+      "final_answer.claims.findings_count",
+      "final_answer.claims.source_count",
+      "final_answer.claims.confidence"
+    ],
+    "assertions": [
+      {
+        "path": "final_answer.claims.summary_present",
+        "equals": true
+      }
+    ]
+  }
+}
