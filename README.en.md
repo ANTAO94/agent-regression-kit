@@ -9,7 +9,7 @@
 
 [中文](README.md) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥ 3.9 · Current release `v4.36.0` · No required third-party core runtime dependencies
+Python ≥ 3.9 · Current release `v4.36.1` · No required third-party core runtime dependencies
 
 ## Contents
 
@@ -86,7 +86,7 @@ This example is fully offline and needs no model API key. Commands target macOS,
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
 agent-regression --version
 ```
 
@@ -241,7 +241,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare

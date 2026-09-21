@@ -44,7 +44,7 @@ class CliTests(unittest.TestCase):
                     main(["compare", "--config", str(root / ".agent-regression/config.json")]),
                 )
             workflow = (root / ".github/workflows/agent-regression.yml").read_text(encoding="utf-8")
-            self.assertIn("@4.36.0", workflow)
+            self.assertIn("@4.36.1", workflow)
             script = root / "scripts/record_agent.py"
             original = script.read_text(encoding="utf-8")
             script.write_text("custom\n", encoding="utf-8")

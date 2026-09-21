@@ -193,7 +193,7 @@ summary 被候选 Agent 解析前注入，最终 claims 再从错误 summary 读
 - 检查负向报告里确实包含预期类别，而不是只检查退出码；
 - 上传所有 Trace 和 compare 报告。
 
-当前工作流安装的是本次源码构建的 `4.36.0` wheel，不是 PyPI/GitHub Release 下载物。
+当前工作流安装的是本次源码构建的 `4.36.1` wheel，不是 PyPI/GitHub Release 下载物。
 因此这是“独立环境 wheel 边界”证据，发布包验证仍待真正发布一个新版本后补做。
 
 ## 已知边界

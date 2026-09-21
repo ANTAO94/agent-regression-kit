@@ -52,7 +52,7 @@ jobs:
 
           location = Path(agent_regression.__file__).resolve()
           assert "/src/agent_regression/" not in str(location), location
-          assert version("agent-regression-kit") == "4.36.0"
+          assert version("agent-regression-kit") == "4.36.1"
           print(f"agent-regression-kit {version('agent-regression-kit')} from {location}")
           PY
 

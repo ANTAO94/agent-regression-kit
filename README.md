@@ -9,7 +9,7 @@
 
 [English](README.en.md) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
 
-Python ≥ 3.9 · 当前 Release `v4.36.0` · 核心无必需第三方运行时依赖
+Python ≥ 3.9 · 当前 Release `v4.36.1` · 核心无必需第三方运行时依赖
 
 ## Contents
 
@@ -86,7 +86,7 @@ flowchart TD
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
 agent-regression --version
 ```
 
@@ -243,7 +243,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare

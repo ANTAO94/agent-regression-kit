@@ -15,7 +15,7 @@ examples now derive claims from their actual final output.
 
 后续迭代按[真实接入与回归价值迭代方案](docs/product-iteration-plan.zh-CN.md)执行，优先验证真实项目接入和外部使用反馈。
 
-## Unreleased after v4.36.0
+## v4.36.0 → v4.36.1
 
 `trace_from_langgraph_events` now accepts the optional
 `tool_input_resolver(event, ordinal)` callback. Use it only when the Agent
@@ -31,6 +31,20 @@ misinterpretation during execution. It now uses a committed official-document
 fixture and reviewed baseline; claims are parsed from the Agent summary and
 checked against explicit business facts. It remains deterministic
 mock-provider evidence, not upstream adoption or online model-quality evidence.
+
+The pilot now guarantees that each recorded tool result is the exact payload
+consumed by the Agent. Structured claims are derived from that payload rather
+than fixture expectations, so content corruption cannot pass merely by
+preserving document IDs. The public API, Trace schema and comparison
+configuration remain compatible. See the
+[v4.36.1 acceptance record](docs/v4.36.1-acceptance.md).
+
+## v4.36.0 → v4.36.1（中文）
+
+v4.36.1 是兼容性补丁版本。LangGraph 独立接入现在保证 Trace 中记录的工具结果就是
+Agent 实际消费的证据；结构化 claims 从证据内容中生成，而不是从 fixture 期望值中生成。
+因此，即使损坏的证据保留了原始文档 ID，也不能绕过回归门禁。公共 API、Trace schema
+和比较配置均保持兼容。详见 [v4.36.1 验收记录](docs/v4.36.1-acceptance.md)。
 
 ## v4.35.1 → v4.36.0
 

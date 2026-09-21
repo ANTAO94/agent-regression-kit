@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.36.1 - 2026-09-21
+
 - Extend `trace_from_langgraph_events` with an explicit
   `tool_input_resolver(event, ordinal)` for runtimes that hide tool arguments
   inside ordinary Python nodes; tool events without a `run_id` now fail closed.
