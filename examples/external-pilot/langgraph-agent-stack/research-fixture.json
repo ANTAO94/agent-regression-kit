@@ -1,0 +1,40 @@
+{
+  "fixture_id": "langgraph-persistence-official-docs-2026-09-21",
+  "title": "LangGraph persistence: checkpointers, stores, and thread IDs",
+  "request": "According to the reviewed official LangGraph documentation, explain the scope of a checkpointer and a store, whether a thread_id is needed for thread persistence, and whether an in-memory checkpointer survives a process restart.",
+  "source": {
+    "id": "langgraph-persistence",
+    "title": "Persistence",
+    "url": "https://docs.langchain.com/oss/python/langgraph/persistence",
+    "retrieved_at": "2026-09-21",
+    "license_note": "This fixture paraphrases the public official documentation and keeps the source URL for review."
+  },
+  "queries": [
+    "LangGraph persistence checkpointer thread_id official docs",
+    "LangGraph store cross-thread memory official docs",
+    "LangGraph in-memory checkpointer restart official docs"
+  ],
+  "documents": [
+    {
+      "id": "persistence-overview",
+      "section": "overview",
+      "content": "The persistence guide distinguishes checkpointers from stores. A checkpointer saves graph-state snapshots for one thread, while a store keeps application-defined data that can be shared across threads."
+    },
+    {
+      "id": "persistence-quickstart",
+      "section": "quickstart",
+      "content": "The documented quickstart compiles a graph with a checkpointer and invokes it with configurable.thread_id. The thread identifier groups checkpoints for the same thread."
+    },
+    {
+      "id": "persistence-restart",
+      "section": "troubleshooting",
+      "content": "The documentation states that an in-memory checkpointer keeps checkpoints in RAM and loses them when the process restarts. A persistent backend is needed when restart recovery is required."
+    }
+  ],
+  "facts": {
+    "checkpointer_scope": "single_thread",
+    "store_scope": "cross_thread",
+    "thread_id_required": true,
+    "in_memory_survives_restart": false
+  }
+}

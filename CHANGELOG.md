@@ -8,6 +8,11 @@
 - Expand the independent LangGraph pilot with tool-boundary argument capture,
   fresh baseline/candidate execution, legal-variation coverage and three
   runtime regression cases. Add an independent-wheel GitHub Actions workflow.
+- Add a committed official-document fixture, structured business-fact claims,
+  a reviewed baseline, evidence-order normalization, fail-closed fact parsing,
+  and CI assertions for the expected negative-difference categories. The pilot
+  remains deterministic mock-provider evidence; it is not online model-quality
+  or external-user adoption evidence.
 
 ## 4.36.0 - 2026-09-21
 

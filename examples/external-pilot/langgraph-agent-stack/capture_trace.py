@@ -9,24 +9,33 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import subprocess
 import sys
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 EXPECTED_CANDIDATE_COMMIT = "a8a2dac566d46c48619ba94c69dfffb1b370520d"
+FACTS_MARKER = "FACTS_JSON="
 
 
 class _InstrumentedTool:
     """Capture the value crossing the real tool boundary before delegation."""
 
-    def __init__(self, target: Any, calls: list[Any], replacement: str | None):
+    def __init__(
+        self,
+        target: Any,
+        calls: list[Any],
+        replacement: str | None,
+        result_resolver: Callable[[Any, Any], Any] | None,
+    ):
         self._target = target
         self._calls = calls
         self._replacement = replacement
+        self._result_resolver = result_resolver
         self.name = target.name
 
     def invoke(self, tool_input: Any, config: Any = None, **kwargs: Any) -> Any:
@@ -35,11 +44,26 @@ class _InstrumentedTool:
             forwarded = self._replacement
         self._calls.append(forwarded)
         if config is None:
-            return self._target.invoke(forwarded, **kwargs)
-        return self._target.invoke(forwarded, config=config, **kwargs)
+            delegated = self._target.invoke(forwarded, **kwargs)
+        else:
+            delegated = self._target.invoke(forwarded, config=config, **kwargs)
+        if self._result_resolver is not None:
+            return self._result_resolver(forwarded, delegated)
+        return delegated
 
 
 def _candidate_revision(project_dir: Path) -> str:
+    status = subprocess.run(
+        ["git", "-C", str(project_dir), "status", "--porcelain", "--untracked-files=all"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    if status.stdout.strip():
+        raise RuntimeError(
+            "candidate checkout must be clean; uncommitted files would make "
+            "the captured revision ambiguous:\n" + status.stdout.strip()
+        )
     result = subprocess.run(
         ["git", "-C", str(project_dir), "rev-parse", "HEAD"],
         check=True,
@@ -55,22 +79,89 @@ def _candidate_revision(project_dir: Path) -> str:
     return revision
 
 
+def _load_fixture(path: Path) -> dict[str, Any]:
+    try:
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"research fixture not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"research fixture is not valid JSON: {path}") from exc
+    if not isinstance(fixture, dict):
+        raise RuntimeError("research fixture must contain an object")
+    queries = fixture.get("queries")
+    documents = fixture.get("documents")
+    facts = fixture.get("facts")
+    if (
+        not isinstance(queries, list)
+        or len(queries) != 3
+        or not all(isinstance(query, str) and query.strip() for query in queries)
+    ):
+        raise RuntimeError("research fixture must contain exactly three queries")
+    if (
+        not isinstance(documents, list)
+        or len(documents) != len(queries)
+        or not all(isinstance(document, dict) for document in documents)
+    ):
+        raise RuntimeError("research fixture must contain one document per query")
+    if not isinstance(facts, dict) or not facts:
+        raise RuntimeError("research fixture must contain non-empty facts")
+    for required in ("fixture_id", "request", "source"):
+        if not fixture.get(required):
+            raise RuntimeError(f"research fixture is missing {required!r}")
+    return fixture
+
+
+def _fixture_result(fixture: Mapping[str, Any], query: Any, _delegated: Any) -> str:
+    """Return the reviewed document snapshot at the real tool boundary."""
+    normalized = str(query).strip().casefold()
+    queries = fixture["queries"]
+    documents = fixture["documents"]
+    try:
+        index = [str(item).strip().casefold() for item in queries].index(normalized)
+    except ValueError:
+        return (
+            f"[FIXTURE MISS] No reviewed document matched query {query!r}. "
+            "The candidate must not infer a supported fact from this result."
+        )
+    document = documents[index]
+    source = fixture["source"]
+    return (
+        f"Document-ID: {document['id']}\n"
+        f"Section: {document.get('section', 'unknown')}\n"
+        f"Excerpt: {document['content']}\n"
+        f"Source: {source['url']}"
+    )
+
+
 def _claims(output: Any) -> dict[str, Any]:
-    """Derive regression claims from the candidate's actual research result."""
+    """Derive claims from the facts emitted in the candidate's actual summary."""
     if not isinstance(output, Mapping):
         raise ValueError("candidate final output must be an object")
     findings = output.get("findings", [])
     sources = output.get("sources", [])
+    summary = str(output.get("summary", ""))
+    marker_index = summary.find(FACTS_MARKER)
+    if marker_index < 0:
+        raise ValueError("candidate summary did not contain the FACTS_JSON marker")
+    facts_text = summary[marker_index + len(FACTS_MARKER) :].splitlines()[0].strip()
+    try:
+        facts = json.loads(facts_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("candidate FACTS_JSON marker was not valid JSON") from exc
+    if not isinstance(facts, dict):
+        raise ValueError("candidate FACTS_JSON must be an object")
     return {
-        "summary_present": bool(output.get("summary")),
+        "summary_present": bool(summary),
         "findings_count": len(findings) if isinstance(findings, list) else 0,
         "source_count": len(sources) if isinstance(sources, list) else 0,
         "confidence": output.get("confidence"),
+        "facts": facts,
     }
 
 
 def _load_candidate(project_dir: Path) -> tuple[Any, Any, Any, Any, str]:
     """Load the candidate's runtime using its already-installed environment."""
+    revision = _candidate_revision(project_dir)
     project_text = str(project_dir.resolve())
     if project_text not in sys.path:
         sys.path.insert(0, project_text)
@@ -94,7 +185,7 @@ def _load_candidate(project_dir: Path) -> tuple[Any, Any, Any, Any, str]:
         get_llm(settings.llm_config),
         HumanMessage,
         MemorySaver,
-        _candidate_revision(project_dir),
+        revision,
     )
 
 
@@ -104,6 +195,7 @@ def _instrument_agent(
     *,
     skip_search: bool,
     replacement_query: str | None,
+    result_resolver: Callable[[Any, Any], Any] | None,
 ) -> None:
     original_tools = list(agent.tools)
     rewritten_tools: list[Any] = []
@@ -115,28 +207,89 @@ def _instrument_agent(
         search_found = True
         if not skip_search:
             rewritten_tools.append(
-                _InstrumentedTool(tool, observed_inputs, replacement_query)
+                _InstrumentedTool(
+                    tool,
+                    observed_inputs,
+                    replacement_query,
+                    result_resolver,
+                )
             )
     if not search_found:
         raise RuntimeError("candidate ResearchAgent has no web_search tool")
     agent.tools = rewritten_tools
 
 
-def _inject_summary_confidence(agent: Any, confidence: float) -> dict[str, bool]:
-    """Change the summariser response before the Agent interprets it."""
+def _install_fixture_model(
+    agent: Any,
+    fixture: Mapping[str, Any],
+    *,
+    misread_fact: str | None,
+    vary_evidence_order: bool,
+    summary_confidence: float | None,
+) -> dict[str, bool]:
+    """Make the upstream mock provider answer from the reviewed fixture.
+
+    The upstream graph and event stream remain real. Only its deterministic
+    provider responses are replaced so the pilot can assert business facts
+    without network access or a paid model. Claims are parsed back from the
+    summary produced by this provider, not copied into the Trace by the
+    harness.
+    """
     original = agent._invoke_llm_with_retry
-    state = {"applied": False}
+    state = {"summary_applied": False, "expansion_applied": False}
+
+    def response_payload(response: Any, payload: Mapping[str, Any] | list[str]) -> Any:
+        response.content = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        return response
 
     def wrapped(messages: Any, *args: Any, **kwargs: Any) -> Any:
         response = original(messages, *args, **kwargs)
         prompt = "\n".join(str(getattr(message, "content", "")) for message in messages)
-        if not state["applied"] and "summaris" in prompt.lower():
-            payload = json.loads(str(response.content))
-            if not isinstance(payload, dict):
-                raise RuntimeError("summary response was not a JSON object")
-            payload["confidence"] = confidence
-            response.content = json.dumps(payload)
-            state["applied"] = True
+        if "Provide 3 focused sub-queries" in prompt and not state["expansion_applied"]:
+            state["expansion_applied"] = True
+            return response_payload(response, list(fixture["queries"]))
+        if "Are these findings sufficient" in prompt:
+            sufficient = any(
+                f"Document-ID: {document['id']}" in prompt
+                for document in fixture["documents"]
+            )
+            return response_payload(
+                response,
+                {"sufficient": sufficient, "reason": "Reviewed fixture coverage."},
+            )
+        if "Provide a JSON object with keys" in prompt and not state["summary_applied"]:
+            state["summary_applied"] = True
+            evidence_ids = [
+                document["id"]
+                for document in fixture["documents"]
+                if f"Document-ID: {document['id']}" in prompt
+            ]
+            facts = (
+                dict(fixture["facts"])
+                if len(evidence_ids) == len(fixture["documents"])
+                else {}
+            )
+            facts["evidence_ids"] = evidence_ids
+            if misread_fact is not None and misread_fact in facts:
+                wrong_values = {
+                    "checkpointer_scope": "cross_thread",
+                    "store_scope": "single_thread",
+                    "thread_id_required": False,
+                    "in_memory_survives_restart": True,
+                }
+                facts[misread_fact] = wrong_values[misread_fact]
+            if vary_evidence_order:
+                facts["evidence_ids"] = list(reversed(evidence_ids))
+            summary = (
+                "The answer was generated from the reviewed document excerpts.\n"
+                + FACTS_MARKER
+                + json.dumps(facts, ensure_ascii=False, sort_keys=True)
+            )
+            confidence = 0.92 if summary_confidence is None else summary_confidence
+            return response_payload(
+                response,
+                {"summary": summary, "confidence": confidence},
+            )
         return response
 
     agent._invoke_llm_with_retry = wrapped
@@ -150,6 +303,9 @@ async def _capture(
     *,
     skip_search: bool = False,
     replacement_query: str | None = None,
+    fixture: Mapping[str, Any],
+    misread_fact: str | None = None,
+    vary_evidence_order: bool = False,
     summary_confidence: float | None = None,
 ) -> tuple[list[Mapping[str, Any]], Mapping[str, Any], list[Any], str]:
     (
@@ -172,11 +328,16 @@ async def _capture(
         observed_inputs,
         skip_search=skip_search,
         replacement_query=replacement_query,
+        result_resolver=lambda query, delegated: _fixture_result(
+            fixture, query, delegated
+        ),
     )
-    injection_state = (
-        _inject_summary_confidence(agent, summary_confidence)
-        if summary_confidence is not None
-        else None
+    injection_state = _install_fixture_model(
+        agent,
+        fixture,
+        misread_fact=misread_fact,
+        vary_evidence_order=vary_evidence_order,
+        summary_confidence=summary_confidence,
     )
     initial_state = {
         "messages": [human_message_cls(content=request)],
@@ -205,8 +366,16 @@ async def _capture(
         context.get("research_result"), Mapping
     ):
         raise RuntimeError("candidate final state has no context.research_result")
-    if injection_state is not None and not injection_state["applied"]:
-        raise RuntimeError("summary confidence injection was not applied")
+    if not injection_state["summary_applied"]:
+        raise RuntimeError("fixture summary response was not applied")
+    tool_starts = [event for event in events if event.get("event") == "on_tool_start"]
+    if any(event.get("name") != "web_search" for event in tool_starts):
+        raise RuntimeError("pilot expects every observed tool start to be web_search")
+    if len(tool_starts) != len(observed_inputs):
+        raise RuntimeError(
+            "tool boundary capture count does not match event stream: "
+            f"events={len(tool_starts)} captured={len(observed_inputs)}"
+        )
     return events, context["research_result"], observed_inputs, revision
 
 
@@ -216,7 +385,13 @@ def main() -> int:
     )
     parser.add_argument("--project-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--request", default="What is LangGraph?")
+    parser.add_argument(
+        "--fixture",
+        type=Path,
+        default=Path(__file__).with_name("research-fixture.json"),
+        help="Reviewed fixed-document fixture used by the deterministic pilot.",
+    )
+    parser.add_argument("--request")
     parser.add_argument("--run-id", default="langgraph-agent-stack-pilot")
     parser.add_argument(
         "--mutate-confidence",
@@ -226,7 +401,17 @@ def main() -> int:
     parser.add_argument(
         "--mutate-summary-confidence",
         type=float,
-        help="Change the summariser response during Agent execution.",
+        help="Legacy confidence-only mutation; use --misread-fact for business evidence.",
+    )
+    parser.add_argument(
+        "--misread-fact",
+        choices=(
+            "checkpointer_scope",
+            "store_scope",
+            "thread_id_required",
+            "in_memory_survives_restart",
+        ),
+        help="Change one fact in the summariser response during Agent execution.",
     )
     parser.add_argument(
         "--mutate-search-query",
@@ -243,9 +428,23 @@ def main() -> int:
         action="store_true",
         help="Change only final wording after claims are derived; claims-only should pass.",
     )
+    parser.add_argument(
+        "--vary-evidence-order",
+        action="store_true",
+        help="Return the same evidence IDs in another order; the config normalizes this.",
+    )
     args = parser.parse_args()
-    if args.mutate_confidence is not None and args.mutate_summary_confidence is not None:
-        parser.error("choose --mutate-confidence or --mutate-summary-confidence")
+    if sum(
+        value is not None
+        for value in (args.mutate_confidence, args.mutate_summary_confidence, args.misread_fact)
+    ) > 1:
+        parser.error(
+            "choose at most one of --mutate-confidence, --mutate-summary-confidence, "
+            "or --misread-fact"
+        )
+    fixture = _load_fixture(args.fixture)
+    request = args.request or str(fixture["request"])
+    fixture_sha256 = hashlib.sha256(args.fixture.read_bytes()).hexdigest()
 
     # Import the kit after the candidate path is prepared, but keep the
     # candidate's `core` package ahead of it in sys.path for this process.
@@ -254,10 +453,13 @@ def main() -> int:
     events, final_output, observed_inputs, revision = asyncio.run(
         _capture(
             args.project_dir,
-            args.request,
+            request,
             args.run_id,
+            fixture=fixture,
             skip_search=args.skip_search,
             replacement_query=args.mutate_search_query,
+            misread_fact=args.misread_fact,
+            vary_evidence_order=args.vary_evidence_order,
             summary_confidence=args.mutate_summary_confidence,
         )
     )
@@ -267,12 +469,17 @@ def main() -> int:
     trace = trace_from_langgraph_events(
         events,
         output_for_trace,
-        args.request,
+        request,
         run_id=args.run_id,
         tool_input_resolver=(
             lambda _event, ordinal: observed_inputs[ordinal - 1]
             if ordinal <= len(observed_inputs)
-            else None
+            else (_ for _ in ()).throw(
+                RuntimeError(
+                    "tool input resolver received more starts than the instrumented "
+                    "tool boundary captured"
+                )
+            )
         ),
         identity={
             "name": "langgraph-agent-stack-research-agent",
@@ -280,6 +487,9 @@ def main() -> int:
             "framework": "langgraph",
             "source": "https://github.com/Brescou/langgraph-agent-stack",
             "source_revision": revision,
+            "fixture_id": fixture["fixture_id"],
+            "fixture_sha256": fixture_sha256,
+            "source_snapshot": fixture["source"],
         },
         claims_extractor=_claims,
     )

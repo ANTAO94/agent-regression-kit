@@ -42,13 +42,27 @@ jobs:
           uv sync --directory "$RUNNER_TEMP/langgraph-agent-stack"
           uv pip install --python "$RUNNER_TEMP/langgraph-agent-stack/.venv/bin/python" "$GITHUB_WORKSPACE"/dist/*.whl
 
+      - name: Verify the installed wheel is outside the source checkout
+        working-directory: ${{ runner.temp }}/langgraph-agent-stack
+        run: |
+          .venv/bin/python - <<'PY'
+          from importlib.metadata import version
+          from pathlib import Path
+          import agent_regression
+
+          location = Path(agent_regression.__file__).resolve()
+          assert "/src/agent_regression/" not in str(location), location
+          assert version("agent-regression-kit") == "4.36.0"
+          print(f"agent-regression-kit {version('agent-regression-kit')} from {location}")
+          PY
+
       - name: Run the candidate's own deterministic eval
         working-directory: ${{ runner.temp }}/langgraph-agent-stack
         run: |
           LLM_PROVIDER=mock SEARCH_PROVIDER=mock \
             .venv/bin/python -m evals --all --json --thresholds
 
-      - name: Capture and compare a fresh baseline and candidate
+      - name: Compare a fresh candidate with the reviewed baseline
         env:
           KIT: ${{ github.workspace }}
           STACK: ${{ runner.temp }}/langgraph-agent-stack
@@ -58,11 +72,24 @@ jobs:
           mkdir -p "$WORK"
           PY="$STACK/.venv/bin/python"
           CAP="$KIT/examples/external-pilot/langgraph-agent-stack/capture_trace.py"
+          FIXTURE="$KIT/examples/external-pilot/langgraph-agent-stack/research-fixture.json"
+          REVIEWED_BASELINE="$KIT/examples/external-pilot/langgraph-agent-stack/baseline.trace.json"
           CONFIG="$KIT/examples/external-pilot/langgraph-agent-stack/compare.config.json"
 
-          "$PY" "$CAP" --project-dir "$STACK" --run-id baseline \
-            --output "$WORK/baseline.trace.json" | tee "$WORK/baseline.capture.json"
+          cp "$REVIEWED_BASELINE" "$WORK/baseline.trace.json"
+          test -s "$WORK/baseline.trace.json"
+          "$PY" -m agent_regression validate --trace "$WORK/baseline.trace.json" >/dev/null
+          "$PY" - "$WORK/baseline.trace.json" "$FIXTURE" <<'PY'
+          import hashlib
+          import json
+          import sys
+
+          baseline = json.load(open(sys.argv[1], encoding="utf-8"))
+          fixture_hash = hashlib.sha256(open(sys.argv[2], "rb").read()).hexdigest()
+          assert baseline["agent"]["fixture_sha256"] == fixture_hash
+          PY
           "$PY" "$CAP" --project-dir "$STACK" --run-id candidate \
+            --fixture "$FIXTURE" \
             --output "$WORK/candidate.trace.json" | tee "$WORK/candidate.capture.json"
           "$PY" -m agent_regression compare --config "$CONFIG" \
             --baseline "$WORK/baseline.trace.json" \
@@ -76,10 +103,19 @@ jobs:
             --candidate "$WORK/wording.trace.json" \
             --out "$WORK/wording.compare.json"
 
+          "$PY" "$CAP" --project-dir "$STACK" --run-id evidence-order \
+            --vary-evidence-order --output "$WORK/evidence-order.trace.json"
+          "$PY" -m agent_regression compare --config "$CONFIG" \
+            --baseline "$WORK/baseline.trace.json" \
+            --candidate "$WORK/evidence-order.trace.json" \
+            --out "$WORK/evidence-order.compare.json"
+
           expect_regression() {
             local name="$1"
-            shift
+            local expected_category="$2"
+            shift 2
             "$PY" "$CAP" --project-dir "$STACK" --run-id "$name" "$@" \
+              --fixture "$FIXTURE" \
               --output "$WORK/$name.trace.json"
             set +e
             "$PY" -m agent_regression compare --config "$CONFIG" \
@@ -89,11 +125,24 @@ jobs:
             local code=$?
             set -e
             test "$code" -eq 1
+            "$PY" - "$WORK/$name.compare.json" "$expected_category" <<'PY'
+          import json
+          import sys
+
+          report = json.load(open(sys.argv[1], encoding="utf-8"))
+          expected = sys.argv[2]
+          categories = {
+              item["category"]
+              for item in report["differences"]
+              if not item["allowed"]
+          }
+          assert expected in categories, (expected, sorted(categories))
+          PY
           }
 
-          expect_regression wrong-query --mutate-search-query "unrelated topic"
-          expect_regression skipped-search --skip-search
-          expect_regression misread --mutate-summary-confidence 0.10
+          expect_regression wrong-query required_tool --mutate-search-query "unrelated topic"
+          expect_regression skipped-search tool_count --skip-search
+          expect_regression misread contract_assertion --misread-fact checkpointer_scope
 
       - name: Upload traces and compare reports
         if: always()

@@ -268,11 +268,17 @@ Python 节点中执行工具，最终 `messages` 里没有工具调用；这时�
 `graph.astream_events(..., version="v2")` 收集生命周期，再调用
 `trace_from_langgraph_events(...)`。
 
-本次技术预演结果：上游 mock eval 为 8/8 通过；通过工具边界采集到真实的
-`sub-query 1/2/3` 参数；重新执行的 baseline/candidate 比较退出 0；合法措辞变化
-退出 0；错误搜索参数、跳过搜索、运行中误读总结分别退出 1。它是技术接入证据，
-不代表上游维护者采用，也不替代业务负责人审核的 10–20 个真实案例。完整命令和
-差异类别见[示例目录](examples/external-pilot/langgraph-agent-stack/README.md)。
+本次技术预演使用仓库内提交的固定官方资料快照，问题是 LangGraph 的
+checkpointer、store、`thread_id` 和内存检查点是否跨进程保留。上游 mock eval 为
+8/8 通过；真实 LangGraph event stream 经过工具边界采集后，3 个检索参数、资料
+来源和最终事实断言都会进入 Trace。提交到仓库的 `baseline.trace.json` 是本项目
+维护者针对固定资料审查后的参考记录，不是外部业务负责人审批的生产基线；CI 每次
+只生成 candidate，不会和 candidate 一起重新生成 baseline。
+
+正常运行、展示文案变化和证据 ID 顺序变化退出 0；错误搜索参数、跳过必要搜索、
+把 checkpointer 误判成跨线程分别退出 1。这里的“误读”是固定资料上的确定性
+运行时负向注入，证明契约能拦截事实变化，不代表上游项目真实存在该缺陷，也不代表
+真实模型的事实性质量。完整命令、资料快照、断言和限制见[示例目录](examples/external-pilot/langgraph-agent-stack/README.md)。
 
 ## 6. 怎么放进 CI？
 

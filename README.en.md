@@ -261,13 +261,19 @@ Python nodes, so the completed `messages` state contains no tool lifecycle. In
 that case collect `graph.astream_events(..., version="v2")` and use
 `trace_from_langgraph_events(...)`.
 
-The preview result was 8/8 upstream mock-eval cases passed, the actual
-`sub-query 1/2/3` inputs captured at the tool boundary, exit 0 for a fresh
-baseline/candidate run and a wording-only variation, and exit 1 for a wrong
-search argument, skipped search and an in-run summary misinterpretation. This
-is technical integration evidence, not upstream adoption or online model-quality
-evidence.
-See the runnable [pilot example](examples/external-pilot/langgraph-agent-stack/README.md).
+The preview uses a committed fixed snapshot of the official LangGraph
+persistence documentation. It checks the scope of a checkpointer and a store,
+the `thread_id` requirement, and whether an in-memory checkpointer survives a
+restart. A maintainer-reviewed `baseline.trace.json` for this fixed fixture is
+committed to the repository; it is not approval from an external business
+owner. CI generates only a fresh candidate. The normal run, wording variation and
+evidence-order variation exit 0. A wrong search argument, skipped retrieval,
+and an in-run wrong checkpointer fact exit 1.
+
+The fact-misread case is a deterministic negative injection against the fixed
+snapshot. It proves that the Contract checks structured business facts; it is
+not a defect report about the upstream project and is not evidence of online
+model factuality. See the runnable [pilot example](examples/external-pilot/langgraph-agent-stack/README.md).
 
 ## 6. Run in CI
 

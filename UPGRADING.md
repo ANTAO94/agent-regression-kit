@@ -27,8 +27,10 @@ non-tool lifecycle events without one remain ignored.
 
 The independent LangGraph pilot also runs a fresh candidate, checks a wording
 variation, and injects wrong arguments, a skipped tool and a summary
-misinterpretation during execution. It remains deterministic mock-provider
-evidence, not upstream adoption or online model-quality evidence.
+misinterpretation during execution. It now uses a committed official-document
+fixture and reviewed baseline; claims are parsed from the Agent summary and
+checked against explicit business facts. It remains deterministic
+mock-provider evidence, not upstream adoption or online model-quality evidence.
 
 ## v4.35.1 → v4.36.0
 
