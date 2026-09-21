@@ -1,11 +1,11 @@
 # Recorded sampling study / 记录式采样研究
 
-This example demonstrates the v4.32 `study` evidence-index and provenance-binding boundary. A real Agent is run by
+This example demonstrates the v4.33 `study` evidence-index, provenance-binding and run-identity boundary. A real Agent is run by
 the caller, its redacted Trace files are stored beside a manifest, and the
 framework evaluates the repeated evidence without receiving an API key or
 the raw prompt.
 
-这个示例演示 v4.32 的 `study` evidence index 和 provenance 绑定边界：真实 Agent 由接入方运行，脱敏后的 Trace 和
+这个示例演示 v4.33 的 `study` evidence index、provenance 绑定和运行身份绑定边界：真实 Agent 由接入方运行，脱敏后的 Trace 和
 manifest 放在同一个目录，框架只读取公开 provenance、Trace 和 Contract，不接收 API Key，
 也不会把原始 Prompt 写入研究报告。
 
@@ -27,7 +27,7 @@ interval and one row per recorded run. The fixture is deterministic; it is an on
 not an online model quality result.
 
 报告包含 provider/model 标识、输入和工具 schema 哈希、manifest 哈希、证据完整性哈希、来源
-清单、Wilson 区间以及每次运行的一行证据。这里使用确定性 Fixture，只用于验证接入流程，不代表在线模型质量。
+清单、六个语义绑定以及每次运行的一行证据。这里使用确定性 Fixture，只用于验证接入流程，不代表在线模型质量。
 
 ## Use with a real Agent / 接入真实 Agent
 
@@ -77,7 +77,19 @@ not an online model quality result.
 8. v4.32 中，增加 `evidence_bindings`，把描述文件中的 `input_sha256`、`tool_schema_sha256` 或
    `adapter` 字段绑定到对应的 `provenance.*` target。需要强制所有绑定存在时，设置
    `integrity.require_evidence_bindings: true`，并在 `required_evidence_bindings` 列出目标。
-   评估器先校验文件摘要，再校验声明的 JSON 值；即使文件摘要更新正确但语义绑定错误，也会返回状态 2。
+评估器先校验文件摘要，再校验声明的 JSON 值；即使文件摘要更新正确但语义绑定错误，也会返回状态 2。
+
+9. For v4.33, bind `provenance.provider` and `provenance.model` to separate
+   `provider_output` descriptors, and bind `provenance.dataset_revision` to a
+   `dataset` descriptor. Add those three targets to
+   `required_evidence_bindings` when run attribution is mandatory. The demo
+   creates six bindings in total: input, tool schema, adapter, provider,
+   model and dataset revision.
+
+9. v4.33 中，将 `provenance.provider` 和 `provenance.model` 分别绑定到两个
+   `provider_output` 描述文件，将 `provenance.dataset_revision` 绑定到 `dataset` 描述文件。
+   如果运行归因是强制要求，就把三个 target 加入 `required_evidence_bindings`。示例总共创建六个
+   绑定：input、tool schema、adapter、provider、model 和 dataset revision。
 
 If a Trace is changed after the manifest is written, the command returns
 status `2` with a SHA-256 mismatch instead of evaluating stale evidence.

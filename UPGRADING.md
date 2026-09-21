@@ -4,6 +4,33 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.32.0 → v4.33.0
+
+v4.33 is additive. Existing v4.32 bindings and earlier study manifests remain
+valid. The supported `evidence_bindings` targets now also include
+`provenance.provider`, `provenance.model` and `provenance.dataset_revision`.
+They require `provider_output` for provider/model and `dataset` for dataset
+revision, with matching descriptor fields `provider`, `model` and
+`dataset_revision`.
+
+Add those targets to `required_evidence_bindings` when the study must bind the
+full recorded-run identity. The report remains content-free and only adds the
+binding IDs and targets; no descriptor migration is needed unless a project
+wants the stronger identity gate.
+
+See the [v4.33 acceptance record](docs/v4.33-acceptance.md).
+
+## v4.32.0 → v4.33.0（中文）
+
+v4.33 是增量兼容版本，已有 v4.32 binding 和更早的 study manifest 都能继续使用。新增支持
+`provenance.provider`、`provenance.model`、`provenance.dataset_revision` 三个 target：provider/model
+要求 `provider_output` role，dataset revision 要求 `dataset` role，描述字段分别为 `provider`、
+`model`、`dataset_revision`。
+
+如果 study 要求完整绑定一次运行的身份，可以把这些 target 加入 `required_evidence_bindings`。报告仍不
+包含描述文件原文，只增加 binding ID 和 target；不需要迁移，除非项目主动启用更强的身份门禁。详见
+[v4.33 验收记录](docs/v4.33-acceptance.md)。
+
 ## v4.31.0 → v4.32.0
 
 v4.32 is additive. Existing v4.31 evidence indexes and earlier study

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 4.33.0 - 2026-09-21
+
+- Extend study evidence bindings to provider, model and dataset-revision
+  identity, with explicit `provider_output` and `dataset` role checks.
+- Expand the deterministic study example and independent evidence report so a
+  reviewer can verify the complete recorded-run identity without embedding
+  source descriptor contents.
+
 ## 4.32.0 - 2026-09-21
 
 - Add opt-in study `evidence_bindings` that binds controlled descriptor fields

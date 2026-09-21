@@ -1,6 +1,6 @@
 # Limitations and security boundary
 
-Agent Regression Kit v4.32 deliberately stays small. The local Viewer
+Agent Regression Kit v4.33 deliberately stays small. The local Viewer
 is a read-only presentation layer, not a hosted management service.
 
 - AgentTrace comparison is structural. `final_answer.claims` must be supplied by an adapter or scenario when deterministic result-interpretation checks are required. The kit does not infer facts from prose.
@@ -163,3 +163,7 @@ is a read-only presentation layer, not a hosted management service.
   `adapter` field in an indexed JSON descriptor to the matching provenance
   value. This catches an unchanged-but-wrong source binding, but it still does
   not prove that the provenance declaration or descriptor is truthful.
+- v4.33 can additionally bind provider, model and dataset-revision identity to
+  explicitly indexed descriptors. This catches wrong run attribution, but it
+  still does not prove that an external provider, model or dataset declaration
+  is truthful, representative or complete.

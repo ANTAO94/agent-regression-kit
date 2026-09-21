@@ -78,6 +78,9 @@ _EVIDENCE_BINDING_TARGETS = {
     "provenance.input_sha256": ("input", "input_sha256"),
     "provenance.tool_schema_sha256": ("tool_schema", "tool_schema_sha256"),
     "provenance.adapter": ("adapter", "adapter"),
+    "provenance.provider": ("provider_output", "provider"),
+    "provenance.model": ("provider_output", "model"),
+    "provenance.dataset_revision": ("dataset", "dataset_revision"),
 }
 
 

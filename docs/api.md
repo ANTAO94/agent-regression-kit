@@ -394,14 +394,24 @@ controlled JSON field in an indexed descriptor to a declared provenance value:
 ```
 
 The supported targets are `provenance.input_sha256`,
-`provenance.tool_schema_sha256` and `provenance.adapter`; the matching fields
-are `input_sha256`, `tool_schema_sha256` and `adapter`, and each binding must
-reference an indexed entry with the corresponding role. The evaluator checks
+`provenance.tool_schema_sha256`, `provenance.adapter`, `provenance.provider`,
+`provenance.model` and `provenance.dataset_revision`; the matching fields are
+`input_sha256`, `tool_schema_sha256`, `adapter`, `provider`, `model` and
+`dataset_revision`, and each binding must reference an indexed entry with the
+corresponding role. The evaluator checks
 the file digest first, then reads only the declared JSON field and compares it
 to the provenance value. A hash-valid semantic mismatch, missing target or
 wrong role raises `ValueError` and the CLI returns status `2`. The report
 contains binding IDs and targets, not descriptor contents. See
 [`v4.32-acceptance.md`](v4.32-acceptance.md).
+
+### Run-identity bindings in v4.33
+
+v4.33 extends the same fail-closed boundary to the identity that explains a
+sampling run. Bind `provenance.provider` and `provenance.model` to separate
+`provider_output` descriptors, and bind `provenance.dataset_revision` to a
+`dataset` descriptor. The previous v4.32 targets remain compatible; the new
+targets are optional unless listed in `required_evidence_bindings`.
 
 ## Async and parallel events
 

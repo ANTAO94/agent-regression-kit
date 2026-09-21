@@ -54,6 +54,9 @@ def main() -> int:
         "input": output / "evidence" / "input-descriptor.json",
         "tool_schema": output / "evidence" / "tool-schema-descriptor.json",
         "adapter": output / "evidence" / "adapter-descriptor.json",
+        "provider_output": output / "evidence" / "provider-descriptor.json",
+        "model_output": output / "evidence" / "model-descriptor.json",
+        "dataset": output / "evidence" / "dataset-descriptor.json",
     }
     _write_json(evidence_files["input"], {"input_sha256": input_sha256})
     _write_json(evidence_files["tool_schema"], {"tool_schema_sha256": tool_schema_sha256})
@@ -61,6 +64,9 @@ def main() -> int:
         evidence_files["adapter"],
         {"adapter": "recorded-trace-import", "version": "0.1"},
     )
+    _write_json(evidence_files["provider_output"], {"provider": args.provider})
+    _write_json(evidence_files["model_output"], {"model": args.model})
+    _write_json(evidence_files["dataset"], {"dataset_revision": "local-fixture-v1"})
     run_paths = []
     for ordinal in (1, 2):
         run_id = f"order-123-study-{ordinal}"
@@ -105,7 +111,7 @@ def main() -> int:
         "evidence": [
             {
                 "id": f"{role}-descriptor",
-                "role": role,
+                "role": "provider_output" if role == "model_output" else role,
                 "path": str(path.relative_to(output)),
                 "sha256": sha256_file(path),
             }
@@ -127,15 +133,39 @@ def main() -> int:
                 "target": "provenance.adapter",
                 "field": "adapter",
             },
+            {
+                "evidence_id": "provider_output-descriptor",
+                "target": "provenance.provider",
+                "field": "provider",
+            },
+            {
+                "evidence_id": "model_output-descriptor",
+                "target": "provenance.model",
+                "field": "model",
+            },
+            {
+                "evidence_id": "dataset-descriptor",
+                "target": "provenance.dataset_revision",
+                "field": "dataset_revision",
+            },
         ],
         "integrity": {
             "require_trace_hashes": True,
             "require_evidence_index": True,
-            "required_evidence_roles": ["adapter", "input", "tool_schema"],
+            "required_evidence_roles": [
+                "adapter",
+                "dataset",
+                "input",
+                "provider_output",
+                "tool_schema",
+            ],
             "require_evidence_bindings": True,
             "required_evidence_bindings": [
                 "provenance.adapter",
+                "provenance.dataset_revision",
                 "provenance.input_sha256",
+                "provenance.model",
+                "provenance.provider",
                 "provenance.tool_schema_sha256",
             ],
             "baseline_sha256": sha256_file(baseline),

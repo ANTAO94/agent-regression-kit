@@ -2,7 +2,7 @@
 
 [English](user-manual.en.md) · [技术方案](technical-design.zh-CN.md) · [首页](../README.md)
 
-适用：v4.32.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
+适用：v4.33.0。以下命令面向 macOS/Linux Bash 或 Zsh，默认在仓库根目录执行。核心包要求 Python ≥ 3.9；远端矩阵覆盖 3.9、3.11、3.13。首次安装需要联网，默认离线示例无需模型 API Key。
 
 ## 1. 先知道要检查什么
 
@@ -25,7 +25,7 @@ Claims 不会从自然语言自动提取。错误的业务结论必须在接入�
 
 
 ```bash
-git clone --branch v4.32.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.33.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -453,7 +453,7 @@ jobs:
           python-version: "3.11"
       - name: Install
         id: install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.32.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.33.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Validate inputs
@@ -476,7 +476,7 @@ jobs:
           exit "$junit_status"
       - name: Index reports
         if: always() && steps.install.outcome == 'success'
-        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.32.0
+        uses: ANTAO94/agent-regression-kit/.github/actions/agent-report-index@v4.33.0
         with:
           report-dir: work/reports
           json-report: work/reports/report-index.json
@@ -829,6 +829,18 @@ adapter 构建信息、dataset revision 或环境说明文件写成清单条目�
 对应。评估器先验证文件摘要，再读取声明字段比较 provenance；如果文件摘要更新正确但值绑定错误、
 角色错误或必需目标缺失，CLI 返回退出码 `2`。报告只记录 binding ID 和 target，不记录描述文件原文。
 完整示例见[v4.32 验收](v4.32-acceptance.md)。
+
+### v4.33：study 运行身份绑定
+
+v4.33 在 v4.32 的语义绑定之上，补齐运行归因所需的三类身份：
+`provenance.provider` 绑定 `provider_output` 角色的 `provider` 字段，
+`provenance.model` 绑定另一个 `provider_output` 描述文件的 `model` 字段，
+`provenance.dataset_revision` 绑定 `dataset` 角色的 `dataset_revision` 字段。
+
+这样可以在 CI 中发现“结果文件没有被替换，但实际归因到了错误模型、供应商或数据版本”的错误。
+这些目标只有加入 `required_evidence_bindings` 后才会成为必需项；不启用新目标的 v4.32 manifest
+继续兼容。报告只保留 binding ID、target 和校验状态，不写入描述文件原文。
+完整示例见[v4.33 验收](v4.33-acceptance.md)。
 
 ### v4.21：独立来源 AgentDojo 接入
 

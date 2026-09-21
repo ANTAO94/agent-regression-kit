@@ -382,6 +382,69 @@ class SamplingStudyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "missing required evidence bindings"):
                 evaluate_sampling_study(manifest)
 
+    def test_evidence_bindings_cover_provider_model_and_dataset_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.add_evidence_bindings(self.make_manifest(Path(directory)))
+            root = manifest.parent
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            extended = {
+                "provider": (
+                    "provider-output-descriptor",
+                    {"provider": raw["provenance"]["provider"]},
+                ),
+                "model": (
+                    "model-output-descriptor",
+                    {"model": raw["provenance"]["model"]},
+                ),
+                "dataset_revision": (
+                    "dataset-descriptor",
+                    {"dataset_revision": raw["provenance"]["dataset_revision"]},
+                ),
+            }
+            for field, (evidence_id, descriptor) in extended.items():
+                role = "dataset" if field == "dataset_revision" else "provider_output"
+                path = root / "evidence" / f"{evidence_id}.json"
+                path.write_text(json.dumps(descriptor) + "\n", encoding="utf-8")
+                raw["evidence"].append(
+                    {
+                        "id": evidence_id,
+                        "role": role,
+                        "path": str(path.relative_to(root)),
+                        "sha256": sha256_file(path),
+                    }
+                )
+                raw["evidence_bindings"].append(
+                    {
+                        "evidence_id": evidence_id,
+                        "target": f"provenance.{field}",
+                        "field": field,
+                    }
+                )
+            raw["integrity"]["required_evidence_roles"].extend(
+                ["provider_output", "dataset"]
+            )
+            raw["integrity"]["required_evidence_bindings"].extend(
+                [
+                    "provenance.provider",
+                    "provenance.model",
+                    "provenance.dataset_revision",
+                ]
+            )
+            manifest.write_text(
+                json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            report = evaluate_sampling_study(manifest).to_dict()
+
+            self.assertEqual(6, report["evidence_bindings"]["binding_count"])
+            self.assertIn("provenance.provider", report["evidence_bindings"]["targets"])
+            self.assertIn("provenance.model", report["evidence_bindings"]["targets"])
+            self.assertIn(
+                "provenance.dataset_revision",
+                report["evidence_bindings"]["targets"],
+            )
+
     def test_provenance_rejects_secret_like_parameters(self):
         with self.assertRaisesRegex(ValueError, "must not contain credentials"):
             SamplingProvenance(
