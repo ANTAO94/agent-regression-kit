@@ -815,7 +815,7 @@ The project-owned server under `agent_regression.fixtures` is a test fixture, no
   It still does not run an Agent, mutate a baseline, or compare behavior;
   invalid input returns exit code `2`.
 - `compare_traces(baseline, candidate, policy=None)` returns a JSON-serializable report.
-- `compare_trace_batch(baseline_dir, candidate_dir, policy=None)` compares matching nested `*.trace.json` cases and reports missing files.
+- `compare_trace_batch(baseline_dir, candidate_dir, policy=None, case_policies=None)` compares matching nested `*.trace.json` cases and reports missing files. `case_policies` optionally maps a relative Trace path to its reviewed `ComparisonPolicy`; unspecified cases use `policy`.
 - `trace_tool_path(trace)` returns the ordered tool-name path for one trace.
 - `trace_outcome_path(trace)` returns the ordered path with `[ok]` or `[error]` result annotations.
 - `trace_business_branch(trace, branch_paths)` projects selected structured

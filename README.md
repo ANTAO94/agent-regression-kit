@@ -9,7 +9,7 @@
 
 [English](README.en.md) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
 
-Python ≥ 3.9 · 当前 Release `v4.36.1` · 核心无必需第三方运行时依赖
+Python ≥ 3.9 · 当前 Release `v4.37.0` · 核心无必需第三方运行时依赖
 
 ## Contents
 
@@ -86,7 +86,7 @@ flowchart TD
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
 agent-regression --version
 ```
 
@@ -218,6 +218,11 @@ agent-regression compare --config .agent-regression/config.json
 
 任何放宽规则都应配一个邻近负向用例：例如忽略 `request_id` 后，错误 `order_id` 仍必须失败。完整字段见[配置手册](docs/user-manual.zh-CN.md)。
 
+如果你有多个业务用例，而且每个用例的合法结果不同，可以在批量配置里使用
+`case_contracts`，按 `orders/shipped.trace.json` 这样的相对 Trace 路径配置单独的断言。
+没有单独配置的用例使用默认 Contract；路径不安全、Trace 缺失或 Contract 无效都会失败。
+完整示例见[批量用例说明](docs/usage-guide.zh-CN.md#6-多用例和-ci)。
+
 ## 放进 CI
 
 项目中需要提交三类文件：
@@ -243,7 +248,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare

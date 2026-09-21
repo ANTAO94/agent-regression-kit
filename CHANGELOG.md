@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 4.37.0 - 2026-09-21
+
+- Add reviewed per-case Contracts to `batch-compare` through the
+  `case_contracts` configuration map and `case_policies` public API input.
+- Keep case policy paths relative and fail closed on unsafe or non-Trace paths.
+- Expose the selected policy in each batch case report so a reviewer can see
+  which business Contract actually governed the result.
+
 ## 4.36.1 - 2026-09-21
 
 - Extend `trace_from_langgraph_events` with an explicit

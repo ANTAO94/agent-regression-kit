@@ -29,9 +29,15 @@ def compare_trace_batch(
     candidate_dir: str | Path,
     *,
     policy: ComparisonPolicy | None = None,
+    case_policies: Mapping[str, ComparisonPolicy] | None = None,
     redaction_policy: RedactionPolicy | None = None,
 ) -> Dict[str, Any]:
-    """Compare matching ``*.trace.json`` files under two directories."""
+    """Compare matching ``*.trace.json`` files under two directories.
+
+    ``case_policies`` optionally overrides the default policy for a relative
+    trace filename. This lets a business matrix keep one batch gate while
+    declaring different reviewed outcomes for different cases.
+    """
     baseline_root = Path(baseline_dir)
     candidate_root = Path(candidate_dir)
     baseline_files = _trace_files(baseline_root)
@@ -41,6 +47,8 @@ def compare_trace_batch(
     missing_baselines = []
     missing_candidates = []
     active_redaction = redaction_policy or DEFAULT_REDACTION_POLICY
+    default_policy = policy or ComparisonPolicy()
+    selected_case_policies = dict(case_policies or {})
 
     for name in names:
         baseline_path = baseline_files.get(name)
@@ -54,7 +62,7 @@ def compare_trace_batch(
         comparison = compare_traces(
             _load_trace(baseline_path),
             _load_trace(candidate_path),
-            policy,
+            selected_case_policies.get(name, default_policy),
             redaction_policy,
         )
         cases.append({"case": name, **comparison})
@@ -81,7 +89,11 @@ def compare_trace_batch(
             "failed_case_count": failed_count,
             "missing_baselines": missing_baselines,
             "missing_candidates": missing_candidates,
-            "policy": (policy or ComparisonPolicy()).to_dict(),
+            "policy": default_policy.to_dict(),
+            "case_policies": {
+                name: selected_case_policies[name].to_dict()
+                for name in sorted(selected_case_policies)
+            },
             "cases": all_cases,
         }
     )

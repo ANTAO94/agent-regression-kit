@@ -44,7 +44,7 @@ class CliTests(unittest.TestCase):
                     main(["compare", "--config", str(root / ".agent-regression/config.json")]),
                 )
             workflow = (root / ".github/workflows/agent-regression.yml").read_text(encoding="utf-8")
-            self.assertIn("@4.36.1", workflow)
+            self.assertIn("@4.37.0", workflow)
             script = root / "scripts/record_agent.py"
             original = script.read_text(encoding="utf-8")
             script.write_text("custom\n", encoding="utf-8")
@@ -261,6 +261,77 @@ class CliTests(unittest.TestCase):
             rendered = output.getvalue()
             self.assertIn('"kind": "single"', rendered)
             self.assertIn('"kind": "batch"', rendered)
+
+    def test_batch_config_supports_case_specific_contracts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / ".agent-regression/batch.json"
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                json.dumps(
+                    {
+                        "baseline_dir": "baselines",
+                        "candidate_dir": "candidate",
+                        "case_contracts": {
+                            "orders/shipped.trace.json": {
+                                "assertions": [
+                                    {
+                                        "path": "final_answer.claims.order_status",
+                                        "equals": "shipped",
+                                    }
+                                ]
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(
+                    0,
+                    main(
+                        [
+                            "config",
+                            "validate",
+                            "--config",
+                            str(config),
+                            "--kind",
+                            "batch",
+                        ]
+                    ),
+                )
+            self.assertIn("orders/shipped.trace.json", output.getvalue())
+
+    def test_batch_config_rejects_unsafe_case_contract_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "batch.json"
+            config.write_text(
+                json.dumps(
+                    {
+                        "baseline_dir": "baselines",
+                        "candidate_dir": "candidate",
+                        "case_contracts": {
+                            "../outside.trace.json": {"assertions": []}
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    2,
+                    main(
+                        [
+                            "config",
+                            "validate",
+                            "--config",
+                            str(config),
+                            "--kind",
+                            "batch",
+                        ]
+                    ),
+                )
 
     def test_config_rejects_unknown_result_alignment(self):
         with tempfile.TemporaryDirectory() as directory:

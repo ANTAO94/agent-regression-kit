@@ -758,6 +758,37 @@ agent-regression config validate \
 agent-regression batch-compare --config .agent-regression/batch.json
 ```
 
+When cases have different legitimate business outcomes, add `case_contracts`
+to the batch config. Keys are relative Trace paths; each value is a normal
+Contract object that replaces the default `contract` only for that case:
+
+```json
+{
+  "baseline_dir": "baselines",
+  "candidate_dir": "work/candidate",
+  "report": "outputs/batch.json",
+  "format": "json",
+  "contract": {
+    "required_claims": ["final_answer.claims.order_status"]
+  },
+  "case_contracts": {
+    "orders/shipped.trace.json": {
+      "assertions": [
+        {"path": "final_answer.claims.order_status", "equals": "shipped"}
+      ],
+      "must_call": [{"tool": "get_order", "arguments": {"order_id": "456"}}]
+    }
+  }
+}
+```
+
+The batch report shows the selected policy inside each case. Paths must be
+relative `*.trace.json` names and cannot escape the baseline/candidate
+directories. An absent entry uses the default batch Contract. This is useful
+for a reviewed business matrix; it is not a way to weaken a case, because the
+case Contract still runs fail-closed and missing Trace files still fail the
+batch gate.
+
 Minimal GitHub Action:
 
 ```yaml

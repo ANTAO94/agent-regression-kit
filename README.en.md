@@ -9,7 +9,7 @@
 
 [中文](README.md) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥ 3.9 · Current release `v4.36.1` · No required third-party core runtime dependencies
+Python ≥ 3.9 · Current release `v4.37.0` · No required third-party core runtime dependencies
 
 ## Contents
 
@@ -86,7 +86,7 @@ This example is fully offline and needs no model API key. Commands target macOS,
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
 agent-regression --version
 ```
 
@@ -216,6 +216,12 @@ agent-regression compare --config .agent-regression/config.json
 
 Pair every relaxation with a nearby negative test. For example, after ignoring `request_id`, a wrong `order_id` must still fail. See the [configuration manual](docs/user-manual.en.md) for every field.
 
+For a business matrix with different legitimate outcomes, use `case_contracts`
+in the batch config to attach a separate Contract to each relative Trace path,
+such as `orders/shipped.trace.json`. Cases without an override use the default
+Contract; unsafe paths, missing Traces, and invalid Contracts still fail the
+gate. See the [batch-case guide](docs/usage-guide.en.md#6-multiple-cases-and-ci).
+
 ## Run in CI
 
 Commit three project-owned artifacts:
@@ -241,7 +247,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.37.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare

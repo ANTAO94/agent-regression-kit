@@ -1036,17 +1036,29 @@ def main(argv: list[str] | None = None) -> int:
                 else set(batch_config.get("allow_paths", []))
             )
             contract = ContractPolicy.from_dict(batch_config.get("contract"))
-            output_path = args.out or batch_config.get("report")
-            report = compare_trace_batch(
-                baseline_dir,
-                candidate_dir,
-                policy=ComparisonPolicy(
+            default_policy = ComparisonPolicy(
+                allowed_categories=allowed_categories,
+                allowed_paths=allowed_paths,
+                final_answer_mode=final_answer_mode,
+                result_alignment=result_alignment,
+                contract=contract,
+            )
+            case_policies = {
+                name: ComparisonPolicy(
                     allowed_categories=allowed_categories,
                     allowed_paths=allowed_paths,
                     final_answer_mode=final_answer_mode,
                     result_alignment=result_alignment,
-                    contract=contract,
-                ),
+                    contract=ContractPolicy.from_dict(case_contract),
+                )
+                for name, case_contract in batch_config.get("case_contracts", {}).items()
+            }
+            output_path = args.out or batch_config.get("report")
+            report = compare_trace_batch(
+                baseline_dir,
+                candidate_dir,
+                policy=default_policy,
+                case_policies=case_policies,
                 redaction_policy=redaction_policy,
             )
             if output_format == "junit":

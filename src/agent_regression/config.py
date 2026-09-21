@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import Any, Dict
 
 from .contracts import ContractPolicy
@@ -51,6 +52,7 @@ def _load_config(path: str | Path, required_paths: tuple[str, ...]) -> Dict[str,
         "allow_paths",
         "secret_values",
         "required_reports",
+        "case_contracts",
         "contract",
     }
     unknown_fields = sorted(set(value) - allowed_fields)
@@ -89,6 +91,34 @@ def _load_config(path: str | Path, required_paths: tuple[str, ...]) -> Dict[str,
             or not all(isinstance(item, str) and item.strip() for item in result["required_reports"])
         ):
             raise ValueError("config.required_reports must be an array of non-empty strings")
+    if "case_contracts" in result:
+        if "baseline_dir" not in required_paths:
+            raise ValueError("config.case_contracts is only valid for batch configs")
+        raw_case_contracts = result["case_contracts"]
+        if not isinstance(raw_case_contracts, dict):
+            raise ValueError("config.case_contracts must be an object")
+        normalized_case_contracts = {}
+        for case_name, raw_contract in raw_case_contracts.items():
+            if not isinstance(case_name, str) or not case_name.strip():
+                raise ValueError("config.case_contracts keys must be non-empty strings")
+            case_path = PurePosixPath(case_name)
+            if (
+                case_path.is_absolute()
+                or ".." in case_path.parts
+                or "\\" in case_name
+                or not case_name.endswith(".trace.json")
+            ):
+                raise ValueError(
+                    "config.case_contracts keys must be safe relative *.trace.json paths"
+                )
+            if not isinstance(raw_contract, dict):
+                raise ValueError(
+                    f"config.case_contracts[{case_name!r}] must be an object"
+                )
+            normalized_case_contracts[case_name] = ContractPolicy.from_dict(
+                raw_contract
+            ).to_dict()
+        result["case_contracts"] = normalized_case_contracts
     if "contract" in result:
         result["contract"] = ContractPolicy.from_dict(result["contract"]).to_dict()
     return result

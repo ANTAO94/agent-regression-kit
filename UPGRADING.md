@@ -15,6 +15,25 @@ examples now derive claims from their actual final output.
 
 后续迭代按[真实接入与回归价值迭代方案](docs/product-iteration-plan.zh-CN.md)执行，优先验证真实项目接入和外部使用反馈。
 
+## v4.36.1 → v4.37.0
+
+v4.37 adds per-case Contracts to batch comparisons. Existing batch configs and
+the public `compare_trace_batch(baseline_dir, candidate_dir, policy=None)` call
+remain valid. Add `case_contracts` to a batch JSON config when different
+relative Trace files represent different reviewed business outcomes; each
+configured case replaces the default Contract only for that path. Unsafe paths,
+missing Trace files and invalid Contracts fail closed. The selected policy is
+included in each case report. See the [v4.37 acceptance record](docs/v4.37.0-acceptance.md).
+
+## v4.36.1 → v4.37.0（中文）
+
+v4.37 为批量比较增加按用例配置 Contract 的能力。已有批量配置和公开的
+`compare_trace_batch(baseline_dir, candidate_dir, policy=None)` 调用继续有效。当不同 Trace
+文件代表不同的、经过审核的业务结果时，可以在批量 JSON 中增加 `case_contracts`；配置的
+Contract 只覆盖对应路径，不会影响其他用例。路径不安全、Trace 缺失或 Contract 无效都会
+fail-closed；每个 case 报告会展示实际采用的策略。详见
+[v4.37 验收记录](docs/v4.37.0-acceptance.md)。
+
 ## v4.36.0 → v4.36.1
 
 `trace_from_langgraph_events` now accepts the optional

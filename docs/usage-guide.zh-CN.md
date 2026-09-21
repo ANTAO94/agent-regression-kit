@@ -693,6 +693,35 @@ agent-regression config validate \
 agent-regression batch-compare --config .agent-regression/batch.json
 ```
 
+如果不同用例有不同的合法业务结果，可以在批量配置中增加
+`case_contracts`。键是相对于 baseline/candidate 目录的 Trace 路径；对应值是普通
+Contract，只对该用例覆盖默认的 `contract`：
+
+```json
+{
+  "baseline_dir": "baselines",
+  "candidate_dir": "work/candidate",
+  "report": "outputs/batch.json",
+  "format": "json",
+  "contract": {
+    "required_claims": ["final_answer.claims.order_status"]
+  },
+  "case_contracts": {
+    "orders/shipped.trace.json": {
+      "assertions": [
+        {"path": "final_answer.claims.order_status", "equals": "shipped"}
+      ],
+      "must_call": [{"tool": "get_order", "arguments": {"order_id": "456"}}]
+    }
+  }
+}
+```
+
+批量报告会在每个 case 中展示实际采用的 Contract。路径必须是相对的 `*.trace.json`，
+不能逃出 baseline/candidate 目录；没有单独配置的用例继续使用默认 Contract。这个能力
+适合经过审核的业务用例矩阵，但不能用来放宽门禁：每个用例仍然 fail-closed，Trace 缺失也会
+让批量比较失败。
+
 最小 GitHub Action：
 
 ```yaml

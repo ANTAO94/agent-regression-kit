@@ -3,13 +3,61 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_regression import compare_trace_batch
+from agent_regression import ComparisonPolicy, ContractPolicy, compare_trace_batch
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class BatchComparisonTests(unittest.TestCase):
+    def test_batch_compare_applies_a_reviewed_contract_per_case(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = root / "baselines"
+            candidate = root / "candidate"
+            (baseline / "orders").mkdir(parents=True)
+            (candidate / "orders").mkdir(parents=True)
+            source = json.loads(
+                (ROOT / "baselines/order-123.trace.json").read_text(encoding="utf-8")
+            )
+            shipped = json.loads(json.dumps(source))
+            shipped["events"][1]["result"]["status"] = "shipped"
+            shipped["events"][2]["claims"]["order_status"] = "shipped"
+            for name, trace in {
+                "orders/not-shipped.trace.json": source,
+                "orders/shipped.trace.json": shipped,
+            }.items():
+                (baseline / name).write_text(json.dumps(trace), encoding="utf-8")
+                (candidate / name).write_text(json.dumps(trace), encoding="utf-8")
+
+            default_contract = ContractPolicy(
+                assertions=[
+                    {"path": "final_answer.claims.order_status", "equals": "not_shipped"}
+                ]
+            )
+            shipped_contract = ContractPolicy(
+                assertions=[
+                    {"path": "final_answer.claims.order_status", "equals": "shipped"}
+                ]
+            )
+            report = compare_trace_batch(
+                baseline,
+                candidate,
+                policy=ComparisonPolicy(contract=default_contract),
+                case_policies={
+                    "orders/shipped.trace.json": ComparisonPolicy(
+                        contract=shipped_contract
+                    )
+                },
+            )
+
+        self.assertTrue(report["passed"])
+        self.assertEqual(2, report["passed_case_count"])
+        self.assertEqual(
+            "shipped",
+            report["cases"][1]["policy"]["contract"]["assertions"][0]["equals"],
+        )
+
     def test_batch_compare_matches_nested_cases_and_reports_missing_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
