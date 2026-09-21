@@ -13,6 +13,14 @@
   and CI assertions for the expected negative-difference categories. The pilot
   remains deterministic mock-provider evidence; it is not online model-quality
   or external-user adoption evidence.
+- Fix the external LangGraph pilot so recorded tool results are the exact
+  evidence returned to the Agent, derive facts from evidence content rather
+  than fixture expectations, and block corrupted evidence that preserves IDs.
+  Document installation into the independent candidate environment.
+- Rewrite the bilingual README around a value-first introduction, a verified
+  five-minute quick start, a compact Mermaid workflow, clearer evaluation-vs-
+  regression positioning, and shorter integration, Contract, CI, evidence,
+  and limitation sections.
 
 ## 4.36.0 - 2026-09-21
 

@@ -20,7 +20,7 @@
   "events": [
     {
       "type": "tool_call",
-      "call_id": "01a0c21b-84a8-75c3-b8ce-def2204fc8d0",
+      "call_id": "01a0c283-158c-7161-84a3-61a99ff03246",
       "tool": "web_search",
       "arguments": {
         "input": "LangGraph persistence checkpointer thread_id official docs"
@@ -37,15 +37,15 @@
           "__pregel_pull",
           "research"
         ],
-        "langgraph_checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb",
-        "checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb"
+        "langgraph_checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78",
+        "checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78"
       },
       "sequence": 1
     },
     {
       "type": "tool_result",
-      "call_id": "01a0c21b-84a8-75c3-b8ce-def2204fc8d0",
-      "result": "[MOCK RESULT 1] Comprehensive overview of 'LangGraph persistence checkpointer thread_id official docs': This representative snippet describes key aspects of the topic, covering background, current state, and notable developments.\nSource: https://example.com/search?q=LangGraph+persistence+checkpointer+thread_id+official+docs\n\n[MOCK RESULT 2] Recent findings on 'LangGraph persistence checkpointer thread_id official docs': Secondary perspective offering additional context and alternative viewpoints for a more balanced understanding.\nSource: https://news.example.com/langgraph+persistence+checkpointer+thread_id+official+docs",
+      "call_id": "01a0c283-158c-7161-84a3-61a99ff03246",
+      "result": "Document-ID: persistence-overview\nSection: overview\nExcerpt: The persistence guide distinguishes checkpointers from stores. A checkpointer saves graph-state snapshots for one thread, while a store keeps application-defined data that can be shared across threads.\nSource: https://docs.langchain.com/oss/python/langgraph/persistence",
       "is_error": false,
       "metadata": {
         "thread_id": "baseline",
@@ -59,14 +59,14 @@
           "__pregel_pull",
           "research"
         ],
-        "langgraph_checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb",
-        "checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb"
+        "langgraph_checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78",
+        "checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78"
       },
       "sequence": 2
     },
     {
       "type": "tool_call",
-      "call_id": "01a0c21b-84a8-75c3-b8ce-df016cae11ab",
+      "call_id": "01a0c283-158d-7e22-8126-ea2b9623838b",
       "tool": "web_search",
       "arguments": {
         "input": "LangGraph store cross-thread memory official docs"
@@ -83,15 +83,15 @@
           "__pregel_pull",
           "research"
         ],
-        "langgraph_checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb",
-        "checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb"
+        "langgraph_checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78",
+        "checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78"
       },
       "sequence": 3
     },
     {
       "type": "tool_result",
-      "call_id": "01a0c21b-84a8-75c3-b8ce-df016cae11ab",
-      "result": "[MOCK RESULT 1] Comprehensive overview of 'LangGraph store cross-thread memory official docs': This representative snippet describes key aspects of the topic, covering background, current state, and notable developments.\nSource: https://example.com/search?q=LangGraph+store+cross-thread+memory+official+docs\n\n[MOCK RESULT 2] Recent findings on 'LangGraph store cross-thread memory official docs': Secondary perspective offering additional context and alternative viewpoints for a more balanced understanding.\nSource: https://news.example.com/langgraph+store+cross-thread+memory+official+docs",
+      "call_id": "01a0c283-158d-7e22-8126-ea2b9623838b",
+      "result": "Document-ID: persistence-quickstart\nSection: quickstart\nExcerpt: The documented quickstart compiles a graph with a checkpointer and invokes it with configurable.thread_id. The thread identifier groups checkpoints for the same thread.\nSource: https://docs.langchain.com/oss/python/langgraph/persistence",
       "is_error": false,
       "metadata": {
         "thread_id": "baseline",
@@ -105,14 +105,14 @@
           "__pregel_pull",
           "research"
         ],
-        "langgraph_checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb",
-        "checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb"
+        "langgraph_checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78",
+        "checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78"
       },
       "sequence": 4
     },
     {
       "type": "tool_call",
-      "call_id": "01a0c21b-84a9-7a10-85a0-0250bd007647",
+      "call_id": "01a0c283-158d-7e22-8126-ea33a2fbe665",
       "tool": "web_search",
       "arguments": {
         "input": "LangGraph in-memory checkpointer restart official docs"
@@ -129,15 +129,15 @@
           "__pregel_pull",
           "research"
         ],
-        "langgraph_checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb",
-        "checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb"
+        "langgraph_checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78",
+        "checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78"
       },
       "sequence": 5
     },
     {
       "type": "tool_result",
-      "call_id": "01a0c21b-84a9-7a10-85a0-0250bd007647",
-      "result": "[MOCK RESULT 1] Comprehensive overview of 'LangGraph in-memory checkpointer restart official docs': This representative snippet describes key aspects of the topic, covering background, current state, and notable developments.\nSource: https://example.com/search?q=LangGraph+in-memory+checkpointer+restart+official+docs\n\n[MOCK RESULT 2] Recent findings on 'LangGraph in-memory checkpointer restart official docs': Secondary perspective offering additional context and alternative viewpoints for a more balanced understanding.\nSource: https://news.example.com/langgraph+in-memory+checkpointer+restart+official+docs",
+      "call_id": "01a0c283-158d-7e22-8126-ea33a2fbe665",
+      "result": "Document-ID: persistence-restart\nSection: troubleshooting\nExcerpt: The documentation states that an in-memory checkpointer keeps checkpoints in RAM and loses them when the process restarts. A persistent backend is needed when restart recovery is required.\nSource: https://docs.langchain.com/oss/python/langgraph/persistence",
       "is_error": false,
       "metadata": {
         "thread_id": "baseline",
@@ -151,8 +151,8 @@
           "__pregel_pull",
           "research"
         ],
-        "langgraph_checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb",
-        "checkpoint_ns": "research:8a52694e-7f1a-c6f9-385d-d0ca85a48bcb"
+        "langgraph_checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78",
+        "checkpoint_ns": "research:fb21d620-290f-2c34-a6e8-fcffaec7fe78"
       },
       "sequence": 6
     },

@@ -143,6 +143,7 @@ jobs:
           expect_regression wrong-query required_tool --mutate-search-query "unrelated topic"
           expect_regression skipped-search tool_count --skip-search
           expect_regression misread contract_assertion --misread-fact checkpointer_scope
+          expect_regression corrupted-evidence required_claim --corrupt-evidence
 
       - name: Upload traces and compare reports
         if: always()

@@ -2,292 +2,231 @@
 
 [![CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml/badge.svg)](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/regression.yml)
 [![Release](https://img.shields.io/github/v/release/ANTAO94/agent-regression-kit)](https://github.com/ANTAO94/agent-regression-kit/releases)
-[MIT](LICENSE)
+[![Python](https://img.shields.io/badge/python-%E2%89%A53.9-blue)](setup.cfg)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**Regression tests for AI Agents: catch wrong tools, changed arguments and incorrect business conclusions after changing a prompt, model or code.**
+**Regression tests for AI Agents: catch wrong tools, changed arguments, skipped steps, and incorrect business conclusions after changing a prompt, model, tool, or code.**
 
-[中文](README.md) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [Product iteration plan](docs/product-iteration-plan.zh-CN.md) · [P1 external project pilot](docs/p1-langgraph-agent-stack-validation.md)
+[中文](README.md) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥3.9 · Release v4.36.0 · No required third-party core runtime dependencies.
+Python ≥ 3.9 · Current release `v4.36.0` · No required third-party core runtime dependencies
 
-## 1. What does it check?
+## Contents
 
-For “look up order 123”, a reviewed run calls `get_order(order_id="123")` and concludes that the order has not shipped. A changed Agent might query another order, choose a wrong tool or claim that it has shipped.
+- [Why this exists](#why-this-exists)
+- [How it works](#how-it-works)
+- [5-minute quick start](#5-minute-quick-start)
+- [Connect your Agent](#connect-your-agent)
+- [Configure rules and noise filters](#configure-business-rules-and-noise-filters)
+- [Run in CI](#run-in-ci)
+- [Capabilities and validation](#current-capabilities)
+- [Boundaries and documentation](#what-it-does-not-solve)
 
-Provide a reviewed reference run, a fresh run and optional business rules. The kit compares the evidence, evaluates the rules and returns a report and CI exit code.
+## Why this exists
 
-| Term | Meaning | Example |
+An Agent can return a plausible final sentence while its execution has already regressed. A prompt change may cause it to:
+
+- call the wrong tool or skip a required step;
+- send `order_id="132"` instead of `"123"`;
+- repeat a refund or another side effect;
+- receive “not shipped” and answer “shipped”;
+- take a risky tool path that happens to produce the same output.
+
+Agent Regression Kit records a real run as a structured **Trace**, then compares a new run with a reviewed **Baseline** and business **Contract**. It explains the differences and returns a CI-friendly exit code.
+
+| Same request: look up order 123 | Tool behavior | Final conclusion | Result |
+| --- | --- | --- | --- |
+| Reviewed version | `get_order(order_id="123")` | Not shipped | Save as Baseline |
+| Correct changed version | Same tool and order | Not shipped | Pass |
+| Argument regression | `get_order(order_id="132")` | Another order's status | Block |
+| Result misread | Correct argument and tool result | Incorrectly says “shipped” | Block |
+
+### How it differs from an evaluation platform
+
+| | Evaluation platform | Agent Regression Kit |
 | --- | --- | --- |
-| Trace | Recorded tool calls, arguments, results and final answer | `*.trace.json` |
-| Baseline | A Trace you reviewed as correct | `baselines/order-123.trace.json` |
-| Candidate | A fresh Trace from the changed Agent | `work/candidate.trace.json` |
-| Contract | Business requirements to check | The `contract` object in a config file |
+| Main question | How good is the Agent overall? | What exactly did this change break? |
+| Typical output | Scores, accuracy, pass rates | Structured tool, argument, result, state, or claim differences |
+| When it runs | Periodic evaluation and model selection | Every PR, prompt change, or tool change |
+| Core objects | Dataset, Case, Scorer | Baseline, Candidate Trace, Contract |
 
-You own the expected business behavior and baseline review.
+They work together: an evaluation platform manages datasets, batch execution, and quality metrics; this kit provides behavioral evidence, precise diffs, and CI regression gates.
 
-## 2. Run a passing and a failing example
+## How it works
 
-Run these commands in order in one Bash/Zsh terminal on macOS/Linux, or WSL on Windows. Installation needs network access. The examples use scripted behavior and fixed local tool responses: **no API key or model calls are needed**.
+```mermaid
+flowchart TD
+    A[Run reviewed Agent] -->|record real behavior| B[Baseline Trace]
+    C[Run changed Agent] -->|record real behavior| D[Candidate Trace]
+    B --> E{Compare + Contract}
+    D --> E
+    F[Business rules and noise filters] --> E
+    E -->|pass| G[CI continues]
+    E -->|regression| H[Report exact differences and block]
+```
 
-### Install
+In one sentence: preserve evidence from a correct run, rerun after every change, and let the comparator explain whether CI should continue.
+
+| Term | Meaning | Typical file |
+| --- | --- | --- |
+| Trace | Request, tool calls, arguments, results, final answer, and structured conclusions from one run | `*.trace.json` |
+| Baseline | A Trace reviewed as correct and committed to Git | `baselines/*.trace.json` |
+| Candidate | A fresh Trace from the current implementation | `work/*.trace.json` |
+| Contract | Required/forbidden tools, assertions, paths, and side-effect rules | `.agent-regression/config.json` |
+| Claims | Structured business facts extracted from the Agent's **actual output** | `final_answer.claims` |
+
+> The kit does not know your correct business answer. Review the Baseline, and derive claims from actual output instead of pre-filling expected answers.
+
+## 5-minute quick start
+
+This example is fully offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
+
+### 1. Install
 
 ```bash
-git clone --branch v4.36.0 https://github.com/ANTAO94/agent-regression-kit.git
-cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install .
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
 agent-regression --version
 ```
 
-Expect `agent-regression 4.36.0`. Keep the environment active and run subsequent commands from the repository root.
-
-### Record and compare a passing candidate
-
-An example baseline is included:
+### 2. Generate a runnable project
 
 ```bash
-agent-regression record \
-  --scenario examples/order-123/candidate-ok.scenario.json \
-  --out work/candidate.trace.json
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/candidate.trace.json \
-  --out work/reports/compare.json
+mkdir agent-regression-demo
+cd agent-regression-demo
+agent-regression init
 ```
 
-Expect `"passed": true`, `"blocking_difference_count": 0` and exit code **0**. The report is written to `work/reports/compare.json`.
+`init` creates an offline Agent, fixed tool results, a starter Baseline, a strict Contract, a CI example, and integration notes. The starter Baseline proves only that the template runs; it is not approval of your business behavior.
 
-### Introduce a regression
+### 3. Run the passing case
 
 ```bash
-agent-regression record \
-  --scenario examples/order-123/candidate-regression.scenario.json \
-  --out work/bad.trace.json
-agent-regression compare \
-  --baseline baselines/order-123.trace.json \
-  --candidate work/bad.trace.json \
-  --out work/reports/regression.json
+python scripts/record_agent.py \
+  --variant normal \
+  --out work/my-agent.trace.json
+agent-regression check --config .agent-regression/config.json
+agent-regression compare --config .agent-regression/config.json
 ```
 
-This fixture changes the tool to `lookup_order`, the order ID from a string to a number, and incorrectly reports that the order has shipped.
+Expect `passed: true` and exit code **0**.
 
-Expect `"passed": false` and exit code **1**: the regression was detected. Inspect `differences` in `work/reports/regression.json`:
+### 4. Prove the gate can fail
 
-| Field | Meaning |
-| --- | --- |
-| `category` | Kind of difference |
-| `path` | Affected field |
-| `baseline` / `candidate` | Expected and observed values |
-| `allowed` | Whether policy explicitly permits the difference |
+```bash
+python scripts/record_agent.py \
+  --variant wrong-resource \
+  --out work/my-agent.trace.json
+agent-regression compare --config .agent-regression/config.json
+```
 
-### View results locally
+Expect `passed: false` and exit code **1**. That means the regression was detected; the command itself did not malfunction. The report identifies wrong resources, missing calls, changed arguments, or incorrect business conclusions.
+
+Other built-in negative variants: `skip-tool` and `misread-result`.
+
+### 5. Inspect reports locally
 
 ```bash
 agent-regression ui
 ```
 
-Open the printed address and select a local Trace or comparison report. The configuration page exports JSON for you to save and use with the CLI. It does not run Agents, automatically save configuration or accept baselines.
+Open the printed local URL to view Traces, comparison reports, and configuration. The Viewer is read-only; the Python CLI remains the comparison source of truth.
 
-## 3. Configure assertions and noise filtering
+## Connect your Agent
 
-**The baseline stores reference evidence; the config stores checking rules.** Defaults compare calls, arguments, results and the final answer. Add configuration to permit wording changes, filter noise or assert business requirements.
+The scaffold is a demonstration. A real integration has three responsibilities:
 
-Create `.agent-regression/config.json` under the repository root:
+1. record the real tool name, arguments, and returned result at the execution boundary;
+2. record the final answer actually produced by the Agent;
+3. extract important business conclusions into structured claims.
+
+| Your Agent | Recommended entry point |
+| --- | --- |
+| PydanticAI, OpenAI Agents SDK, LangGraph | [Framework converters](docs/framework-integrations.md) |
+| Custom Python Agent | [Callback example](examples/framework_callback_example.py) |
+| Existing tool start/end events | [Event ingestion example](examples/langchain_core_event_example.py) |
+| MCP tool or server | [MCP example](examples/mcp_record_example.py) |
+| Sync/async Adapter scaffold | `agent-regression adapter-init --name my-agent --mode both` |
+
+The minimum integration boundary is:
+
+| Code location | Responsibility |
+| --- | --- |
+| `invoke_framework(request, context)` | Invoke the real Agent |
+| `context.call_tool(...)` | Route real tool execution through the recording boundary |
+| `context.final_answer(text, claims)` | Save the real answer and business facts extracted from it |
+
+After the first run, inspect the arguments, results, and claims. Accept a Baseline only after review:
+
+```bash
+agent-regression baseline accept \
+  --trace work/my-agent.trace.json \
+  --out baselines/my-agent.trace.json
+```
+
+Subsequent runs generate only a candidate. **Never overwrite the Baseline automatically in CI.**
+
+The repository also includes a pinned [independent LangGraph project pilot](docs/p1-langgraph-agent-stack-validation.md). It leaves the candidate business graph unchanged, records the exact tool evidence consumed by the Agent, and tests argument regression, skipped retrieval, result misinterpretation, and corrupted evidence. This is deterministic integration evidence, not upstream adoption or online-model quality evidence.
+
+## Configure business rules and noise filters
+
+The Baseline stores reference behavior; the config stores decision rules. This example permits wording changes while still checking tools, arguments, and business conclusions:
 
 ```json
 {
-  "baseline": "baselines/order-123.trace.json",
-  "candidate": "work/candidate.trace.json",
+  "baseline": "baselines/my-agent.trace.json",
+  "candidate": "work/my-agent.trace.json",
   "report": "work/reports/compare.json",
   "final_answer_mode": "claims-only",
   "contract": {
-    "required_claims": [
-      "final_answer.claims.order_status"
-    ],
+    "required_claims": ["final_answer.claims.order_status"],
     "assertions": [
       {
         "path": "final_answer.claims.order_status",
         "equals": "not_shipped"
-      },
-      {
-        "path": "tool_results[*].is_error",
-        "equals": false
       }
     ],
     "must_call": [
       {
         "tool": "get_order",
-        "arguments": {
-          "order_id": "123"
-        }
+        "arguments": {"order_id": "123"}
       }
     ],
-    "must_not_call": [
-      "cancel_order",
-      "refund"
-    ],
-    "ignore_paths": [
-      "tool_results[*].result.request_id"
-    ]
+    "must_not_call": ["cancel_order", "refund"],
+    "ignore_paths": ["tool_results[*].result.request_id"]
   }
 }
 ```
 
-Use the passing candidate recorded in section 2:
-
 ```bash
+agent-regression check --config .agent-regression/config.json
 agent-regression compare --config .agent-regression/config.json
 ```
 
-This requires an `order_status` claim equal to `not_shipped`, rejects tool errors, requires `get_order` with string ID `"123"`, and forbids cancellation/refund tools. Dynamic `request_id` values are ignored when present. `claims-only` permits answer wording changes while still comparing structured conclusions, arguments and results.
-
-**Claims are business facts extracted from the Agent's actual output**, such as `{"order_status": "not_shipped"}`. Your integration supplies them. Hardcoding expected claims hides errors; keep default exact answer comparison until you have meaningful claims.
-
-Paths in a config under `.agent-regression/` resolve relative to the project root. Elsewhere they resolve relative to the config directory. Explicit CLI paths resolve relative to the working directory.
-
-See the [configuration manual](docs/user-manual.en.md), [path variation example](examples/path-variation/README.md) and [state equivalence guide](docs/state-equivalence.md) for additional rules. When relaxing comparisons, also constrain identifiers, amounts and forbidden side effects.
-
-### v4.13 safety policy: failed attempts and undeclared state
-
-A failed write followed by no successful retry must not pass merely because its
-tool name and arguments match. Ordinary application regressions use the strict
-default. If a business explicitly permits a failed attempt before a retry,
-declare the policy:
-
-```json
-{
-  "state_equivalence": {
-    "mode": "outcome",
-    "paths": ["world_state.final.orders.123.status"],
-    "state_scope": "declared_and_unchanged_rest",
-    "attempt_policy": {
-      "require_success": true,
-      "allow_failed_before_success": true,
-      "max_failed_attempts": 1
-    }
-  }
-}
-```
-
-This requires a successful action, permits at most one failed attempt, requires
-the declared order status to exist and match, and reports other non-ignored
-world-state changes as `unexpected_state_change`. Existing
-`allow_failed_expected` configs still work, but `agent-regression check
---config ...` emits a migration diagnostic instead of silently changing their
-meaning. See the [v4.13 acceptance record](docs/v4.13-acceptance.md) and the
-[maturity evolution plan](docs/maturity-evolution-plan.zh-CN.md).
-
-## 4. How to make external evaluation auditable
-
-If you publish a number about how many regressions the framework catches, do not
-put labels into the Trace being tested. v4.14 provides a three-step workflow:
-
-```bash
-agent-regression benchmark prepare --manifest benchmark/manifest.json
-agent-regression benchmark decide \
-  --manifest benchmark/manifest.json \
-  --out work/benchmark/decisions.json
-agent-regression benchmark score \
-  --manifest benchmark/manifest.json \
-  --decisions work/benchmark/decisions.json \
-  --out work/benchmark/score.json
-```
-
-`prepare` checks the immutable revision, SHA-256 values for data/split/
-Contract/evidence/labels and exact sample coverage. `decide` reads only Traces
-and rules; it does not read label meaning. `score` validates the decision digest
-before loading labels, then reports true pass, true block, false alarm, missed
-failure and Wilson 95% intervals. `unsupported` samples stay explicit instead
-of silently disappearing. See the [v4.14 acceptance record](docs/v4.14-acceptance.md)
-for the manifest schema and boundaries.
-
-## 5. Connect your own Agent
-
-The earlier `record --scenario` commands execute scripted examples. For your project, actually run the Agent and record its tool calls, results and final output.
-
-| Integration | Entry point |
+| Need | Configuration capability |
 | --- | --- |
-| PydanticAI, OpenAI Agents SDK, LangGraph | [Framework result converters](docs/framework-integrations.md); optional dependencies have their own Python requirements |
-| Custom Python Agent | [Callback example](examples/framework_callback_example.py) |
-| Existing tool start/end callbacks | [Event ingestion example](examples/langchain_core_event_example.py) |
-| MCP tool interaction | [MCP example](examples/mcp_record_example.py); protocol checks and full Agent regression have different scopes |
+| Ignore request IDs, timestamps, and similar noise | `ignore_paths`, normalizers |
+| Require or forbid a tool | `must_call`, `must_not_call`, `tool_allowlist` |
+| Bound retries and loops | `tool_limits`, `max_steps` |
+| Permit multiple safe paths | `path_rules`, `state_equivalence` |
+| Check cross-step arguments | `relations` |
+| Check before/after state and side effects | world-state snapshots, `side_effects` |
+| Permit wording changes but retain business checks | `claims-only` + required claims + assertions |
 
-Run the callback example:
+Pair every relaxation with a nearby negative test. For example, after ignoring `request_id`, a wrong `order_id` must still fail. See the [configuration manual](docs/user-manual.en.md) for every field.
 
-```bash
-python examples/framework_callback_example.py
-agent-regression validate --trace work/framework-callback.trace.json
+## Run in CI
+
+Commit three project-owned artifacts:
+
+```text
+scripts/record_agent.py                 runs the real Agent and writes a candidate
+baselines/my-agent.trace.json           reviewed Baseline committed to Git
+.agent-regression/config.json           Contract and comparison policy
 ```
 
-Review the arguments, results and conclusions in `work/framework-callback.trace.json`. **For the first reviewed run**, save a baseline:
-
-```bash
-agent-regression baseline accept \
-  --trace work/framework-callback.trace.json \
-  --out baselines/my-agent.trace.json
-```
-
-After changing the Agent, regenerate the candidate and compare:
-
-```bash
-python examples/framework_callback_example.py
-agent-regression compare \
-  --baseline baselines/my-agent.trace.json \
-  --candidate work/framework-callback.trace.json \
-  --out work/reports/my-agent.json
-```
-
-Adapt these parts of the [callback example](examples/framework_callback_example.py):
-
-| Code | Your responsibility |
-| --- | --- |
-| `invoke_framework(request, context)` | Your Agent execution |
-| `context.call_tool(...)` | Record tool execution; existing frameworks can use event callbacks |
-| `context.final_answer(text, claims)` | Record the actual answer and extracted business conclusions |
-| `FixtureTools` | Fixed responses for offline tests; supply another tool executor when needed |
-
-The example builds an answer from tool results. With a model Agent, capture its actual answer; constructing a separate correct answer from tool data would hide interpretation failures.
-
-**baseline accept validates and stores a file; it does not review business correctness.** Review first and commit the baseline to Git. Subsequent runs regenerate only the candidate. Do not automatically overwrite the baseline in CI. Intentionally break an argument once to verify the gate detects it.
-
-### 5.1 Technical preview with an independent LangGraph project
-
-The repository includes a reproducible [independent-project validation](docs/p1-langgraph-agent-stack-validation.md)
-for the public `Brescou/langgraph-agent-stack` project. It does not modify that
-project and runs its built-in `LLM_PROVIDER=mock` mode. The preview found a real
-integration gap: some LangGraph applications execute tools inside ordinary
-Python nodes, so the completed `messages` state contains no tool lifecycle. In
-that case collect `graph.astream_events(..., version="v2")` and use
-`trace_from_langgraph_events(...)`.
-
-The preview uses a committed fixed snapshot of the official LangGraph
-persistence documentation. It checks the scope of a checkpointer and a store,
-the `thread_id` requirement, and whether an in-memory checkpointer survives a
-restart. A maintainer-reviewed `baseline.trace.json` for this fixed fixture is
-committed to the repository; it is not approval from an external business
-owner. CI generates only a fresh candidate. The normal run, wording variation and
-evidence-order variation exit 0. A wrong search argument, skipped retrieval,
-and an in-run wrong checkpointer fact exit 1.
-
-The fact-misread case is a deterministic negative injection against the fixed
-snapshot. It proves that the Contract checks structured business facts; it is
-not a defect report about the upstream project and is not evidence of online
-model factuality. See the runnable [pilot example](examples/external-pilot/langgraph-agent-stack/README.md).
-
-## 6. Run in CI
-
-Prepare these files in your own repository:
-
-| File | Responsibility |
-| --- | --- |
-| `scripts/record_agent.py` | Your Agent entry point, producing a fresh candidate each run |
-| `baselines/order-123.trace.json` | Reviewed baseline committed to Git |
-| `.agent-regression/config.json` | Policy from section 3, adapted to your paths and business rules |
-
-The workflow assumes your script writes `work/candidate.trace.json`. **The kit does not automatically create `scripts/record_agent.py`.** Adapt section 4's example and install your Agent's additional dependencies.
-
-Save as `.github/workflows/agent-regression.yml`:
+Minimal GitHub Actions workflow:
 
 ```yaml
 name: Agent regression
@@ -301,13 +240,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - name: Install regression kit
+      - name: Install
         run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.36.0"
-      - name: Run your Agent and record its trace
-        run: python scripts/record_agent.py
-      - name: Compare with the reviewed baseline
+      - name: Record candidate
+        run: python scripts/record_agent.py --out work/my-agent.trace.json
+      - name: Compare
         run: agent-regression compare --config .agent-regression/config.json
-      - name: Upload report even after failure
+      - name: Upload report
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -316,107 +255,59 @@ jobs:
           if-no-files-found: error
 ```
 
-Exit codes: **0 = pass, 1 = regression, 2 = invalid input/configuration**. Nonzero exits fail the job; reports are uploaded even after failure. Do not suppress the comparison exit code with `|| true` or `continue-on-error`.
+Exit codes: **0 = pass, 1 = regression, 2 = invalid input, configuration, or execution error.** Do not add `|| true` or `continue-on-error` to the comparison step.
 
-Run the same commands locally first. Store model credentials in GitHub Secrets and configure redaction at recording time. See the [manual](docs/user-manual.en.md) for JUnit, Markdown and reusable Action examples.
+## Current capabilities
 
-## 7. First-use scaffold and performance baseline
+- structured Trace, Baseline/Candidate comparison, and deterministic Contracts;
+- tool arguments, results, call counts, paths, and unauthorized-tool checks;
+- cross-step relations, final state, side effects, and state isolation;
+- synchronous, asynchronous, concurrent, multi-turn, and repeated stability runs;
+- MCP stdio and Streamable HTTP recording and protocol boundaries;
+- PydanticAI, OpenAI Agents SDK, LangGraph, and LangChain Core integration;
+- JSON, Markdown, JUnit, GitHub Job Summary, and a local Viewer;
+- redaction, history, batch scenarios, coverage, and auditable studies/benchmarks.
 
-If you are integrating a new Agent project, start in its root directory:
+## Validation status
 
-```bash
-agent-regression init
-python scripts/record_agent.py --variant normal --out work/my-agent.trace.json
-agent-regression check --config .agent-regression/config.json
-agent-regression compare --config .agent-regression/config.json
-```
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **303 tests and 35 subtests**.
 
-The template creates a deterministic starter baseline, candidate Trace, strict
-Contract, bilingual starter notes and GitHub Actions pinned to the current
-Release tag. The starter baseline only proves the template runs; it is not a
-business approval. Replace the example Agent, review its actual Trace, and
-accept a real baseline explicitly. The normal variant exits 0;
-`wrong-resource`, `skip-tool` and `misread-result` are intentional failures
-that exit 1. See the generated `AGENT_REGRESSION.md` and the [performance
-baseline](docs/performance.md).
+| Evidence | What it verifies | What it does not prove |
+| --- | --- | --- |
+| [Independent consumer repository](docs/consumer-pilot.md) | Released wheel, public API, CLI, and three regression gates work outside this checkout | Zero-code compatibility with every Agent |
+| [Independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) | Real external graph events, fixed evidence, and four negative scenarios | Upstream adoption or online-model quality |
+| [DeepSeek live run](docs/deepseek-live.md) | Real model order lookup and a two-tool dependency | Reliability across every model and business domain |
+| [τ²-bench](docs/tau2-independent-validation.md) | Rule behavior and false-alarm/missed-failure evidence on pinned public trajectories | Generalization to unseen data |
+| AgentDojo acceptance matrix | Contracts, hashes, and repeatability on pinned public security trajectories | A complete security rate |
 
-```bash
-agent-regression performance run --out work/performance-baseline.json
-# after reviewing a stable run, commit performance/reference.json
-mkdir -p performance
-cp work/performance-baseline.json performance/reference.json
-agent-regression performance gate \
-  --current work/performance-baseline.json \
-  --baseline performance/reference.json \
-  --out work/performance-gate.json
-```
+Still missing: 10–20 business-owner-reviewed cases, sustained use by multiple independent projects, false-alarm and missed-failure evidence from real change cycles, and usability studies with people who did not build the framework. See the [product iteration plan](docs/product-iteration-plan.zh-CN.md) and [limitations](docs/limitations.md).
 
-The default performance policy warns above 20% and blocks above 40% elapsed-
-time regression on like-for-like environments.
+## What it does not solve
 
-### 7.3 Audit final maturity gates
+The kit does not automatically determine whether arbitrary prose is factually true. It is not a production Tool Gateway, authorization system, tenant-isolation layer, DLP product, or model sandbox. It can check only recorded evidence and explicit rules; hidden side effects require project-owned state snapshots, and real writes require isolated environments.
 
-Use `readiness` when a report will be reviewed or used as a release claim:
+## Documentation
 
-```bash
-agent-regression readiness \
-  --manifest work/readiness.json \
-  --format markdown \
-  --out work/readiness.md
-```
-
-It verifies the actual structured fields in benchmark/performance reports, referenced SHA-256 values,
-300 held-out samples/50 failures, 99% failure recall, 5% false alarms, 10,000 traces/60 seconds and peak RSS below 512 MiB.
-Independent first-user research and genuinely unseen task domains are `external` checks; without independent
-evidence they remain `pending` and the command returns 1. See the [readiness audit guide](docs/readiness-audit.md).
-
-## 8. Evidence and current limits
-
-Suitable for local development and team CI pilots. The v4.36 release records **293 passing tests**, package builds, clean-environment installation, first-use scaffold checks, a real independent-project LangGraph technical preview, performance evidence, provenance-bound prospective evaluation, an independent consumer upgrade, multiple task-domain validations, independent AgentDojo model-family evidence, finite-sample stability intervals and a recorded sampling-study boundary with file-integrity, evidence-index, provenance-binding, run-identity and report-sidecar checks.
-
-| Evidence | Result and scope |
+| Goal | Document |
 | --- | --- |
-| [Framework compatibility CI](https://github.com/ANTAO94/agent-regression-kit/actions/workflows/framework-compatibility.yml) | Real PydanticAI, OpenAI Agents, LangGraph and LangChain Core runtimes with deterministic model/tool behavior; validates integration |
-| [Independent LangGraph project preview](docs/p1-langgraph-agent-stack-validation.md) | `Brescou/langgraph-agent-stack`: 8/8 mock-eval cases, real tool-boundary inputs, legal variation exit 0, three in-run regressions exit 1 | Proves an independent project's lifecycle and runtime regressions can be checked; not upstream adoption or online model quality |
-| [Hosted DeepSeek runs](docs/deepseek-live.md) | Actual single-tool and two-step model runs; tool order is constrained by test policy |
-| [Published τ²-bench retail trajectories](docs/tau2-independent-validation.md) | 420 eligible scenarios: 267 true passes, 153 true blocks, 0 false alarms and 0 missed failures |
-| [Independent consumer pilot](docs/consumer-pilot.md) | Normal run exits 0; wrong resource, skipped tool and result misread each exit 1 |
-| First-use scaffold | `agent-regression init` creates baseline/candidate/Contract/CI plus three negative variants | A new user can run a pass and a block without reading core internals |
-| Performance baseline | [Performance guide](docs/performance.md): fixed small/medium generator and 20%/40% gate | Detects framework regressions, not model quality or a production SLA |
-| Prospective evaluation | [τ² validation](docs/tau2-independent-validation.md): result-file SHA-256 binding, 420 eligible scenarios and 126 failures | Model-result-level evidence; not unseen-task-domain generalization |
-| Second task domain | [τ² airline validation](docs/tau2-independent-validation.md): 120 eligible scenarios, 69 failures, 100% failure recall and 3.92% false-alarm rate | Shows cross-domain contract transfer; not a guarantee for every unseen task distribution |
-| Third domain and actor boundary | [τ² telecom validation](docs/tau2-independent-validation.md): 364 assistant-write scenarios; published 147/217/0/0; prospective o4-mini recall 98.63% and 6.21% false alarms | Shows simulator/user actions do not masquerade as Agent behavior; environment parsing remains bounded and domain-specific |
-| Task-level holdout proxy | [τ² telecom holdout](docs/v4.20-acceptance.md): 28 disjoint holdout tasks and 100 eligible scenarios; published 47/53/0/0, prospective 50/46/4/0 | Split reads task IDs only; both partitions remain from the same public task family |
-| Independent source matrix | [AgentDojo v4.22 acceptance](docs/v4.22-acceptance.md): pinned commit/manifest SHA-256, five cases across workspace, banking, slack and travel, 5/5 passed | Proves cross-suite intake, per-case Contracts and oracle isolation; not full security or generalization |
-| Cross-model attack matrix | [AgentDojo v4.23 acceptance](docs/v4.23-acceptance.md): pinned commit/manifest SHA-256, eight cases across two model pipelines; four positive paths passed and four attack paths were blocked as expected | Proves auditable expected-block semantics without turning upstream security labels into rules; not a security rate or generalization claim |
-| Contract pre-registration | [AgentDojo v4.24 acceptance](docs/v4.24-acceptance.md): all eight Contracts are bound to canonical-JSON SHA-256 and tampering fails closed | Proves rule provenance is auditable; not that a Contract is complete or semantically correct |
-| Decision repeatability | [AgentDojo v4.25 acceptance](docs/v4.25-acceptance.md): the pinned matrix is repeated three times with stable aggregate, case-report and Trace hashes | Proves deterministic artifact reproducibility over fixed inputs; not online model sampling variance or reliability |
-| Independent attack family | [AgentDojo v4.26 acceptance](docs/v4.26-acceptance.md): four `ignore_previous` cases across four suites, two passes and two expected blocks | Proves another attack type enters the same auditable gate; not a security rate or universal generalization claim |
-| Model-family matrix | [AgentDojo v4.27 acceptance](docs/v4.27-acceptance.md): four `important_instructions` cases from the Claude 3.5 Sonnet pipeline, three passes and one expected block | Adds independent model-family evidence; not online variance research or universal generalization |
-| Repeated-run sampling evidence | [v4.28 acceptance](docs/v4.28-acceptance.md): stability reports expose Wilson 95% intervals and CI runs 30 repeats with `--min-runs 30` | Quantifies finite repeated-run uncertainty; not online model quality or population reliability |
-| Recorded sampling study | [v4.29 acceptance](docs/v4.29-acceptance.md): `study` evaluates redacted Traces with provider/model provenance, input/tool-schema hashes and per-run evidence | Makes external Agent sampling auditable; does not own provider execution or claim population reliability |
-| Evidence-file integrity | [v4.30 acceptance](docs/v4.30-acceptance.md): binds the baseline, every run Trace and normalized comparison policy to SHA-256 and rejects tampering with status 2 | Prevents silent changes inside a study bundle; does not prove hidden inputs are correct or representative |
-| Evidence source index | [v4.31 acceptance](docs/v4.31-acceptance.md): declares input/tool-schema/adapter roles, validates paths/digests/required roles and emits an evidence index | Lets reviewers see which files a conclusion depends on; does not prove semantic correctness or completeness |
-| Evidence semantic binding | [v4.32 acceptance](docs/v4.32-acceptance.md): binds controlled descriptor fields to provenance input/tool-schema/adapter values and returns status 2 for semantic mismatch even after hash refresh | Prevents an unchanged-but-wrong source binding; does not prove the provenance declaration itself is true |
-| Run-identity binding | [v4.33 acceptance](docs/v4.33-acceptance.md): additionally binds provider, model and dataset revision, with required evidence roles | Prevents attributing a study to the wrong provider, model or dataset revision; does not prove the external declarations are true |
-| Report handoff integrity | [v4.34 acceptance](docs/v4.34-acceptance.md): `study` writes a standard SHA-256 sidecar for the final JSON/Markdown/JUnit report | Detects silent replacement during report upload or handoff; does not prove the report content is correct |
-| Final maturity audit | [v4.35 acceptance](docs/v4.35-acceptance.md) and [audit guide](docs/readiness-audit.md): structured sample, metric, performance and external-evidence checks | Prevents weaker thresholds and false READY claims; does not replace an independent user study |
+| Full onboarding and configuration | [User manual](docs/user-manual.en.md) |
+| Architecture and core boundaries | [Technical design](docs/technical-design.en.md) |
+| Integrate Agent frameworks | [Framework integrations](docs/framework-integrations.md) |
+| Configure safe path variation and final state | [State equivalence](docs/state-equivalence.md) · [Path variation example](examples/path-variation/README.md) |
+| Troubleshoot installation, configuration, and exit codes | [FAQ](docs/usage-guide.en.md) |
+| Upgrade an older version | [Upgrade guide](UPGRADING.md) · [Changelog](CHANGELOG.md) |
+| Review evidence and the next iteration | [Maturity evidence](docs/maturity-roadmap.md) · [Iteration plan](docs/product-iteration-plan.zh-CN.md) |
+| Security and contribution | [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) |
 
-τ² equivalence rules were adjusted using errors from this dataset, then retested on the same data. **These are not held-out generalization results.** This integration imports published trajectories; it does not run the upstream simulator or imply upstream adoption.
+## Local development
 
-The kit checks recorded evidence and configured rules. You supply state snapshots where needed. Hidden side effects, free-form factual correctness and production authorization are not automatically guaranteed by Trace comparison. See [limitations](docs/limitations.md).
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+python -m unittest discover -s tests -v
+```
 
-## 9. Troubleshooting and reference
+## License
 
-Current integration and release evidence: [v4.36 acceptance](docs/v4.36-acceptance.md).
-
-| Symptom | Check |
-| --- | --- |
-| Command not found | Activate `.venv`, then install with its `python -m pip install .` |
-| Trace/example not found | Run from the repository root and record before comparing |
-| Exit 1 | Inspect the report; the failing example should return 1 |
-| Exit 2 | Inspect terminal errors, JSON, paths and Trace validation |
-| Wording changes fail | Extract actual claims and use `claims-only` with business assertions |
-| A valid new path fails | Review its safety, then explicitly configure allowed paths and extra calls |
-
-[Manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md) · [Readiness audit](docs/readiness-audit.md) · [API](docs/api.md) · [Performance baseline](docs/performance.md) · [Independent consumer pilot](docs/consumer-pilot.md) · [τ² independent validation](docs/tau2-independent-validation.md) · [Airline reproduction](examples/tau2-airline/README.md) · [Telecom reproduction](examples/tau2-telecom/README.md) · [Telecom holdout acceptance](docs/v4.20-acceptance.md) · [AgentDojo v4.27 acceptance](docs/v4.27-acceptance.md) · [AgentDojo v4.26 acceptance](docs/v4.26-acceptance.md) · [AgentDojo v4.25 acceptance](docs/v4.25-acceptance.md) · [AgentDojo v4.24 acceptance](docs/v4.24-acceptance.md) · [AgentDojo v4.23 acceptance](docs/v4.23-acceptance.md) · [AgentDojo v4.22 acceptance](docs/v4.22-acceptance.md) · [AgentDojo v4.21 acceptance](docs/v4.21-acceptance.md) · [Refund example](examples/refund-business-case/README.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md) · [v4.20 acceptance](docs/v4.20-acceptance.md) · [v4.19 acceptance](docs/v4.19-acceptance.md) · [v4.18 acceptance](docs/v4.18-acceptance.md) · [v4.17 acceptance](docs/v4.17-acceptance.md) · [v4.16 acceptance](docs/v4.16-acceptance.md) · [v4.15 acceptance](docs/v4.15-acceptance.md) · [v4.14 acceptance](docs/v4.14-acceptance.md) · [v4.13 acceptance](docs/v4.13-acceptance.md) · [v4.12 acceptance](docs/v4.12-acceptance.md) · [Supply chain](docs/supply-chain.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[MIT](LICENSE)

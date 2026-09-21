@@ -12,6 +12,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from collections.abc import Callable, Mapping
@@ -29,11 +30,13 @@ class _InstrumentedTool:
         self,
         target: Any,
         calls: list[Any],
+        results: list[Any],
         replacement: str | None,
         result_resolver: Callable[[Any, Any], Any] | None,
     ):
         self._target = target
         self._calls = calls
+        self._results = results
         self._replacement = replacement
         self._result_resolver = result_resolver
         self.name = target.name
@@ -47,9 +50,13 @@ class _InstrumentedTool:
             delegated = self._target.invoke(forwarded, **kwargs)
         else:
             delegated = self._target.invoke(forwarded, config=config, **kwargs)
-        if self._result_resolver is not None:
-            return self._result_resolver(forwarded, delegated)
-        return delegated
+        consumed = (
+            self._result_resolver(forwarded, delegated)
+            if self._result_resolver is not None
+            else delegated
+        )
+        self._results.append(consumed)
+        return consumed
 
 
 def _candidate_revision(project_dir: Path) -> str:
@@ -133,6 +140,52 @@ def _fixture_result(fixture: Mapping[str, Any], query: Any, _delegated: Any) -> 
     )
 
 
+def _facts_from_evidence(prompt: str) -> dict[str, Any]:
+    """Extract facts from evidence text, without consulting expected fixture facts."""
+    normalized = re.sub(r"\s+", " ", prompt).casefold()
+    facts: dict[str, Any] = {}
+    if "checkpointer saves graph-state snapshots for one thread" in normalized:
+        facts["checkpointer_scope"] = "single_thread"
+    if "store keeps application-defined data that can be shared across threads" in normalized:
+        facts["store_scope"] = "cross_thread"
+    if (
+        "invokes it with configurable.thread_id" in normalized
+        and "thread identifier groups checkpoints for the same thread" in normalized
+    ):
+        facts["thread_id_required"] = True
+    if (
+        "in-memory checkpointer keeps checkpoints in ram" in normalized
+        and "loses them when the process restarts" in normalized
+    ):
+        facts["in_memory_survives_restart"] = False
+    return facts
+
+
+def _events_with_consumed_results(
+    events: list[Mapping[str, Any]], consumed_results: list[Any]
+) -> list[Mapping[str, Any]]:
+    """Make tool-end evidence match the value returned to the Agent."""
+    reconciled: list[Mapping[str, Any]] = []
+    result_ordinal = 0
+    for event in events:
+        copied = dict(event)
+        if event.get("event") == "on_tool_end":
+            if result_ordinal >= len(consumed_results):
+                raise RuntimeError("event stream emitted more tool results than the Agent consumed")
+            raw_data = event.get("data")
+            data = dict(raw_data) if isinstance(raw_data, Mapping) else {}
+            data["output"] = consumed_results[result_ordinal]
+            copied["data"] = data
+            result_ordinal += 1
+        reconciled.append(copied)
+    if result_ordinal != len(consumed_results):
+        raise RuntimeError(
+            "Agent consumed more tool results than the event stream emitted: "
+            f"events={result_ordinal} consumed={len(consumed_results)}"
+        )
+    return reconciled
+
+
 def _claims(output: Any) -> dict[str, Any]:
     """Derive claims from the facts emitted in the candidate's actual summary."""
     if not isinstance(output, Mapping):
@@ -192,6 +245,7 @@ def _load_candidate(project_dir: Path) -> tuple[Any, Any, Any, Any, str]:
 def _instrument_agent(
     agent: Any,
     observed_inputs: list[Any],
+    consumed_results: list[Any],
     *,
     skip_search: bool,
     replacement_query: str | None,
@@ -210,6 +264,7 @@ def _instrument_agent(
                 _InstrumentedTool(
                     tool,
                     observed_inputs,
+                    consumed_results,
                     replacement_query,
                     result_resolver,
                 )
@@ -264,11 +319,7 @@ def _install_fixture_model(
                 for document in fixture["documents"]
                 if f"Document-ID: {document['id']}" in prompt
             ]
-            facts = (
-                dict(fixture["facts"])
-                if len(evidence_ids) == len(fixture["documents"])
-                else {}
-            )
+            facts = _facts_from_evidence(prompt)
             facts["evidence_ids"] = evidence_ids
             if misread_fact is not None and misread_fact in facts:
                 wrong_values = {
@@ -307,6 +358,7 @@ async def _capture(
     misread_fact: str | None = None,
     vary_evidence_order: bool = False,
     summary_confidence: float | None = None,
+    corrupt_evidence: bool = False,
 ) -> tuple[list[Mapping[str, Any]], Mapping[str, Any], list[Any], str]:
     (
         research_agent_cls,
@@ -323,13 +375,22 @@ async def _capture(
         checkpointer=memory_saver_cls(),
     )
     observed_inputs: list[Any] = []
+    consumed_results: list[Any] = []
     _instrument_agent(
         agent,
         observed_inputs,
+        consumed_results,
         skip_search=skip_search,
         replacement_query=replacement_query,
-        result_resolver=lambda query, delegated: _fixture_result(
-            fixture, query, delegated
+        result_resolver=lambda query, delegated: (
+            re.sub(
+                r"Excerpt: .*\nSource:",
+                "Excerpt: [CORRUPTED EVIDENCE]\nSource:",
+                _fixture_result(fixture, query, delegated),
+                flags=re.DOTALL,
+            )
+            if corrupt_evidence
+            else _fixture_result(fixture, query, delegated)
         ),
     )
     injection_state = _install_fixture_model(
@@ -376,6 +437,7 @@ async def _capture(
             "tool boundary capture count does not match event stream: "
             f"events={len(tool_starts)} captured={len(observed_inputs)}"
         )
+    events = _events_with_consumed_results(events, consumed_results)
     return events, context["research_result"], observed_inputs, revision
 
 
@@ -433,6 +495,11 @@ def main() -> int:
         action="store_true",
         help="Return the same evidence IDs in another order; the config normalizes this.",
     )
+    parser.add_argument(
+        "--corrupt-evidence",
+        action="store_true",
+        help="Replace evidence bodies while preserving IDs; business facts must fail closed.",
+    )
     args = parser.parse_args()
     if sum(
         value is not None
@@ -461,6 +528,7 @@ def main() -> int:
             misread_fact=args.misread_fact,
             vary_evidence_order=args.vary_evidence_order,
             summary_confidence=args.mutate_summary_confidence,
+            corrupt_evidence=args.corrupt_evidence,
         )
     )
     output_for_trace = dict(final_output)

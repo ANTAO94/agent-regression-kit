@@ -34,11 +34,11 @@ Agent 要回答四个问题：
 | `thread_id_required` | `true` |
 | `in_memory_survives_restart` | `false` |
 
-最终 summary 中的 `FACTS_JSON` 由固定 provider 在 Agent 执行中产生；harness 的
-`_claims` 从实际 `ResearchResult.summary` 解析 facts。它没有把期望值直接写进
-Trace。期望值只出现在 [compare.config.json](../examples/external-pilot/langgraph-agent-stack/compare.config.json)
-的 assertions 中，作为本轮固定资料场景的维护者审核 Contract；它还不是外部业务
-负责人确认的生产契约。
+最终 summary 中的 `FACTS_JSON` 由固定 provider 根据 Agent 实际收到的摘录正文生成；
+harness 的 `_claims` 再从实际 `ResearchResult.summary` 解析 facts。fixture 中的
+`facts` 是可审查的期望值，但不会参与 summariser 的事实生成；比较门禁使用
+[compare.config.json](../examples/external-pilot/langgraph-agent-stack/compare.config.json)
+中的 assertions。它还不是外部业务负责人确认的生产契约。
 
 ## 可复现结果
 
@@ -57,6 +57,7 @@ Trace。期望值只出现在 [compare.config.json](../examples/external-pilot/l
 | 错误检索参数 | `--mutate-search-query "unrelated topic"`，退出码 1；包含 `required_tool` |
 | 跳过必要检索 | `--skip-search`，退出码 1；包含 `tool_count` |
 | 事实误读 | `--misread-fact checkpointer_scope`，退出码 1；包含 `contract_assertion` 和 `result_interpretation` |
+| 正文损坏但 ID 保留 | `--corrupt-evidence`，退出码 1；缺失业务 facts，不能仅凭文档 ID 通过 |
 | 比较器专项 | `--mutate-confidence 0.10`，退出码 1；不作为业务误读证据 |
 
 候选项目的 mock eval 成本为 `$0.00`。候选项目的测试是候选项目自己的质量证据；本
@@ -69,6 +70,8 @@ Trace。期望值只出现在 [compare.config.json](../examples/external-pilot/l
 `research-fixture.json` 定义请求、三个检索 query、三个文档片段、来源 URL 和四个
 审核事实。`capture_trace.py` 在真实 `web_search.invoke(...)` 调用边界记录 query，
 调用原始 mock 工具后用固定资料快照替换返回内容，以保证离线、可重复和可审查。
+采集器会把 Agent 实际收到的替换后结果写入 `tool_result`，不会记录被丢弃的原始
+mock 结果。固定 summariser 从这些摘录正文提取 facts，不读取 fixture 的期望 facts。
 
 这不是在线搜索适配器，也不是模型评测。它是“真实 graph + 固定资料 + 业务断言”的
 回归夹具，后续可以把同一边界替换为真实 connector 或隔离的测试搜索服务。

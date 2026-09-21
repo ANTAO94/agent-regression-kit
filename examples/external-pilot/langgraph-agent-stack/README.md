@@ -44,6 +44,19 @@ git checkout a8a2dac566d46c48619ba94c69dfffb1b370520d
 uv sync
 ```
 
+还需要把 Agent Regression Kit 安装到候选项目的独立虚拟环境。假设本仓库位于
+`/path/to/agent-regression-kit`：
+
+```bash
+KIT=/path/to/agent-regression-kit
+STACK=/tmp/langgraph-agent-stack
+uv pip install --python "$STACK/.venv/bin/python" "$KIT"
+"$STACK/.venv/bin/python" -c "import agent_regression; print(agent_regression.__file__)"
+```
+
+最后一条命令应输出候选虚拟环境中的安装路径。CI 使用更严格的方式：先构建 wheel，
+再安装到候选环境，并确认导入位置不在本仓库的 `src/` 目录中。
+
 ## 1. 运行候选项目自己的 mock eval
 
 ```bash
@@ -60,8 +73,7 @@ LLM_PROVIDER=mock SEARCH_PROVIDER=mock \
 
 1. 检查候选 checkout 是干净的，并且确实是固定 commit；
 2. 启动候选项目真实的 `ResearchAgent` graph；
-3. 在 `web_search` 的真实调用边界记录实际 query，同时把固定资料快照作为受控
-   的工具返回值；
+3. 在 `web_search` 的真实调用边界记录实际 query 和 Agent 真正收到的固定资料；
 4. 从 LangGraph v2 event stream 转换 `on_tool_start/end` 和最终结果；
 5. 从最终 summary 解析业务 facts，缺少 facts 时直接失败；
 6. 与仓库中人工审核后提交的 `baseline.trace.json` 比较。
@@ -93,6 +105,9 @@ FIXTURE="$KIT/examples/external-pilot/langgraph-agent-stack/research-fixture.jso
 - 官方资料 URL 和文档 ID；
 - 最终 `FACTS_JSON`；
 - `final_answer.claims.facts` 中的四个业务事实。
+
+事实由 Agent summariser 收到的摘录正文确定，不从 fixture 的 `facts` 字段复制。
+`facts` 字段只代表维护者审核的期望值，用来交叉检查资料和配置。
 
 不要在 CI 中重新生成 baseline。当前 baseline 是本项目维护者针对固定资料审核的
 技术参考；接入真实业务后，只有完成业务审核才允许人工更新提交的 baseline。
