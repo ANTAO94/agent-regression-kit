@@ -893,6 +893,31 @@ with `shasum -a 256` or an equivalent tool. It proves that the report was not
 replaced during handoff; it does not prove that the report inputs or business
 conclusions are correct. See the [v4.34 acceptance](v4.34-acceptance.md).
 
+### v4.35: final maturity readiness audit
+
+When an evaluation result will be used as a release or maturity claim, run the
+`readiness` audit:
+
+```bash
+agent-regression readiness \
+  --manifest work/readiness.json \
+  --format markdown \
+  --out work/readiness.md
+```
+
+The `final-v4` profile re-reads structured benchmark/performance fields and
+verifies referenced SHA-256 values. Its default gates are at least 300 held-out
+eligible samples, at least 50 failures, at least 99% failure recall, at most 5%
+false alarms, plus 10,000 small Traces within 60 seconds and peak RSS below 512 MiB.
+The manifest cannot manufacture READY by weakening a threshold.
+
+A real first-user study and a genuinely unseen task-domain evaluation must be
+declared as `external` checks. Without an independent record they remain
+`pending` and the command returns 1. That is an intentional boundary, not a
+tool failure: the maintainer's own run cannot stand in for independent
+evidence. See the [readiness audit guide](readiness-audit.md) for the manifest,
+exit codes and external-evidence protocol.
+
 ### v4.21: independent AgentDojo source intake
 
 v4.21 adds a runtime-free bridge for an exported AgentDojo run. It converts

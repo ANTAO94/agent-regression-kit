@@ -46,6 +46,7 @@ jobs:
           /tmp/agent-regression-release-venv/bin/pip install dist/*.whl
           /tmp/agent-regression-release-venv/bin/agent-regression --version
           /tmp/agent-regression-release-venv/bin/agent-regression ui --help
+          /tmp/agent-regression-release-venv/bin/agent-regression readiness --help
           /tmp/agent-regression-release-venv/bin/agent-regression compatibility \
             --public-api-version 4 \
             --trace baselines/order-123.trace.json \
@@ -104,6 +105,8 @@ jobs:
           test -f "$DOC_ROOT/v4.32-acceptance.md"
           test -f "$DOC_ROOT/v4.33-acceptance.md"
           test -f "$DOC_ROOT/v4.34-acceptance.md"
+          test -f "$DOC_ROOT/v4.35-acceptance.md"
+          test -f "$DOC_ROOT/readiness-audit.md"
           test -f "$DOC_ROOT/performance.md"
           test -f "$DOC_ROOT/consumer-pilot.md"
           test -f "$DOC_ROOT/state-equivalence.md"

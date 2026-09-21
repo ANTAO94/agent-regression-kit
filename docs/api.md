@@ -137,6 +137,33 @@ v4.16 adds two dependency-free helpers for framework-level performance checks:
 The equivalent CLI is `agent-regression performance run` and
 `agent-regression performance gate`; see [`performance.md`](performance.md).
 
+## Final-v4 readiness audit
+
+v4.35 adds `evaluate_readiness(manifest_path)`. It verifies a
+`schema_version=0.1`, `profile=final-v4` readiness manifest, re-reads the
+referenced `benchmark_score` and `agent_performance` reports, checks their
+SHA-256 descriptors and enforces the non-weakenable final sample, metric and
+performance thresholds. It also supports content-free `evidence` checks and
+explicit `external` checks for evidence that must come from an independent
+participant or task source.
+
+```python
+from agent_regression import evaluate_readiness
+
+report = evaluate_readiness("work/readiness.json")
+if not report["ready"]:
+    raise SystemExit("readiness evidence is incomplete")
+```
+
+`report["ok"]` means the manifest itself was valid and all referenced files
+could be verified. `report["ready"]` means every required check passed. A
+valid manifest with a failed or pending required check returns `ready=False`;
+the CLI maps that state to exit code `1`. Malformed JSON, path escapes,
+weakened thresholds and digest mismatches raise `ValueError`, which the CLI
+maps to exit code `2`. See [`readiness-audit.md`](readiness-audit.md) for the
+manifest shape and the boundary around human usability and unseen-task
+evidence.
+
 ## Prospective τ² result provenance
 
 The example validator binds a downloaded result file to the SHA-256 in its

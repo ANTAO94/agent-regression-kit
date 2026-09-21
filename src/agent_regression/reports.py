@@ -634,3 +634,53 @@ def render_session_junit(report: Dict[str, Any]) -> str:
             failure = ET.SubElement(testcase, "failure", {"type": "AgentSessionFailure"})
             failure.text = json.dumps(turn.get("differences", []), ensure_ascii=False, indent=2)
     return ET.tostring(suite, encoding="unicode", xml_declaration=True) + "\n"
+
+
+def render_readiness_markdown(report: Dict[str, Any]) -> str:
+    """Render a maturity readiness audit without exposing evidence contents."""
+    status = "READY" if report.get("ready") else "NOT READY"
+    summary = report.get("summary", {})
+    lines = [
+        "# Agent Regression Readiness Audit",
+        "",
+        f"**Status:** `{status}`",
+        "",
+        f"- Profile: `{report.get('profile')}`",
+        f"- Target version: `{report.get('target_version') or 'unspecified'}`",
+        f"- Required checks: `{summary.get('passed', 0)}/{summary.get('required', 0)}` passed",
+        f"- Failed: `{summary.get('failed', 0)}`",
+        f"- Pending: `{summary.get('pending', 0)}`",
+        "",
+        "The audit verifies referenced evidence bytes and quantitative gates. A pending external check "
+        "is intentionally not treated as a maturity pass.",
+        "",
+        "## Checks",
+        "",
+        "| Status | Required | Kind | Check | Observed | Reason |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for check in report.get("checks", []):
+        reasons = "; ".join(str(reason) for reason in check.get("reasons", [])) or "-"
+        escaped_reasons = reasons.replace("|", "\\|").replace("\n", " ")
+        observed = _markdown_value(check.get("observed", {}))
+        lines.append(
+            f"| `{check.get('status')}` | `{'yes' if check.get('required') else 'no'}` | "
+            f"`{check.get('kind')}` | `{check.get('id')}` | {observed} | "
+            f"{escaped_reasons} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Thresholds",
+            "",
+            "```json",
+            json.dumps(report.get("thresholds", {}), ensure_ascii=False, indent=2),
+            "```",
+            "",
+            "## Boundary",
+            "",
+            str(report.get("decision_boundary", "")),
+            "",
+        ]
+    )
+    return "\n".join(lines)

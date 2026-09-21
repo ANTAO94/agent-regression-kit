@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 4.35.0 - 2026-09-21
+
+- Add the `readiness` command and public `evaluate_readiness` API for a
+  hash-bound final-v4 maturity audit.
+- Enforce the final sample, failure-recall, false-alarm, performance-time and
+  peak-RSS thresholds without allowing a manifest to weaken them.
+- Keep independent-user and genuinely unseen-task requirements explicit as
+  pending external evidence instead of treating local checks as proof.
+- Add bilingual readiness documentation and focused fail-closed tests.
+
 ## 4.34.0 - 2026-09-21
 
 - Add optional `study --checksum-out` report sidecars for JSON, Markdown and

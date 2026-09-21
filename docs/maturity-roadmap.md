@@ -1,7 +1,7 @@
 # Agent Regression Kit：成熟框架路线图
 
 v4.12 之后的可执行设计、配置草案、测试矩阵和发布门禁见
-[v4.13–v4.34 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
+[v4.13–v4.35 成熟度提升技术方案](maturity-evolution-plan.zh-CN.md)。
 
 本文档把“成熟”定义成可验收的工程目标，而不是功能数量。当前仓库的
 v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具使用；后续版本重点是
@@ -77,6 +77,7 @@ v4.12 核心已经可以作为开发团队的本地/CI Agent 回归测试工具�
 | 证据语义绑定 | v4.32 | input/tool schema/adapter descriptor 字段与 provenance 绑定，刷新哈希不能绕过语义门禁 |
 | 运行身份绑定 | v4.33 | provider/model/dataset revision descriptor 字段与 provenance 绑定，独立 consumer 通过发布 wheel 验证；仍不证明外部声明真实 |
 | 报告流转完整性 | v4.34 | `study --checksum-out` 对最终报告写出 SHA-256 sidecar，验证报告上传/交接未被替换；仍不证明报告内容正确 |
+| 最终成熟度审计 | v4.35 | `readiness` 校验 final-v4 样本/指标/性能门槛和证据摘要，显式保留 external pending；仍需真实用户和真正未见任务证据 |
 
 ## 迭代顺序
 
@@ -465,6 +466,15 @@ v4.12 的核心不是“把回放改成模糊匹配”，而是把误报归因�
 - [x] sidecar 必须和显式 `--out` 一起使用，摘要覆盖实际上传的报告字节；旧 CLI 和 manifest 继续兼容。
 - [x] 本地测试验证 sidecar 内容与报告字节一致，文档和发布检查纳入验收。
 - [ ] sidecar 只证明交接过程中未被替换，不是签名、供应商证明、内容正确性或真实性证明。
+
+### v4.35：最终成熟度 readiness 审计
+
+- [x] 增加 `final-v4` readiness manifest 和 `agent-regression readiness` CLI/API。
+- [x] 校验 held-out benchmark 的 300/50/99%/5% 门槛，以及 performance 的 10,000 Trace、60 秒和 512 MiB 门槛。
+- [x] 对引用报告和 evidence 执行路径 containment、SHA-256 校验；阈值只能收紧不能放宽。
+- [x] 支持 `external` 的 `pending` 状态，真实用户研究与真正未见任务没有独立记录时不会被误报为 READY。
+- [x] 增加双语 manifest/退出码说明、发布验收和独立消费入口。
+- [ ] 该命令审计声明的证据结构与字节完整性，不证明参与者、供应商、数据集或业务结论真实。
 
 v4.13 的目标不是让所有配置自动变严格，而是让“严格程度”成为配置中可读、可审计、可测试
 的契约。τ² 适配器对外部 reward 语义做了显式例外，普通业务回归仍使用严格成功默认值。

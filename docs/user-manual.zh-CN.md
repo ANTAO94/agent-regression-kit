@@ -859,6 +859,24 @@ sidecar 内容是一行 `<sha256>  <文件名>`。它必须和 `--out` 一起使
 报告字节，而不是内存中的对象。接收方可以用 `shasum -a 256` 或同等工具复核。它只能证明报告在交接
 过程中未被替换，不能证明报告输入或业务结论本身正确。完整示例见[v4.34 验收](v4.34-acceptance.md)。
 
+### v4.35：最终成熟度 readiness 审计
+
+如果要把评测结果作为发布或项目成熟度依据，可以使用 `readiness`：
+
+```bash
+agent-regression readiness \
+  --manifest work/readiness.json \
+  --format markdown \
+  --out work/readiness.md
+```
+
+`final-v4` 清单会重新读取 benchmark/performance 报告中的结构化字段，并校验引用文件的 SHA-256。默认门槛是：
+至少 300 个留出可判定样本、至少 50 个失败样本、失败召回率至少 99%、误报率不超过 5%，以及 10,000 条小
+Trace 在 60 秒内完成、峰值 RSS 必须低于 512 MiB。清单不能通过降低阈值制造 READY。
+
+真实首次用户研究和真正未见任务域评测必须声明为 `external` check。没有独立记录时状态保持 `pending`，命令返回
+1；这不是工具故障，而是防止把维护者自己的运行结果冒充独立证据。完整字段、退出码和外部证据协议见[成熟度审计说明](readiness-audit.md)。
+
 ### v4.21：独立来源 AgentDojo 接入
 
 v4.21 增加了一个不依赖 AgentDojo 运行时的外部轨迹导入器。它把 AgentDojo 导出的

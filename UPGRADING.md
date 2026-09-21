@@ -4,6 +4,31 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.34.0 → v4.35.0
+
+v4.35 is additive. Existing Trace, Contract, benchmark, performance and
+study manifests remain valid. It adds `agent-regression readiness`, which
+audits a new `schema_version=0.1` readiness manifest. The command verifies
+referenced report/evidence SHA-256 values and the non-weakenable `final-v4`
+thresholds. No existing comparison or study command changes behavior.
+
+The audit returns `0` only when every required check passes, `1` when a valid
+manifest still has failed or pending checks, and `2` for invalid input or
+evidence-integrity errors. A real first-user study and a genuinely unseen
+task-domain evaluation remain `external` checks and must not be marked passed
+without independently recorded evidence. See the [readiness audit guide](docs/readiness-audit.md)
+and [v4.35 acceptance record](docs/v4.35-acceptance.md).
+
+## v4.34.0 → v4.35.0（中文）
+
+v4.35 是兼容增量版本，已有 Trace、Contract、benchmark、performance 和 study manifest 不需要迁移。
+新增 `agent-regression readiness`，使用新的 `schema_version=0.1` readiness manifest，校验引用报告/证据的
+SHA-256 以及不可放宽的 `final-v4` 成熟度门槛。既有 compare 和 study 行为不变。
+
+审计命令只有在所有必需检查通过时返回 `0`；清单有效但仍有 failed/pending 返回 `1`；输入或证据完整性错误返回 `2`。
+真实首次用户研究和真正未见任务域评测属于 `external` 检查，没有独立记录时不能标记通过。详见[成熟度审计说明](docs/readiness-audit.md)
+和[v4.35 验收记录](docs/v4.35-acceptance.md)。
+
 ## v4.33.0 → v4.34.0
 
 v4.34 is additive and does not change Trace, study manifest or public API

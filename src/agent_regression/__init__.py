@@ -17,6 +17,12 @@ from .async_record import AsyncToolExecutor, async_record_run, record_async_run
 from .batch import compare_trace_batch
 from .benchmark import decide_benchmark, prepare_benchmark, score_benchmark
 from .performance import evaluate_performance_gate, run_performance_benchmark
+from .readiness import (
+    FINAL_PROFILE,
+    FINAL_THRESHOLDS,
+    READINESS_SCHEMA_VERSION,
+    evaluate_readiness,
+)
 from .cassette import CassetteEntry, CassetteToolExecutor, ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioBatchResult, ScenarioCase, ScenarioResult, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
@@ -80,6 +86,7 @@ from .reports import (
     render_session_markdown,
     render_report_index_markdown,
     render_sampling_study_markdown,
+    render_readiness_markdown,
 )
 from .report_index import build_report_index
 from .scenario import StatefulFixtureTools, WorldState
@@ -164,6 +171,10 @@ __all__ = [
     "score_benchmark",
     "run_performance_benchmark",
     "evaluate_performance_gate",
+    "FINAL_PROFILE",
+    "FINAL_THRESHOLDS",
+    "READINESS_SCHEMA_VERSION",
+    "evaluate_readiness",
     "record_scenario_batch",
     "ScenarioBatchResult",
     "ScenarioCase",
@@ -279,6 +290,7 @@ __all__ = [
     "render_stability_junit",
     "render_stability_markdown",
     "render_sampling_study_markdown",
+    "render_readiness_markdown",
     "render_coverage_junit",
     "render_coverage_markdown",
     "render_session_junit",

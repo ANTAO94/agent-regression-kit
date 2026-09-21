@@ -35,6 +35,7 @@ from .mcp import (
 )
 from .preflight import check_batch_config, check_single_config
 from .performance import evaluate_performance_gate, run_performance_benchmark
+from .readiness import evaluate_readiness
 from .record import FixtureTools, record_run, record_session
 from .redaction import DEFAULT_REDACTION_POLICY, RedactionPolicy
 from .reports import (
@@ -50,6 +51,7 @@ from .reports import (
     render_scenario_batch_junit,
     render_scenario_batch_markdown,
     render_sampling_study_markdown,
+    render_readiness_markdown,
     render_stability_junit,
     render_stability_markdown,
     render_session_junit,
@@ -658,6 +660,13 @@ def build_parser() -> argparse.ArgumentParser:
     performance_gate.add_argument("--warn-ratio", type=float, default=0.20)
     performance_gate.add_argument("--block-ratio", type=float, default=0.40)
     performance_gate.add_argument("--out", required=True)
+
+    readiness = subparsers.add_parser(
+        "readiness", help="audit final-v4 maturity evidence and quantitative gates"
+    )
+    readiness.add_argument("--manifest", required=True)
+    readiness.add_argument("--out")
+    readiness.add_argument("--format", choices=["json", "markdown"], default="json")
     return parser
 
 
@@ -791,6 +800,14 @@ def main(argv: list[str] | None = None) -> int:
                 _write_output(report, args.out)
                 return 0 if report["passed"] else 1
             raise ValueError(f"unsupported performance action: {args.performance_action}")
+
+        if args.command == "readiness":
+            report = evaluate_readiness(args.manifest)
+            if args.format == "markdown":
+                _write_text(render_readiness_markdown(report), args.out)
+            else:
+                _write_output(report, args.out)
+            return 0 if report["ready"] else 1
 
         if args.command == "workspace":
             if args.workspace_action != "manifest":

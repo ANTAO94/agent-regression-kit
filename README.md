@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [详细使用手册](docs/user-manual.zh-CN.md) · [技术方案](docs/technical-design.zh-CN.md)
 
-Python ≥3.9 · 当前版本 v4.34.0 · 核心无必需第三方运行时依赖。
+Python ≥3.9 · 当前版本 v4.35.0 · 核心无必需第三方运行时依赖。
 
 ## 1. 它怎么帮你发现问题？
 
@@ -40,7 +40,7 @@ Python ≥3.9 · 当前版本 v4.34.0 · 核心无必需第三方运行时依赖
 ### 安装
 
 ```bash
-git clone --branch v4.34.0 https://github.com/ANTAO94/agent-regression-kit.git
+git clone --branch v4.35.0 https://github.com/ANTAO94/agent-regression-kit.git
 cd agent-regression-kit
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,7 +48,7 @@ python -m pip install .
 agent-regression --version
 ```
 
-应看到 `agent-regression 4.34.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
+应看到 `agent-regression 4.35.0`。后续命令均在仓库根目录执行，并保持虚拟环境已激活。
 
 ### 录制正常版本并比较
 
@@ -286,7 +286,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install regression kit
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.34.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.35.0"
       - name: Run your Agent and record its trace
         run: python scripts/record_agent.py
       - name: Compare with the reviewed baseline
@@ -340,9 +340,25 @@ agent-regression performance gate \
 默认耗时回退超过 20% 报警，超过 40% 阻断；结果必须在相同 Python、操作系统和硬件条件下比较。
 详见[性能基线说明](docs/performance.md)。
 
+### 7.3 检查项目是否达到最终成熟度门槛
+
+当你需要把测试结果交给 reviewer 或作为发布依据时，使用 `readiness` 审计，而不是只看测试数量：
+
+```bash
+agent-regression readiness \
+  --manifest work/readiness.json \
+  --format markdown \
+  --out work/readiness.md
+```
+
+它会验证 benchmark/performance 报告的真实 JSON 字段、引用文件 SHA-256、300 个留出样本/50 个失败样本、
+99% 失败召回、5% 误报、10,000 条 Trace/60 秒/512 MiB 峰值 RSS（必须低于该值）等门槛。真实首次用户研究和真正未见任务域属于
+`external` 检查；没有独立证据时必须显示 `pending`，命令返回 1，不会被本地测试“自动证明”。完整清单格式见
+[成熟度审计说明](docs/readiness-audit.md)。
+
 ## 8. 验证到了什么程度？
 
-当前适合本地开发与团队 CI 试点。v4.34 发布记录 **287 项测试通过**，并验证构建、干净环境安装、
+当前适合本地开发与团队 CI 试点。v4.35 发布记录 **291 项测试通过**，并验证构建、干净环境安装、
 首用模板、性能 smoke、独立消费仓库升级、多个任务域的公开/前瞻评测，以及记录式 study 证据的
 baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 语义绑定。
 
@@ -371,6 +387,7 @@ baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 
 | 证据语义绑定 | [v4.32 验收](docs/v4.32-acceptance.md)：将 evidence descriptor 的受控字段绑定到 provenance.input/tool schema/adapter，哈希通过但语义错配仍返回状态 2 | 防止“文件未被修改但绑定了错误来源对象”；不证明 provenance 声明本身真实 |
 | 运行身份绑定 | [v4.33 验收](docs/v4.33-acceptance.md)：进一步绑定 provider、model、dataset revision，并要求对应证据角色存在 | 防止 study 把结果归因到错误的供应商、模型或数据版本；不证明外部声明本身真实 |
 | 报告流转完整性 | [v4.34 验收](docs/v4.34-acceptance.md)：study 支持对最终 JSON/Markdown/JUnit 报告写出标准 SHA-256 sidecar | 防止报告上传或交接后被静默替换；不证明报告内容本身正确 |
+| 最终成熟度审计 | [v4.35 验收](docs/v4.35-acceptance.md) 与 [审计说明](docs/readiness-audit.md)：结构化检查样本、指标、性能和外部证据状态 | 防止降低门槛或把 pending 外部证据误报成 READY；不替代真实用户研究 |
 
 τ² 等价规则根据这份数据中的误报调整过，再在同一数据上复测；**它不是未见过数据上的泛化成绩**。当前流程导入公开轨迹，不运行上游模拟器，也不代表上游采用本框架。
 
@@ -378,7 +395,7 @@ baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 
 
 ## 9. 常见问题与文档
 
-当前版本的采样证据：[v4.34 验收记录](docs/v4.34-acceptance.md)。
+当前版本的采样证据：[v4.35 验收记录](docs/v4.35-acceptance.md)。
 
 | 问题 | 先检查 |
 | --- | --- |
@@ -389,4 +406,4 @@ baseline/run/policy 完整性校验、evidence index 来源清单和 provenance 
 | 改措辞也失败 | 提供真实 claims 后用 `claims-only`，保留业务断言 |
 | 合法新路径被阻断 | 审查安全性后，显式配置允许的路径和额外调用 |
 
-[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [API](docs/api.md) · [性能基线](docs/performance.md) · [独立消费项目](docs/consumer-pilot.md) · [τ² 独立验证](docs/tau2-independent-validation.md) · [航空域复现](examples/tau2-airline/README.md) · [电信域复现](examples/tau2-telecom/README.md) · [电信 holdout 验收](docs/v4.20-acceptance.md) · [AgentDojo v4.27 验收](docs/v4.27-acceptance.md) · [AgentDojo v4.26 验收](docs/v4.26-acceptance.md) · [AgentDojo v4.25 验收](docs/v4.25-acceptance.md) · [AgentDojo v4.24 验收](docs/v4.24-acceptance.md) · [AgentDojo v4.23 验收](docs/v4.23-acceptance.md) · [AgentDojo v4.22 验收](docs/v4.22-acceptance.md) · [AgentDojo v4.21 验收](docs/v4.21-acceptance.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.20 验收](docs/v4.20-acceptance.md) · [v4.19 验收](docs/v4.19-acceptance.md) · [v4.18 验收](docs/v4.18-acceptance.md) · [v4.17 验收](docs/v4.17-acceptance.md) · [v4.16 验收](docs/v4.16-acceptance.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)
+[中文手册](docs/user-manual.zh-CN.md) · [English manual](docs/user-manual.en.md) · [技术方案](docs/technical-design.zh-CN.md) · [后续成熟度方案](docs/maturity-evolution-plan.zh-CN.md) · [成熟度审计](docs/readiness-audit.md) · [API](docs/api.md) · [性能基线](docs/performance.md) · [独立消费项目](docs/consumer-pilot.md) · [τ² 独立验证](docs/tau2-independent-validation.md) · [航空域复现](examples/tau2-airline/README.md) · [电信域复现](examples/tau2-telecom/README.md) · [电信 holdout 验收](docs/v4.20-acceptance.md) · [AgentDojo v4.27 验收](docs/v4.27-acceptance.md) · [AgentDojo v4.26 验收](docs/v4.26-acceptance.md) · [AgentDojo v4.25 验收](docs/v4.25-acceptance.md) · [AgentDojo v4.24 验收](docs/v4.24-acceptance.md) · [AgentDojo v4.23 验收](docs/v4.23-acceptance.md) · [AgentDojo v4.22 验收](docs/v4.22-acceptance.md) · [AgentDojo v4.21 验收](docs/v4.21-acceptance.md) · [退款案例](examples/refund-business-case/README.md) · [升级](UPGRADING.md) · [变更](CHANGELOG.md) · [v4.20 验收](docs/v4.20-acceptance.md) · [v4.19 验收](docs/v4.19-acceptance.md) · [v4.18 验收](docs/v4.18-acceptance.md) · [v4.17 验收](docs/v4.17-acceptance.md) · [v4.16 验收](docs/v4.16-acceptance.md) · [v4.15 验收](docs/v4.15-acceptance.md) · [v4.14 验收](docs/v4.14-acceptance.md) · [v4.13 验收](docs/v4.13-acceptance.md) · [v4.12 验收](docs/v4.12-acceptance.md) · [发布完整性](docs/supply-chain.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md)

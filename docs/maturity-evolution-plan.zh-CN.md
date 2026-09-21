@@ -1,7 +1,7 @@
-# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.34）
+# Agent Regression Kit 成熟度提升技术方案（v4.13–v4.35）
 
-> 状态：v4.34 已落地，继续扩展在线随机性和真实用户验证
-> 当前基线版本：v4.34.0
+> 状态：v4.35 已落地，继续收集真实用户和真正未见任务的外部证据
+> 当前基线版本：v4.35.0
 > 更新时间：2026-09-21
 > 目标：把“功能完整、项目内验证通过”推进到“规则边界明确、未见数据可验证、外部项目可接入”。
 
@@ -27,12 +27,12 @@ v4.12 已具备 Trace、Contract、Compare、MCP、框架 Adapter、CLI、Viewer
     → 新用户可重复完成
 ```
 
-完成 v4.34 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
+完成 v4.35 后，项目应达到“成熟的本地/CI Agent 回归测试框架”标准。服务端管理平台仍是
 独立产品层，不作为这轮成熟度的必要条件。
 
 ## 2. 成熟度验收目标
 
-| 维度 | v4.12 现状 | v4.34 目标 |
+| 维度 | v4.12 现状 | v4.35 目标 |
 | --- | --- | --- |
 | 契约安全 | 有正反例，状态等价边界仍需收紧 | 失败重试、成功要求、幂等重复和未声明状态变化均有明确语义和负向用例 |
 | 泛化验证 | 同一固定 τ² 数据集复测 | 规则冻结后，在未参与调参的数据上独立决策和评分 |
@@ -736,6 +736,20 @@ study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最
 - [x] v4.34 本地测试达到 287 项，构建/安装/文档命令纳入发布验收。
 - [ ] sidecar 不是密码学签名、供应商 attestation、内容正确性证明或未见任务泛化证明。
 
+### 7.23 v4.35：最终成熟度 readiness 审计（已落地）
+
+前面的版本已经分别实现了 benchmark、性能、独立消费、study provenance 和报告交接能力，但最终门槛分散在
+文档和人工检查中，容易出现“测试通过了，就误说已经达到成熟度”的问题。v4.35 增加统一的 readiness manifest
+和 `agent-regression readiness` 命令，把可自动验证的门槛集中到一个 fail-closed 审计中。
+
+- [x] `final-v4` profile 校验留出可判定样本不少于 300、失败样本不少于 50、failure recall 不低于 99%、false-alarm rate 不高于 5%。
+- [x] 校验性能报告中的 10,000 条小 Trace、60 秒和 512 MiB 峰值 RSS 门槛；报告缺少可测 RSS 时不通过。
+- [x] 对 benchmark/performance/evidence 文件执行路径 containment 和 SHA-256 校验，报告只输出路径、摘要和结构化观察值，不复制证据内容。
+- [x] 支持 `external` 检查，把真实首次用户研究和真正未见任务域记录为 `pending`，在没有独立证据时返回退出码 1。
+- [x] final profile 禁止通过降低阈值生成 READY；旧 Trace、Contract、benchmark、performance 和 study manifest 继续兼容。
+- [x] v4.35 本地测试达到 291 项，readiness 的通过、pending、哈希篡改和弱化门槛负向用例全部覆盖。
+- [ ] readiness 只审计证据是否满足声明的结构和门槛，不能代替独立参与者或独立任务源；这两项仍需外部完成。
+
 ## 8. 模块与文件改造清单
 
 | 模块 | 计划改动 |
@@ -775,6 +789,9 @@ study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最
 | `docs/v4.32-acceptance.md` | study evidence binding 语义一致性、哈希刷新绕过负向 CI 和发布/消费验收 |
 | `docs/v4.33-acceptance.md` | provider/model/dataset revision 运行身份绑定、兼容性、发布/消费和负向验收 |
 | `docs/v4.34-acceptance.md` | study 最终报告 SHA-256 sidecar、stdout fail-closed、发布/消费和兼容性验收 |
+| `src/agent_regression/readiness.py` | final-v4 readiness manifest、证据摘要校验、样本/指标/性能门槛和 external pending 状态 |
+| `docs/readiness-audit.md` | readiness manifest 格式、退出码、外部证据边界和双语接入说明 |
+| `docs/v4.35-acceptance.md` | readiness 审计、发布包、独立消费和限制验收 |
 
 ## 9. CI 结构
 
@@ -799,6 +816,7 @@ study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最
 | core-regression sampling | stability、statistics 或报告格式改动时 | 30 次重复、`--min-runs 30`、Wilson 区间和 required sampling report 必须通过 |
 | core-regression study | study、provenance、manifest 或报告格式改动时 | study bundle、敏感字段/路径/ID 校验、逐次证据和 required study report 必须通过 |
 | performance | 每周和候选发布时 | 超过硬阈值时阻断 |
+| readiness | readiness、benchmark、performance 或最终验收文档改动时 | 结构化门槛和证据摘要校验必须通过；pending external 项目显式返回 1 |
 | release | tag 推送时 | 是 |
 
 `heldout-decision` 不接触标签；`heldout-score` 下载不可变 decision artifact。两者使用不同 Job，
@@ -806,7 +824,7 @@ study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最
 
 ## 10. 兼容与迁移策略
 
-- v4.13–v4.34 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
+- v4.13–v4.35 不修改 PUBLIC_API_VERSION=4；新增字段均为可选；
 - v4.12 Contract 默认保持原含义，新生成配置使用更安全的尝试策略；
 - 旧 `allow_failed_expected` 输出 deprecation warning 和确定性迁移建议；
 - 任何旧字段语义调整都必须通过 major version，并提供 `migrate contract`；
@@ -834,7 +852,7 @@ study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最
 | 外部项目不稳定 | 上游变化导致 CI 噪音 | 固定上游提交，升级由单独 PR 完成 |
 | 接入只在本仓库有效 | 发布包用户无法复现 | 独立消费仓库只安装 wheel 和公开 API |
 | 小样本百分比失真 | 100% 指标被过度解释 | 原始计数、置信区间和最小样本门槛 |
-| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.34 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性、记录式采样证据、证据清单、语义绑定、运行身份归因、报告交接和首次使用直接相关的变更 |
+| 功能继续膨胀 | 文档和维护成本上升 | v4.13–v4.35 只接受与安全、来源完整性、独立接入、路径噪音、actor 边界、任务分区、oracle 隔离、跨模型/攻击族证据、规则 provenance、重复性、有限样本不确定性、记录式采样证据、证据清单、语义绑定、运行身份归因、报告交接、最终门槛审计和首次使用直接相关的变更 |
 
 ## 13. 实施顺序与提交原则
 
@@ -862,6 +880,7 @@ study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最
 20. **v4.32**：study evidence binding 将受控 descriptor 字段与 input/tool schema/adapter provenance 绑定，并验证同步刷新文件哈希仍会被语义门禁阻断。
 21. **v4.33**：study evidence binding 扩展到 provider、model 和 dataset revision，显式验证运行身份归因，保持旧 manifest 兼容。
 22. **v4.34**：study 对最终 JSON/Markdown/JUnit 报告生成可复核的 SHA-256 sidecar，显式拒绝无 `--out` 的不可复核摘要。
+23. **v4.35**：增加 final-v4 readiness manifest 和审计命令，集中校验最终量化门槛，并显式保留真实用户/真正未见任务的 pending 外部状态。
 
 每个版本开始前先固定验收用例，结束时依次执行：单元和集成测试、全量安全矩阵、已有公开
 数据回归、wheel 构建、全新环境安装、文档命令验证、GitHub Actions。任何未满足项写入发布
@@ -883,6 +902,10 @@ study 之前已经绑定 manifest、Trace、policy 和来源 descriptor，但最
 - 一份只按 task ID 分区、在决策前不读取 reward 的 holdout 报告，并明确同任务族限制；
 - 一份来自独立 Agent 评测生态的固定来源报告，证明外部 oracle 与 Trace/Contract 输入隔离；
 - 完整的升级、限制和安全说明。
+
+v4.35 还提供 `readiness` 作为上述证据的统一审计入口；命令返回 READY 只代表清单中所有 required check
+都有独立可复核证据。当前仓库的 readiness 示例仍应把真实用户研究和真正未见任务域标为 pending，直到外部参与者
+和规则冻结后的独立数据实际完成。
 
 这些证据齐全后，可以把项目描述为成熟的本地/CI Agent 回归框架。托管后台、多租户权限、
 远程 Runner 和企业 SLA 仍需要单独的产品方案与运行数据。
