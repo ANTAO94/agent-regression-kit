@@ -268,7 +268,7 @@ def initialize_project(root: Path, *, force: bool = False) -> Dict[str, List[str
             continue
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(
-            content.replace("__AGENT_REGRESSION_REF__", __version__),
+            content.replace("__AGENT_REGRESSION_REF__", "v" + __version__),
             encoding="utf-8",
         )
         created.append(relative)

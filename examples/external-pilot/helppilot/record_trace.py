@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from copy import deepcopy
 import subprocess
 import sys
 import tempfile
@@ -26,13 +28,53 @@ QUERY = (
     "My package never arrived and it has been two weeks. "
     "Order ORD-5001. Refund please."
 )
-TRACKED_ACTIONS = {
-    "get_order",
-    "get_tracking",
-    "check_refund_policy",
-    "create_refund_draft",
-    "issue_refund",
-}
+def _answer_claims(text: str) -> dict[str, Any]:
+    """Parse this fixture's explicit reply grammar; unknown output fails closed.
+
+    This is not a general natural-language factuality evaluator.
+    """
+    matches = re.findall(r"Order (ORD-\d+) is ([a-z_]+)\b", text)
+    if len(matches) != 1:
+        raise ValueError("final reply must contain one explicit order status")
+    refunds = re.findall(
+        r"Your refund of \$(\d+\.\d{2}) for order (ORD-\d+) has been approved and issued", text
+    )
+    return {
+        "order_id": matches[0][0],
+        "order_status": matches[0][1],
+        "reply_refund_issued": len(refunds) == 1,
+        "reply_refund_amount": float(refunds[0][0]) if len(refunds) == 1 else None,
+        "reply_refund_order_id": refunds[0][1] if len(refunds) == 1 else None,
+    }
+
+
+class CapturedTool:
+    """Keep the exact parsed JSON payload returned to the solver."""
+
+    def __init__(self, tool: Any, captures: list[dict[str, Any]]) -> None:
+        self.tool, self.captures = tool, captures
+
+    def invoke(self, arguments: dict[str, Any]) -> Any:
+        output = self.tool.invoke(arguments)
+        self.captures.append({"action": self.tool.name, "payload": deepcopy(arguments),
+                              "result": json.loads(output)})
+        return output
+
+
+def _merge_consumed_results(rows: list[dict[str, Any]], captures: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = deepcopy(rows)
+    cursor = 0
+    for captured in captures:
+        while cursor < len(rows) and rows[cursor]["action"] != captured["action"]:
+            cursor += 1
+        if cursor == len(rows) or rows[cursor]["payload"] != captured["payload"]:
+            raise ValueError("tool return cannot be correlated with action log")
+        rows[cursor]["result"] = captured["result"]
+        cursor += 1
+    for row in rows:
+        if row["action"] == "check_refund_policy" and "results" not in row["result"]:
+            raise ValueError("missing consumed retrieval body")
+    return rows
 
 
 def _source_commit(project_dir: Path) -> str:
@@ -54,7 +96,7 @@ class DeterministicModel:
         return self
 
     def invoke(self, messages: list[Any]) -> Any:
-        from langchain_core.messages import AIMessage, SystemMessage
+        from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 
         system = "\n".join(
             str(getattr(message, "content", ""))
@@ -85,6 +127,8 @@ class DeterministicModel:
             for call in (getattr(message, "tool_calls", None) or [])
         ]
         lookup_order = "ORD-5002" if self.mutation == "wrong-resource" else ORDER_ID
+        consumed = [json.loads(message.content) for message in messages if isinstance(message, ToolMessage)]
+        order = next((value for value in consumed if "customer_id" in value and "amount" in value), {})
         if "get_order" not in tool_names:
             name, arguments = "get_order", {"order_id": lookup_order}
         elif self.mutation != "skip-tool" and "get_tracking" not in tool_names:
@@ -92,13 +136,13 @@ class DeterministicModel:
         elif "check_refund_policy" not in tool_names:
             name, arguments = "check_refund_policy", {"query": "lost package refund"}
         elif "create_refund_draft" not in tool_names:
-            amount = 89.00 if self.mutation == "wrong-resource" else 129.99
+            amount = order["amount"]
             name, arguments = "create_refund_draft", {
                 "order_id": lookup_order,
                 "amount": amount,
             }
         else:
-            status = "delivered" if self.mutation == "misread-result" else "lost"
+            status = "delivered" if self.mutation == "misread-result" else order["status"]
             return AIMessage(
                 content=f"Order {lookup_order} is {status} and qualifies for a full refund [refund-policy]."
             )
@@ -148,8 +192,9 @@ def _trace_from_run(
     thread_id: str,
     source_commit: str,
     mutation: str,
+    captures: list[dict[str, Any]] | None = None,
 ) -> Any:
-    rows = [row for row in _action_rows(db, thread_id) if row["action"] in TRACKED_ACTIONS]
+    rows = _merge_consumed_results(_action_rows(db, thread_id), captures or [])
     recorder = FrameworkTraceRecorder(
         {
             "name": "helppilot",
@@ -182,9 +227,8 @@ def _trace_from_run(
     issue = next((row for row in rows if row["action"] == "issue_refund"), None)
     claims = {
         "route": state.get("route"),
-        "order_id": ORDER_ID,
-        "order_status": "delivered" if mutation == "misread-result" else "lost",
-        "approval_required": True,
+        **_answer_claims(state.get("final_reply", "")),
+        "approval_required": first.get("status") == "interrupted",
         "approval_decision": state.get("approval_decision"),
         "refund_issued": issue is not None,
         "refund_order_id": issue["result"].get("order_id") if issue else None,
@@ -202,7 +246,7 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument(
         "--mutation",
-        choices=["none", "wrong-resource", "skip-tool", "misread-result"],
+        choices=["none", "wrong-resource", "skip-tool", "misread-result", "extra-write", "corrupt-policy"],
         default="none",
     )
     args = parser.parse_args()
@@ -223,11 +267,17 @@ def main() -> int:
             {
                 "doc_id": "refund-policy",
                 "title": "Refund policy",
-                "text": "Lost packages qualify for a full refund.",
+                "text": "Refunds are prohibited." if args.mutation == "corrupt-policy" else "Lost packages qualify for a full refund.",
                 "score": 1.0,
             }
         ][:k]
         graph._llm = lambda model, temperature=0.0: DeterministicModel(model, args.mutation)
+
+        captures: list[dict[str, Any]] = []
+        graph.tools.SOLVER_TOOLS_BY_NAME = {
+            name: CapturedTool(tool, captures)
+            for name, tool in graph.tools.SOLVER_TOOLS_BY_NAME.items()
+        }
 
         thread_id = f"helppilot-{args.mutation}"
         app = graph.get_app()
@@ -237,6 +287,13 @@ def main() -> int:
         before_resume = _action_rows(db, thread_id)
         if any(row["action"] == "issue_refund" for row in before_resume):
             raise RuntimeError("issue_refund occurred before human approval")
+        if args.mutation == "extra-write":
+            # Inject a real logged write at the approval boundary, independently
+            # of the solver's fixed iteration budget.
+            graph.tools.set_run_context(thread_id, CUSTOMER_ID)
+            graph.tools.SOLVER_TOOLS_BY_NAME["log_to_crm"].invoke(
+                {"customer_id": "CUST-OTHER", "note": "unexpected write"}
+            )
         final = graph.resume_turn(thread_id, approved=True, decided_by="human", app=app)
         if final["status"] != "done":
             raise RuntimeError(f"expected a completed resumed run, got {final['status']!r}")
@@ -247,6 +304,7 @@ def main() -> int:
             thread_id=thread_id,
             source_commit=source_commit,
             mutation=args.mutation,
+            captures=captures,
         )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

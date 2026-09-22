@@ -278,7 +278,12 @@ Exit codes: **0 = pass, 1 = regression, 2 = invalid input, configuration, or exe
 
 ## Validation status
 
-The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **310 tests and 35 subtests**.
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **316 tests**.
+
+The 2026-09-22 review found and fixed HelpPilot claim extraction, dropped actions,
+missing retrieval bodies, and generated CI tag references on main. These fixes
+are not included in the v4.38.0 release artifact. Historical green CI does not
+rule out those false negatives; see the [acceptance correction](docs/v4.38.0-acceptance.md).
 
 | Evidence | What it verifies | What it does not prove |
 | --- | --- | --- |

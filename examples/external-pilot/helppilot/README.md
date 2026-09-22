@@ -13,6 +13,17 @@ baseline 和 Contract，不复制候选项目实现。
 
 ## What is exercised / 验证什么
 
+The main-branch correction captures all logged actions, including `send_reply`
+and unexpected writes. Solver return values replace abbreviated log results,
+so retrieval evidence contains the actual passages. Claims parse the final
+reply using this fixture's explicit English grammar; missing status fails
+closed. The parser is not a general natural-language evaluator. The scripted
+reviewer does not measure groundedness, and upstream refunds are simulated.
+
+main 修复版保留全部日志动作，包括发送回复和额外写操作；在工具返回边界采集正文，替换摘要日志。
+claims 从实际回复按本 fixture 的英文格式解析，状态缺失时报错。解析器不是通用自然语言评测器；
+固定 reviewer 不测量事实正确性，上游退款是模拟操作。历史 v4.38.0 包不包含此修复。
+
 The pinned scenario is a lost-order refund:
 
 ```text
@@ -51,9 +62,9 @@ PYTHONPATH="$ARK_ROOT/src" uv run --directory /tmp/helppilot python \
   --project-dir /tmp/helppilot \
   --out "$ARK_ROOT/work/helppilot/candidate.trace.json"
 
-agent-regression check \
+PYTHONPATH="$ARK_ROOT/src" python3 -m agent_regression check \
   --config "$ARK_ROOT/examples/external-pilot/helppilot/compare.config.json"
-agent-regression compare \
+PYTHONPATH="$ARK_ROOT/src" python3 -m agent_regression compare \
   --config "$ARK_ROOT/examples/external-pilot/helppilot/compare.config.json"
 ```
 
@@ -65,12 +76,17 @@ agent-regression compare \
 The same external graph can be rerun with controlled defects:
 
 ```bash
-for mutation in wrong-resource skip-tool misread-result; do
+for mutation in wrong-resource skip-tool misread-result extra-write corrupt-policy; do
   PYTHONPATH="$ARK_ROOT/src" uv run --directory /tmp/helppilot python \
     "$ARK_ROOT/examples/external-pilot/helppilot/record_trace.py" \
     --project-dir /tmp/helppilot \
     --mutation "$mutation" \
-    --out "$ARK_ROOT/work/helppilot/$mutation.trace.json" || true
+    --out "$ARK_ROOT/work/helppilot/$mutation.trace.json"
+  code=0
+  PYTHONPATH="$ARK_ROOT/src" python3 -m agent_regression compare \
+    --config "$ARK_ROOT/examples/external-pilot/helppilot/compare.config.json" \
+    --candidate "$ARK_ROOT/work/helppilot/$mutation.trace.json" || code=$?
+  test "$code" -eq 1 || exit 1
 done
 ```
 
@@ -79,6 +95,8 @@ done
 | `wrong-resource` | order argument Contract and refund claim |
 | `skip-tool` | missing required `get_tracking` |
 | `misread-result` | `order_status=lost` Contract assertion |
+| `extra-write` | unexpected CRM write remains visible and fails the allowlist |
+| `corrupt-policy` | changed retrieved body fails even when the document ID is unchanged |
 
 These are framework regression cases, not claims about HelpPilot's production
 quality. The external repository uses seeded/demo order data; production

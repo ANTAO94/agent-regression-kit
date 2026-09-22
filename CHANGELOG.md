@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Fix generated CI refs to use the published `v`-prefixed Git tag.
+- Fix HelpPilot answer claims to parse the actual final reply; reject missing
+  supported facts instead of filling expected values from mutation flags.
+- Preserve all HelpPilot logged actions, including reply dispatch and unknown
+  writes, and capture the retrieval body actually returned to the solver.
+- Add regression tests for wrong replies without mutation flags, hidden CRM
+  writes, missing evidence and changed policy bodies with unchanged IDs.
+- Re-review the HelpPilot fixture baseline for the expanded evidence shape.
+
 ## 4.38.0 - 2026-09-21
 
 - Add a pinned external HelpPilot business-flow pilot covering a LangGraph

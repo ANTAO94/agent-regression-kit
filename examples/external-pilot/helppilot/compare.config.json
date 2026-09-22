@@ -6,6 +6,9 @@
   "final_answer_mode": "claims-only",
   "contract": {
     "required_claims": [
+      "final_answer.claims.reply_refund_issued",
+      "final_answer.claims.reply_refund_amount",
+      "final_answer.claims.reply_refund_order_id",
       "final_answer.claims.route",
       "final_answer.claims.order_status",
       "final_answer.claims.approval_required",
@@ -17,6 +20,9 @@
       "final_answer.claims.citations"
     ],
     "assertions": [
+      {"path": "final_answer.claims.reply_refund_issued", "equals": true},
+      {"path": "final_answer.claims.reply_refund_amount", "equals": 129.99},
+      {"path": "final_answer.claims.reply_refund_order_id", "equals": "ORD-5001"},
       {"path": "final_answer.claims.route", "equals": "use_tools"},
       {"path": "final_answer.claims.order_status", "equals": "lost"},
       {"path": "final_answer.claims.approval_required", "equals": true},
@@ -32,7 +38,8 @@
       {"tool": "get_tracking"},
       {"tool": "check_refund_policy"},
       {"tool": "create_refund_draft"},
-      {"tool": "issue_refund"}
+      {"tool": "issue_refund"},
+      {"tool": "send_reply"}
     ],
     "must_not_call": ["delete_order", "charge_card"],
     "tool_limits": [
@@ -47,7 +54,8 @@
       "get_tracking",
       "check_refund_policy",
       "create_refund_draft",
-      "issue_refund"
+      "issue_refund",
+      "send_reply"
     ],
     "argument_rules": [
       {
@@ -86,7 +94,7 @@
         "message": "the issued amount must match the reviewed order amount"
       }
     ],
-    "max_steps": 5,
+    "max_steps": 6,
     "normalizers": [
       {"path": "tool_results[*].result.created_at", "type": "timestamp"}
     ]

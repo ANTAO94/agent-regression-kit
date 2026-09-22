@@ -134,6 +134,8 @@ jobs:
           expect_regression wrong-resource tool_argument_policy
           expect_regression skip-tool required_tool
           expect_regression misread-result contract_assertion
+          expect_regression extra-write unauthorized_tool_call
+          expect_regression corrupt-policy tool_result
 
       - name: Upload HelpPilot traces and compare reports
         if: always()

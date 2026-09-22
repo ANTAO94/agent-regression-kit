@@ -12,7 +12,9 @@
       "type": "tool_call",
       "call_id": "call-1",
       "tool": "get_order",
-      "arguments": {"order_id": "ORD-5001"},
+      "arguments": {
+        "order_id": "ORD-5001"
+      },
       "sequence": 1
     },
     {
@@ -35,7 +37,9 @@
       "type": "tool_call",
       "call_id": "call-2",
       "tool": "get_tracking",
-      "arguments": {"order_id": "ORD-5001"},
+      "arguments": {
+        "order_id": "ORD-5001"
+      },
       "sequence": 3
     },
     {
@@ -56,13 +60,24 @@
       "type": "tool_call",
       "call_id": "call-3",
       "tool": "check_refund_policy",
-      "arguments": {"query": "lost package refund"},
+      "arguments": {
+        "query": "lost package refund"
+      },
       "sequence": 5
     },
     {
       "type": "tool_result",
       "call_id": "call-3",
-      "result": {"doc_ids": ["refund-policy"]},
+      "result": {
+        "results": [
+          {
+            "doc_id": "refund-policy",
+            "title": "Refund policy",
+            "text": "Lost packages qualify for a full refund.",
+            "score": 1.0
+          }
+        ]
+      },
       "is_error": false,
       "sequence": 6
     },
@@ -70,7 +85,10 @@
       "type": "tool_call",
       "call_id": "call-4",
       "tool": "create_refund_draft",
-      "arguments": {"order_id": "ORD-5001", "amount": 129.99},
+      "arguments": {
+        "order_id": "ORD-5001",
+        "amount": 129.99
+      },
       "sequence": 7
     },
     {
@@ -90,7 +108,10 @@
       "type": "tool_call",
       "call_id": "call-5",
       "tool": "issue_refund",
-      "arguments": {"order_id": "ORD-5001", "amount": 129.99},
+      "arguments": {
+        "order_id": "ORD-5001",
+        "amount": 129.99
+      },
       "sequence": 9
     },
     {
@@ -106,21 +127,45 @@
       "sequence": 10
     },
     {
+      "type": "tool_call",
+      "call_id": "call-6",
+      "tool": "send_reply",
+      "arguments": {
+        "text": "Order ORD-5001 is lost and qualifies for a full refund [refund-policy].\n\nYour refund of $129.99 for order ORD-5001 has been approved and issued (ref RF-ORD-5001); expect it in 5-7 business days.\n\nSources: [refund-policy]"
+      },
+      "sequence": 11
+    },
+    {
+      "type": "tool_result",
+      "call_id": "call-6",
+      "result": {
+        "status": "sent",
+        "chars": 220
+      },
+      "is_error": false,
+      "sequence": 12
+    },
+    {
       "type": "final_answer",
       "text": "Order ORD-5001 is lost and qualifies for a full refund [refund-policy].\n\nYour refund of $129.99 for order ORD-5001 has been approved and issued (ref RF-ORD-5001); expect it in 5-7 business days.\n\nSources: [refund-policy]",
       "claims": {
         "route": "use_tools",
         "order_id": "ORD-5001",
         "order_status": "lost",
+        "reply_refund_issued": true,
+        "reply_refund_amount": 129.99,
+        "reply_refund_order_id": "ORD-5001",
         "approval_required": true,
         "approval_decision": "approved",
         "refund_issued": true,
         "refund_order_id": "ORD-5001",
         "refund_amount": 129.99,
         "grounded": true,
-        "citations": ["refund-policy"]
+        "citations": [
+          "refund-policy"
+        ]
       },
-      "sequence": 11
+      "sequence": 13
     }
   ],
   "metadata": {
