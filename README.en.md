@@ -5,13 +5,15 @@
 [![Python](https://img.shields.io/badge/python-%E2%89%A53.9-blue)](setup.cfg)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+![Agent Regression Kit: trace, business contract, CI gate](docs/assets/social-preview.png)
+
 **Regression tests for AI Agents: catch wrong tools, changed arguments, skipped steps, and incorrect business conclusions after changing a prompt, model, tool, or code.**
 
 [Bilingual homepage / 双语首页](README.md#english) · [中文](README.md#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥ 3.9 · Prepared patch `v4.38.1` (not yet tagged) · Latest published release `v4.38.0` · No required third-party core runtime dependencies
+Python ≥ 3.9 · Current release [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · No required third-party core runtime dependencies
 
-> Release status: the `v4.38.1` source contains the HelpPilot evidence and generated CI fixes. The tag/package is pending release; `v4.38.0` does not contain these fixes. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
+> `v4.38.1` includes the HelpPilot evidence and generated CI fixes missing from `v4.38.0`. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
 
 ## Contents
 
@@ -82,8 +84,7 @@ In one sentence: preserve evidence from a correct run, rerun after every change,
 ## 5-minute quick start
 
 This example is fully offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
-The install command below is for after the `v4.38.1` tag is published. Before
-then, install from this checkout with `python -m pip install .`.
+The install command below uses the published `v4.38.1` tag.
 
 ### 1. Install
 
@@ -175,7 +176,7 @@ Subsequent runs generate only a candidate. **Never overwrite the Baseline automa
 
 The repository also includes a pinned [independent LangGraph project pilot](docs/p1-langgraph-agent-stack-validation.md). It leaves the candidate business graph unchanged, records the exact tool evidence consumed by the Agent, and tests argument regression, skipped retrieval, result misinterpretation, and corrupted evidence. This is deterministic integration evidence, not upstream adoption or online-model quality evidence.
 
-The prepared `v4.38.1` [HelpPilot case study](docs/helppilot-case-study.md) runs a public LangGraph support project through order lookup, tracking, refund-policy retrieval, refund drafting, human approval, refund execution, and a cited reply. It rejects wrong-resource, skipped-tool, result-misread, extra-write, and changed-policy-body mutations. The pinned external commit, seeded/demo data, and deterministic substitutes make this reproducible integration evidence, not upstream adoption or production-quality evidence. The [historical v4.38.0 acceptance record](docs/v4.38.0-acceptance.md) preserves the original package's evidence boundary.
+The `v4.38.1` [HelpPilot case study](docs/helppilot-case-study.md) runs a public LangGraph support project through order lookup, tracking, refund-policy retrieval, refund drafting, human approval, refund execution, and a cited reply. It rejects wrong-resource, skipped-tool, result-misread, extra-write, and changed-policy-body mutations. The pinned external commit, seeded/demo data, and deterministic substitutes make this reproducible integration evidence, not upstream adoption or production-quality evidence. The [historical v4.38.0 acceptance record](docs/v4.38.0-acceptance.md) preserves the original package's evidence boundary.
 
 ## Configure business rules and noise filters
 
@@ -240,7 +241,7 @@ baselines/my-agent.trace.json           reviewed Baseline committed to Git
 .agent-regression/config.json           Contract and comparison policy
 ```
 
-The CI install below also requires the `v4.38.1` tag to have been published.
+The CI example installs the published `v4.38.1` tag.
 
 Minimal GitHub Actions workflow:
 
@@ -290,7 +291,7 @@ The current source is suitable for local development and team CI pilots. The mai
 
 The 2026-09-22 review found and fixed HelpPilot claim extraction, dropped actions,
 missing retrieval bodies, and generated CI tag references. The fixes are in
-the prepared `v4.38.1` source, not the published `v4.38.0` artifact. Historical
+the published `v4.38.1` package, not `v4.38.0`. Historical
 green CI does not rule out those false negatives; see the [patch acceptance record](docs/v4.38.1-acceptance.md).
 
 | Evidence | What it verifies | What it does not prove |

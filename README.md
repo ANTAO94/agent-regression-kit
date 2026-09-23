@@ -5,6 +5,8 @@
 [![Python](https://img.shields.io/badge/python-%E2%89%A53.9-blue)](setup.cfg)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+![Agent Regression Kit: trace, business contract, CI gate](docs/assets/social-preview.png)
+
 **Languages / 语言: [English](#english) · [简体中文](#简体中文)**
 
 ## English
@@ -13,9 +15,9 @@
 
 [中文](#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [English-only README](README.en.md) · [User manual](docs/user-manual.en.md)
 
-Python ≥ 3.9 · Prepared patch `v4.38.1` (not yet tagged) · Latest published release `v4.38.0` · No required third-party core runtime dependencies
+Python ≥ 3.9 · Current release [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · No required third-party core runtime dependencies
 
-> Release status: the `v4.38.1` source contains the HelpPilot evidence and generated CI fixes. The tag/package is pending release; `v4.38.0` does not contain these fixes. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
+> `v4.38.1` includes the HelpPilot evidence and generated CI fixes missing from `v4.38.0`. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
 
 ### English contents
 
@@ -62,8 +64,7 @@ An evaluation platform measures overall quality across datasets and cases. This 
 ### 5-minute quick start
 
 This starter example is offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
-The install command below is for after the `v4.38.1` tag is published. Before
-then, install from this checkout with `python -m pip install .`.
+The install command below uses the published `v4.38.1` tag.
 
 ```bash
 python3 -m venv .venv
@@ -161,7 +162,7 @@ baselines/my-agent.trace.json           reviewed Baseline committed to Git
 .agent-regression/config.json           Contract and comparison policy
 ```
 
-The CI install below also requires the `v4.38.1` tag to have been published.
+The CI example installs the published `v4.38.1` tag.
 
 ```yaml
 name: Agent regression
@@ -200,7 +201,7 @@ The source includes structured Traces, deterministic Contracts, tool and argumen
 
 The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-23 local source run recorded **317 passing tests** on Python 3.9.
 
-That review found and fixed HelpPilot claims taken from mutation flags, dropped actions, missing retrieval bodies, and generated CI tag references. The fixes are in the prepared `v4.38.1` source, not the published `v4.38.0` artifact. Earlier green CI does not rule out those false negatives. See the [patch acceptance record](docs/v4.38.1-acceptance.md) and [architecture/value review](docs/architecture-value-review.zh-CN.md).
+That review found and fixed HelpPilot claims taken from mutation flags, dropped actions, missing retrieval bodies, and generated CI tag references. The fixes are included in `v4.38.1`, not `v4.38.0`. Earlier green CI does not rule out those false negatives. See the [patch acceptance record](docs/v4.38.1-acceptance.md) and [architecture/value review](docs/architecture-value-review.zh-CN.md).
 
 | Evidence | What it verifies | What it does not prove |
 | --- | --- | --- |
@@ -249,9 +250,9 @@ License: [MIT](LICENSE).
 
 [English on this page](#english) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
 
-Python ≥ 3.9 · 待发布补丁 `v4.38.1`（尚未打 tag）· 当前已发布 `v4.38.0` · 核心无必需第三方运行时依赖
+Python ≥ 3.9 · 当前发布版 [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · 核心无必需第三方运行时依赖
 
-> 发布状态：`v4.38.1` 源码包含 HelpPilot 证据采集和初始化 CI 修复，但 tag/发布包仍待发布；`v4.38.0` 发布包不包含这些修复。见 [HelpPilot 案例](docs/helppilot-case-study.md)和[补丁验收记录](docs/v4.38.1-acceptance.md)。
+> `v4.38.1` 已包含 HelpPilot 证据采集和初始化 CI 修复，`v4.38.0` 发布包不包含这些修复。见 [HelpPilot 案例](docs/helppilot-case-study.md)和[补丁验收记录](docs/v4.38.1-acceptance.md)。
 
 ## 目录
 
@@ -322,7 +323,7 @@ flowchart TD
 ## 5 分钟跑通
 
 以下示例完全离线，不需要模型 API Key。命令适用于 macOS、Linux 和 Windows WSL。
-以下 `v4.38.1` 安装命令须等 tag 发布后使用；发布前可在本仓库目录执行 `python -m pip install .`。
+以下命令从已发布的 `v4.38.1` tag 安装。
 
 ### 1. 安装
 
@@ -414,7 +415,7 @@ agent-regression baseline accept \
 
 仓库还提供一条固定 commit 的[独立 LangGraph 项目接入验证](docs/p1-langgraph-agent-stack-validation.md)：不修改候选项目业务图，从真实事件流记录 Agent 实际消费的工具证据，并验证参数回归、漏调用、结果误读和证据正文损坏。它是确定性技术预演，不代表上游采用或在线模型质量。
 
-待发布的 `v4.38.1` [HelpPilot 案例](docs/helppilot-case-study.md)在公开 LangGraph 客服项目中跑通“查询订单 → 查询物流 → 检查退款政策 → 创建退款草稿 → 人工审批 → 执行退款 → 回复引用”，并验证错误资源、漏工具、结果误读、额外写操作和检索正文变化。固定 commit、seed/demo 数据和确定性替身使其可复现；这不代表上游采用或生产质量。[历史 v4.38.0 验收记录](docs/v4.38.0-acceptance.md)保留了原发布包的证据边界。
+`v4.38.1` 的 [HelpPilot 案例](docs/helppilot-case-study.md)在公开 LangGraph 客服项目中跑通“查询订单 → 查询物流 → 检查退款政策 → 创建退款草稿 → 人工审批 → 执行退款 → 回复引用”，并验证错误资源、漏工具、结果误读、额外写操作和检索正文变化。固定 commit、seed/demo 数据和确定性替身使其可复现；这不代表上游采用或生产质量。[历史 v4.38.0 验收记录](docs/v4.38.0-acceptance.md)保留了原发布包的证据边界。
 
 ## 配置业务规则与噪音过滤
 
@@ -480,7 +481,7 @@ baselines/my-agent.trace.json           人工审核并提交的 baseline
 .agent-regression/config.json           Contract 和比较策略
 ```
 
-下面的 CI 安装命令同样需要等 `v4.38.1` tag 发布。
+下面的 CI 示例安装已发布的 `v4.38.1` tag。
 
 最小 GitHub Actions：
 
@@ -529,7 +530,7 @@ jobs:
 当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；2026-09-23 的本地源码运行在 Python 3.9 上有 **317 个测试通过**。
 
 2026-09-22 复审发现并在 main 修复 HelpPilot claims、动作过滤和检索正文采集缺口，以及初始化 CI 的 tag 引用。
-修复已在待发布的 v4.38.1 源码中，尚未进入已发布的 v4.38.0 包。原有 CI 结果不能证明不存在这些漏报，详见
+修复已进入 v4.38.1 发布包，但不在 v4.38.0 中。原有 CI 结果不能证明不存在这些漏报，详见
 [补丁验收记录](docs/v4.38.1-acceptance.md)和
 [架构与开源价值复审](docs/architecture-value-review.zh-CN.md)。
 
