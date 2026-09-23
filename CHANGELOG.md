@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.38.1 - 2026-09-23
+
 - Fix generated CI refs to use the published `v`-prefixed Git tag.
 - Fix HelpPilot answer claims to parse the actual final reply; reject missing
   supported facts instead of filling expected values from mutation flags.
@@ -10,6 +12,8 @@
 - Add regression tests for wrong replies without mutation flags, hidden CRM
   writes, missing evidence and changed policy bodies with unchanged IDs.
 - Re-review the HelpPilot fixture baseline for the expanded evidence shape.
+- Add a reproducible bilingual HelpPilot case study and acceptance checklist for
+  this corrective release; no Trace schema or comparison API change.
 
 ## 4.38.0 - 2026-09-21
 

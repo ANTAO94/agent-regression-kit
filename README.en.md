@@ -9,9 +9,9 @@
 
 [Bilingual homepage / 双语首页](README.md#english) · [中文](README.md#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥ 3.9 · Current release `v4.38.0` · No required third-party core runtime dependencies
+Python ≥ 3.9 · Prepared patch `v4.38.1` (not yet tagged) · Latest published release `v4.38.0` · No required third-party core runtime dependencies
 
-> Release status: fixes to HelpPilot evidence capture and generated CI references landed on `main` on 2026-09-22. **They are not part of the v4.38.0 release artifact.** Validation of the current source does not establish the behavior of that release package.
+> Release status: the `v4.38.1` source contains the HelpPilot evidence and generated CI fixes. The tag/package is pending release; `v4.38.0` does not contain these fixes. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
 
 ## Contents
 
@@ -82,15 +82,19 @@ In one sentence: preserve evidence from a correct run, rerun after every change,
 ## 5-minute quick start
 
 This example is fully offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
+The install command below is for after the `v4.38.1` tag is published. Before
+then, install from this checkout with `python -m pip install .`.
 
 ### 1. Install
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
 agent-regression --version
 ```
+
+The published `v4.38.0` package lacks the fixes.
 
 ### 2. Generate a runnable project
 
@@ -171,7 +175,7 @@ Subsequent runs generate only a candidate. **Never overwrite the Baseline automa
 
 The repository also includes a pinned [independent LangGraph project pilot](docs/p1-langgraph-agent-stack-validation.md). It leaves the candidate business graph unchanged, records the exact tool evidence consumed by the Agent, and tests argument regression, skipped retrieval, result misinterpretation, and corrupted evidence. This is deterministic integration evidence, not upstream adoption or online-model quality evidence.
 
-The `v4.38.0` release includes a more business-shaped [HelpPilot independent workflow](docs/v4.38.0-acceptance.md): it runs a public LangGraph support project through order lookup, tracking, refund-policy retrieval, refund drafting, human approval, refund execution, and a cited reply, then rejects wrong-resource, skipped-tool, and result-misread mutations. It pins the external commit and uses seeded/demo data plus deterministic substitutes; no payment or customer credentials are used. This is reproducible integration evidence, not upstream adoption or production-quality evidence. The missed-failure fixes found on review are on `main`, not in the published `v4.38.0` package.
+The prepared `v4.38.1` [HelpPilot case study](docs/helppilot-case-study.md) runs a public LangGraph support project through order lookup, tracking, refund-policy retrieval, refund drafting, human approval, refund execution, and a cited reply. It rejects wrong-resource, skipped-tool, result-misread, extra-write, and changed-policy-body mutations. The pinned external commit, seeded/demo data, and deterministic substitutes make this reproducible integration evidence, not upstream adoption or production-quality evidence. The [historical v4.38.0 acceptance record](docs/v4.38.0-acceptance.md) preserves the original package's evidence boundary.
 
 ## Configure business rules and noise filters
 
@@ -236,6 +240,8 @@ baselines/my-agent.trace.json           reviewed Baseline committed to Git
 .agent-regression/config.json           Contract and comparison policy
 ```
 
+The CI install below also requires the `v4.38.1` tag to have been published.
+
 Minimal GitHub Actions workflow:
 
 ```yaml
@@ -251,7 +257,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare
@@ -280,23 +286,23 @@ Exit codes: **0 = pass, 1 = regression, 2 = invalid input, configuration, or exe
 
 ## Validation status
 
-The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-22 source review recorded **316 passing tests**.
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-23 local source run recorded **317 passing tests** on Python 3.9.
 
 The 2026-09-22 review found and fixed HelpPilot claim extraction, dropped actions,
-missing retrieval bodies, and generated CI tag references on main. These fixes
-are not included in the v4.38.0 release artifact. Historical green CI does not
-rule out those false negatives; see the [acceptance correction](docs/v4.38.0-acceptance.md).
+missing retrieval bodies, and generated CI tag references. The fixes are in
+the prepared `v4.38.1` source, not the published `v4.38.0` artifact. Historical
+green CI does not rule out those false negatives; see the [patch acceptance record](docs/v4.38.1-acceptance.md).
 
 | Evidence | What it verifies | What it does not prove |
 | --- | --- | --- |
 | [Independent consumer repository](docs/consumer-pilot.md) | Released wheel, public API, CLI, and three regression gates work outside this checkout | Zero-code compatibility with every Agent |
 | [Independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) | Real external graph events, fixed evidence, and four negative scenarios | Upstream adoption or online-model quality |
-| [HelpPilot independent business workflow](docs/v4.38.0-acceptance.md) | External graph, SQLite tools, RAG, human approval, and three business-shaped regressions | Production quality, upstream adoption, or real-money safety |
+| [HelpPilot case study](docs/helppilot-case-study.md) | External graph, SQLite tools, RAG, human approval, and business-shaped regressions | Production quality, upstream adoption, or real-money safety |
 | [DeepSeek live run](docs/deepseek-live.md) | Real model order lookup and a two-tool dependency | Reliability across every model and business domain |
 | [τ²-bench](docs/tau2-independent-validation.md) | Rule behavior and false-alarm/missed-failure evidence on pinned public trajectories | Generalization to unseen data |
 | AgentDojo acceptance matrix | Contracts, hashes, and repeatability on pinned public security trajectories | A complete security rate |
 
-Still missing: 10–20 business-owner-reviewed cases, sustained use by multiple independent projects, false-alarm and missed-failure evidence from real change cycles, and usability studies with people who did not build the framework. See the [product iteration plan](docs/product-iteration-plan.zh-CN.md) and [limitations](docs/limitations.md).
+These are pinned, maintainer-run pilots, not evidence of sustained independent adoption or production reliability. See the [product iteration plan](docs/product-iteration-plan.zh-CN.md) and [limitations](docs/limitations.md).
 
 ## What it does not solve
 

@@ -13,9 +13,9 @@
 
 [中文](#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [English-only README](README.en.md) · [User manual](docs/user-manual.en.md)
 
-Python ≥ 3.9 · Current release `v4.38.0` · No required third-party core runtime dependencies
+Python ≥ 3.9 · Prepared patch `v4.38.1` (not yet tagged) · Latest published release `v4.38.0` · No required third-party core runtime dependencies
 
-> Release status: fixes to HelpPilot evidence capture and generated CI references landed on `main` on 2026-09-22. **They are not part of the v4.38.0 release artifact.** Validation of the current source does not establish the behavior of that release package.
+> Release status: the `v4.38.1` source contains the HelpPilot evidence and generated CI fixes. The tag/package is pending release; `v4.38.0` does not contain these fixes. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
 
 ### English contents
 
@@ -62,18 +62,20 @@ An evaluation platform measures overall quality across datasets and cases. This 
 ### 5-minute quick start
 
 This starter example is offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
+The install command below is for after the `v4.38.1` tag is published. Before
+then, install from this checkout with `python -m pip install .`.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
 agent-regression --version
 mkdir agent-regression-demo
 cd agent-regression-demo
 agent-regression init
 ```
 
-`init` creates an offline Agent, fixed tool results, a starter Baseline, a strict Contract, a CI example, and integration notes. Its Baseline demonstrates the template; it is not approval of your business behavior.
+The published `v4.38.0` package lacks the fixes. `init` creates an offline Agent, fixed tool results, a starter Baseline, a strict Contract, a CI example, and integration notes. Its Baseline demonstrates the template; it is not approval of your business behavior.
 
 Run the passing case:
 
@@ -114,7 +116,7 @@ agent-regression baseline accept \
   --out baselines/my-agent.trace.json
 ```
 
-Future runs should regenerate the Candidate only. **Do not overwrite the Baseline automatically in CI.** The [independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) and [HelpPilot workflow](docs/v4.38.0-acceptance.md) show deterministic external-project integrations. They do not establish upstream adoption or online-model quality. The HelpPilot evidence fixes described below are on `main`, not in the `v4.38.0` package.
+Future runs should regenerate the Candidate only. **Do not overwrite the Baseline automatically in CI.** The [independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) and [HelpPilot case study](docs/helppilot-case-study.md) show deterministic external-project integrations. They do not establish upstream adoption or online-model quality.
 
 ### Configure business rules and noise filters
 
@@ -159,6 +161,8 @@ baselines/my-agent.trace.json           reviewed Baseline committed to Git
 .agent-regression/config.json           Contract and comparison policy
 ```
 
+The CI install below also requires the `v4.38.1` tag to have been published.
+
 ```yaml
 name: Agent regression
 on: [push, pull_request]
@@ -172,7 +176,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare
@@ -194,20 +198,20 @@ The source includes structured Traces, deterministic Contracts, tool and argumen
 
 ### Validation status
 
-The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-22 source review recorded **316 passing tests**.
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-23 local source run recorded **317 passing tests** on Python 3.9.
 
-That review found and fixed HelpPilot claims taken from mutation flags, dropped actions, missing retrieval bodies, and generated CI tag references on `main`. **The fixes are not in the v4.38.0 release artifact.** Earlier green CI does not rule out those false negatives. See the [acceptance correction](docs/v4.38.0-acceptance.md) and [architecture/value review](docs/architecture-value-review.zh-CN.md).
+That review found and fixed HelpPilot claims taken from mutation flags, dropped actions, missing retrieval bodies, and generated CI tag references. The fixes are in the prepared `v4.38.1` source, not the published `v4.38.0` artifact. Earlier green CI does not rule out those false negatives. See the [patch acceptance record](docs/v4.38.1-acceptance.md) and [architecture/value review](docs/architecture-value-review.zh-CN.md).
 
 | Evidence | What it verifies | What it does not prove |
 | --- | --- | --- |
 | [Independent consumer repository](docs/consumer-pilot.md) | Released wheel, public API, CLI, and three regression gates run outside this checkout | Zero-code compatibility with every Agent |
 | [Independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) | External graph events, pinned evidence, and four negative cases | Upstream adoption or online-model quality |
-| [HelpPilot independent workflow](docs/v4.38.0-acceptance.md) | External graph, SQLite tools, RAG, human approval, and business-shaped regressions | Production quality or real-money safety |
+| [HelpPilot case study](docs/helppilot-case-study.md) | External graph, SQLite tools, RAG, human approval, and business-shaped regressions | Production quality or real-money safety |
 | [DeepSeek live run](docs/deepseek-live.md) | Real-model order lookup and two-tool dependency | Reliability across every model or domain |
 | [τ²-bench](docs/tau2-independent-validation.md) | Rule behavior and error evidence on pinned public trajectories | Generalization to unseen data |
 | AgentDojo acceptance matrix | Contracts, hashes, and repeatability on pinned public security trajectories | A complete security rate |
 
-Still missing are 10–20 business-owner-reviewed cases, sustained use across multiple independent projects, false-alarm and missed-failure evidence from real change cycles, and usability studies with people outside the development team. See the [iteration plan](docs/product-iteration-plan.zh-CN.md) and [limitations](docs/limitations.md).
+These are pinned, maintainer-run pilots, not evidence of sustained independent adoption or production reliability. See the [iteration plan](docs/product-iteration-plan.zh-CN.md) and [limitations](docs/limitations.md).
 
 ### What it does not solve
 
@@ -245,9 +249,9 @@ License: [MIT](LICENSE).
 
 [English on this page](#english) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
 
-Python ≥ 3.9 · 当前 Release `v4.38.0` · 核心无必需第三方运行时依赖
+Python ≥ 3.9 · 待发布补丁 `v4.38.1`（尚未打 tag）· 当前已发布 `v4.38.0` · 核心无必需第三方运行时依赖
 
-> 发布状态：2026-09-22 的 HelpPilot 证据采集和初始化 CI 修复已合入 `main`，**尚未进入 v4.38.0 发布包**。下面标注“当前源码”的验证结果不等于该发布包的能力。
+> 发布状态：`v4.38.1` 源码包含 HelpPilot 证据采集和初始化 CI 修复，但 tag/发布包仍待发布；`v4.38.0` 发布包不包含这些修复。见 [HelpPilot 案例](docs/helppilot-case-study.md)和[补丁验收记录](docs/v4.38.1-acceptance.md)。
 
 ## 目录
 
@@ -318,15 +322,18 @@ flowchart TD
 ## 5 分钟跑通
 
 以下示例完全离线，不需要模型 API Key。命令适用于 macOS、Linux 和 Windows WSL。
+以下 `v4.38.1` 安装命令须等 tag 发布后使用；发布前可在本仓库目录执行 `python -m pip install .`。
 
 ### 1. 安装
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
 agent-regression --version
 ```
+
+已发布的 `v4.38.0` 不包含本次修复。
 
 ### 2. 生成可运行项目
 
@@ -407,7 +414,7 @@ agent-regression baseline accept \
 
 仓库还提供一条固定 commit 的[独立 LangGraph 项目接入验证](docs/p1-langgraph-agent-stack-validation.md)：不修改候选项目业务图，从真实事件流记录 Agent 实际消费的工具证据，并验证参数回归、漏调用、结果误读和证据正文损坏。它是确定性技术预演，不代表上游采用或在线模型质量。
 
-`v4.38.0` 提供一条更贴近业务流程的[HelpPilot 独立项目验证](docs/v4.38.0-acceptance.md)：在公开的 LangGraph 客服项目中跑通“查询订单 → 查询物流 → 检查退款政策 → 创建退款草稿 → 人工审批 → 执行退款 → 回复引用”的跨步骤链路，并验证错误资源、漏工具和结果误读。它使用固定 commit、seed/demo 数据和确定性替身，不使用支付或客户凭证；这是可复现的接入证据，不代表 HelpPilot 上游采用或生产质量。复审发现的漏报修复只在当前 `main`，不属于已发布的 `v4.38.0`。
+待发布的 `v4.38.1` [HelpPilot 案例](docs/helppilot-case-study.md)在公开 LangGraph 客服项目中跑通“查询订单 → 查询物流 → 检查退款政策 → 创建退款草稿 → 人工审批 → 执行退款 → 回复引用”，并验证错误资源、漏工具、结果误读、额外写操作和检索正文变化。固定 commit、seed/demo 数据和确定性替身使其可复现；这不代表上游采用或生产质量。[历史 v4.38.0 验收记录](docs/v4.38.0-acceptance.md)保留了原发布包的证据边界。
 
 ## 配置业务规则与噪音过滤
 
@@ -473,6 +480,8 @@ baselines/my-agent.trace.json           人工审核并提交的 baseline
 .agent-regression/config.json           Contract 和比较策略
 ```
 
+下面的 CI 安装命令同样需要等 `v4.38.1` tag 发布。
+
 最小 GitHub Actions：
 
 ```yaml
@@ -488,7 +497,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare
@@ -517,23 +526,23 @@ jobs:
 
 ## 已验证到什么程度
 
-当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；2026-09-22 的源码复审记录了 **316 个测试通过**。
+当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；2026-09-23 的本地源码运行在 Python 3.9 上有 **317 个测试通过**。
 
 2026-09-22 复审发现并在 main 修复 HelpPilot claims、动作过滤和检索正文采集缺口，以及初始化 CI 的 tag 引用。
-修复尚未进入 v4.38.0 发布包。原有 CI 结果不能证明不存在这些漏报，详见
-[验收更正](docs/v4.38.0-acceptance.md)和
+修复已在待发布的 v4.38.1 源码中，尚未进入已发布的 v4.38.0 包。原有 CI 结果不能证明不存在这些漏报，详见
+[补丁验收记录](docs/v4.38.1-acceptance.md)和
 [架构与开源价值复审](docs/architecture-value-review.zh-CN.md)。
 
 | 证据 | 已验证 | 不能说明 |
 | --- | --- | --- |
 | [独立消费仓库](docs/consumer-pilot.md) | 发布 wheel、公开 API、CLI 和三类回归门禁可在独立仓库运行 | 不代表无代码兼容所有 Agent |
 | [独立 LangGraph 技术预演](docs/p1-langgraph-agent-stack-validation.md) | 真实外部 graph 的事件接入、固定资料和四类负向场景 | 不代表上游采用或在线模型质量 |
-| [HelpPilot 独立业务流程](docs/v4.38.0-acceptance.md) | 真实外部 graph、SQLite 工具、RAG、人工审批和三类业务形状回归 | 不代表生产质量、上游采用或真实资金安全 |
+| [HelpPilot 业务案例](docs/helppilot-case-study.md) | 真实外部 graph、SQLite 工具、RAG、人工审批和业务形状回归 | 不代表生产质量、上游采用或真实资金安全 |
 | [DeepSeek 实测](docs/deepseek-live.md) | 真实模型的订单查询和两步工具依赖 | 不代表所有模型或所有业务可靠 |
 | [τ²-bench](docs/tau2-independent-validation.md) | 固定公开轨迹上的规则验证和误报/漏报记录 | 不代表未见数据泛化 |
 | AgentDojo 验收矩阵 | 固定公开安全轨迹的 Contract、哈希和重复性 | 不代表完整安全率 |
 
-仍缺少：10–20 个业务负责人审核的真实案例、多个独立项目连续使用、真实改动周期中的误报/漏报记录，以及未参与开发者的可用性研究。详见[后续迭代方案](docs/product-iteration-plan.zh-CN.md)和[能力限制](docs/limitations.md)。
+这些是固定版本、维护者执行的预演，尚不能证明独立项目持续采用或生产可靠性。详见[后续迭代方案](docs/product-iteration-plan.zh-CN.md)和[能力限制](docs/limitations.md)。
 
 ## 不解决什么
 

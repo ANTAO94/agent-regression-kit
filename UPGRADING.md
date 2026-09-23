@@ -4,6 +4,23 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## v4.38.0 → v4.38.1
+
+This corrective release does not change the Trace schema, public comparison
+API, exit codes, or existing Contract syntax. It fixes the generated CI tag
+reference and HelpPilot pilot evidence capture: final-reply claims now come
+from the reply, all logged actions remain visible, and retrieved bodies are
+recorded at the tool boundary. Re-record and review any HelpPilot-derived
+baseline before accepting it; a green v4.38.0 comparison did not rule out
+these false negatives. See the [v4.38.1 acceptance record](docs/v4.38.1-acceptance.md).
+
+## v4.38.0 → v4.38.1（中文）
+
+此修正版本不改变 Trace schema、公开比较 API、退出码或现有 Contract 语法。它修复初始化生成的
+CI tag 引用和 HelpPilot 预演的证据采集：回复 claims 来自实际回复，所有日志动作均保留，检索正文
+在工具边界录制。由 HelpPilot 旧版本衍生的 baseline 应重新录制并审核后才接受；v4.38.0 的绿色
+比较不能排除这些漏报。详见 [v4.38.1 验收记录](docs/v4.38.1-acceptance.md)。
+
 ## v4.37.0 → v4.38.0
 
 v4.38 adds the pinned HelpPilot external-business pilot and does not change the

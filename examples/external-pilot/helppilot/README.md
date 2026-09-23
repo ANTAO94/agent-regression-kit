@@ -1,12 +1,12 @@
 # HelpPilot external validation / HelpPilot 独立项目验证
 
-This example validates the published Agent Regression Kit boundary against the
+This example validates the packaged Agent Regression Kit boundary against the
 independent public [poysa213/HelpPilot](https://github.com/poysa213/HelpPilot)
 repository. HelpPilot owns the LangGraph graph, SQLite business tools, RAG
 boundary and human approval interrupt. This repository owns only the adapter,
 the reviewed baseline and the Contract.
 
-这个案例把正式发布的 Agent Regression Kit 接到独立公开项目
+这个案例把 Agent Regression Kit 构建包接到独立公开项目
 [poysa213/HelpPilot](https://github.com/poysa213/HelpPilot)。HelpPilot 自己维护
 LangGraph 图、SQLite 业务工具、RAG 边界和人工审批 interrupt；本仓库只维护接入脚本、审核过的
 baseline 和 Contract，不复制候选项目实现。

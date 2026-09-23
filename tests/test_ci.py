@@ -118,11 +118,17 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("poysa213/HelpPilot.git", workflow)
         self.assertIn("3767824fb90b89a8b19fc4169d912645aaf6fe0b", workflow)
         self.assertIn("agent-regression-kit", workflow)
-        self.assertIn('== "4.38.0"', workflow)
+        self.assertIn('== "4.38.1"', workflow)
         self.assertIn("tool_argument_policy", workflow)
         self.assertIn("required_tool", workflow)
         self.assertIn("contract_assertion", workflow)
         self.assertIn("helppilot-external-pilot", workflow)
+
+    def test_langgraph_external_workflow_checks_patch_version(self):
+        workflow = (ROOT / ".github/workflows/langgraph-external-pilot.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('== "4.38.1"', workflow)
 
     def test_workflows_use_node24_official_actions_and_governance_exists(self):
         workflows = "\n".join(
