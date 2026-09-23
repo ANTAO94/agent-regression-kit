@@ -5,13 +5,19 @@
 [![Python](https://img.shields.io/badge/python-%E2%89%A53.9-blue)](setup.cfg)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+**语言 / Languages: [简体中文](#简体中文) · [English](#english)**
+
+## 简体中文
+
 **给 AI Agent 加回归测试：在 Prompt、模型、工具或代码变化后，发现错误工具、错误参数、漏步骤和错误业务结论。**
 
-[English](README.en.md) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
+[English on this page](#english) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
 
 Python ≥ 3.9 · 当前 Release `v4.38.0` · 核心无必需第三方运行时依赖
 
-## Contents
+> 发布状态：2026-09-22 的 HelpPilot 证据采集和初始化 CI 修复已合入 `main`，**尚未进入 v4.38.0 发布包**。下面标注“当前源码”的验证结果不等于该发布包的能力。
+
+## 目录
 
 - [为什么需要它](#为什么需要它)
 - [工作方式](#工作方式)
@@ -19,7 +25,7 @@ Python ≥ 3.9 · 当前 Release `v4.38.0` · 核心无必需第三方运行时�
 - [接入自己的 Agent](#接入自己的-agent)
 - [配置业务规则与噪音过滤](#配置业务规则与噪音过滤)
 - [放进 CI](#放进-ci)
-- [当前能力与验证状态](#当前能力)
+- [当前源码能力与验证状态](#当前源码能力)
 - [边界与文档导航](#不解决什么)
 
 ## 为什么需要它
@@ -169,7 +175,7 @@ agent-regression baseline accept \
 
 仓库还提供一条固定 commit 的[独立 LangGraph 项目接入验证](docs/p1-langgraph-agent-stack-validation.md)：不修改候选项目业务图，从真实事件流记录 Agent 实际消费的工具证据，并验证参数回归、漏调用、结果误读和证据正文损坏。它是确定性技术预演，不代表上游采用或在线模型质量。
 
-本版本还提供一条更贴近业务流程的[HelpPilot 独立项目验证](docs/v4.38.0-acceptance.md)：在公开的 LangGraph 客服项目中实际跑通“查询订单 → 查询物流 → 检查退款政策 → 创建退款草稿 → 人工审批 → 执行退款 → 回复引用”的跨步骤链路，并验证错误资源、漏工具和结果误读。它使用固定 commit、seed/demo 数据和确定性替身，不使用支付或客户凭证；这是可复现的接入证据，不代表 HelpPilot 上游采用或生产质量。
+`v4.38.0` 提供一条更贴近业务流程的[HelpPilot 独立项目验证](docs/v4.38.0-acceptance.md)：在公开的 LangGraph 客服项目中跑通“查询订单 → 查询物流 → 检查退款政策 → 创建退款草稿 → 人工审批 → 执行退款 → 回复引用”的跨步骤链路，并验证错误资源、漏工具和结果误读。它使用固定 commit、seed/demo 数据和确定性替身，不使用支付或客户凭证；这是可复现的接入证据，不代表 HelpPilot 上游采用或生产质量。复审发现的漏报修复只在当前 `main`，不属于已发布的 `v4.38.0`。
 
 ## 配置业务规则与噪音过滤
 
@@ -266,7 +272,7 @@ jobs:
 
 退出码约定：**0 = 通过，1 = 发现回归，2 = 输入、配置或运行错误。** 不要给比较命令添加 `|| true` 或 `continue-on-error`。
 
-## 当前能力
+## 当前源码能力
 
 - 结构化 Trace、baseline/candidate 比较和确定性 Contract；
 - 工具参数、结果、调用次数、调用路径和未授权工具检查；
@@ -279,11 +285,11 @@ jobs:
 
 ## 已验证到什么程度
 
-当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；当前源码树通过 **316 个测试**。
+当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；2026-09-22 的源码复审记录了 **316 个测试通过**。
 
 2026-09-22 复审发现并在 main 修复 HelpPilot claims、动作过滤和检索正文采集缺口，以及初始化 CI 的 tag 引用。
 修复尚未进入 v4.38.0 发布包。原有 CI 结果不能证明不存在这些漏报，详见
-[验收更正](docs/v4.38.0-acceptance.md#correction-after-review--复审更正2026-09-22)和
+[验收更正](docs/v4.38.0-acceptance.md)和
 [架构与开源价值复审](docs/architecture-value-review.zh-CN.md)。
 
 | 证据 | 已验证 | 不能说明 |
@@ -323,6 +329,238 @@ python -m pip install .
 python -m unittest discover -s tests -v
 ```
 
-## License
+## 许可证
 
 [MIT](LICENSE)
+
+---
+
+## English
+
+**Regression tests for AI Agents: catch wrong tools, changed arguments, skipped steps, and incorrect business conclusions after changing a prompt, model, tool, or code.**
+
+[中文](#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [English-only README](README.en.md) · [User manual](docs/user-manual.en.md)
+
+Python ≥ 3.9 · Current release `v4.38.0` · No required third-party core runtime dependencies
+
+> Release status: fixes to HelpPilot evidence capture and generated CI references landed on `main` on 2026-09-22. **They are not part of the v4.38.0 release artifact.** Validation of the current source does not establish the behavior of that release package.
+
+### English contents
+
+- [Why this exists](#why-this-exists)
+- [How it works and key terms](#how-it-works)
+- [5-minute quick start](#5-minute-quick-start)
+- [Connect your Agent](#connect-your-agent)
+- [Configure business rules and noise filters](#configure-business-rules-and-noise-filters)
+- [Run in CI](#run-in-ci)
+- [Source capabilities and validation evidence](#current-source-capabilities)
+- [Boundaries and documentation](#what-it-does-not-solve)
+
+### Why this exists
+
+An Agent can produce a plausible final answer while its execution has regressed. A prompt change might call the wrong tool, send `order_id="132"` instead of `"123"`, repeat a refund, skip a required step, or read “not shipped” and answer “shipped.”
+
+Agent Regression Kit records a real run as a structured **Trace**. It compares the new run with a reviewed **Baseline** and explicit business **Contract**, reports concrete differences, and returns an exit code that can block CI.
+
+| Same request: look up order 123 | Tool behavior | Final conclusion | Result |
+| --- | --- | --- | --- |
+| Reviewed version | `get_order(order_id="123")` | Not shipped | Save as Baseline |
+| Correct changed version | Same tool and order | Not shipped | Pass |
+| Argument regression | `get_order(order_id="132")` | Another order's status | Block |
+| Result misread | Correct tool and result | Incorrectly says “shipped” | Block |
+
+An evaluation platform measures overall quality across datasets and cases. This kit checks what a particular change did to recorded behavior. They can work together: the platform handles batch quality metrics; this kit provides behavioral evidence, precise differences, and a CI gate.
+
+### How it works
+
+1. Run the reviewed Agent and commit its approved Trace as a Baseline.
+2. Run the changed Agent and record a fresh Candidate Trace.
+3. Apply a Contract and compare the two Traces. CI continues on a pass and stops on a blocking regression.
+
+| Term | Meaning | Typical file |
+| --- | --- | --- |
+| Trace | One run's request, tool calls, arguments, results, final answer, and structured conclusions | `*.trace.json` |
+| Baseline | A reviewed Trace committed to Git | `baselines/*.trace.json` |
+| Candidate | A fresh Trace from the current implementation | `work/*.trace.json` |
+| Contract | Required or forbidden tools, assertions, path, and side-effect rules | `.agent-regression/config.json` |
+| Claims | Structured business facts extracted from the Agent's **actual output** | `final_answer.claims` |
+
+> The kit cannot infer your correct business answer. Review each Baseline and derive claims from actual output; do not fill in expected answers as claims.
+
+### 5-minute quick start
+
+This starter example is offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+agent-regression --version
+mkdir agent-regression-demo
+cd agent-regression-demo
+agent-regression init
+```
+
+`init` creates an offline Agent, fixed tool results, a starter Baseline, a strict Contract, a CI example, and integration notes. Its Baseline demonstrates the template; it is not approval of your business behavior.
+
+Run the passing case:
+
+```bash
+python scripts/record_agent.py --variant normal --out work/my-agent.trace.json
+agent-regression check --config .agent-regression/config.json
+agent-regression compare --config .agent-regression/config.json
+```
+
+Expect `passed: true` and exit code **0**. Then prove the gate can fail:
+
+```bash
+python scripts/record_agent.py --variant wrong-resource --out work/my-agent.trace.json
+agent-regression compare --config .agent-regression/config.json
+```
+
+Expect `passed: false` and exit code **1**: the framework detected a regression. The report identifies changed resources, missing calls, arguments, or business conclusions. Other negative variants are `skip-tool` and `misread-result`. Run `agent-regression ui` to inspect Traces and reports in a read-only local Viewer; the CLI decides the result.
+
+### Connect your Agent
+
+A real integration must record the tool name, actual arguments and returned result at the execution boundary; capture the Agent's actual final answer; and extract important business facts into claims.
+
+| Your Agent | Entry point |
+| --- | --- |
+| PydanticAI, OpenAI Agents SDK, LangGraph | [Framework converters](docs/framework-integrations.md) |
+| Custom Python Agent | [Callback example](examples/framework_callback_example.py) |
+| Existing tool start/end events | [Event ingestion example](examples/langchain_core_event_example.py) |
+| MCP tool or server | [MCP example](examples/mcp_record_example.py) |
+| Sync/async Adapter scaffold | `agent-regression adapter-init --name my-agent --mode both` |
+
+The integration calls your Agent in `invoke_framework(request, context)`, routes real tool execution through `context.call_tool(...)`, and saves the final answer and extracted facts through `context.final_answer(text, claims)`.
+
+Inspect the first Trace before accepting it:
+
+```bash
+agent-regression baseline accept \
+  --trace work/my-agent.trace.json \
+  --out baselines/my-agent.trace.json
+```
+
+Future runs should regenerate the Candidate only. **Do not overwrite the Baseline automatically in CI.** The [independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) and [HelpPilot workflow](docs/v4.38.0-acceptance.md) show deterministic external-project integrations. They do not establish upstream adoption or online-model quality. The HelpPilot evidence fixes described below are on `main`, not in the `v4.38.0` package.
+
+### Configure business rules and noise filters
+
+The Baseline stores reference behavior; the config stores decision rules. This example allows wording changes while checking tools, arguments, and business conclusions:
+
+```json
+{
+  "baseline": "baselines/my-agent.trace.json",
+  "candidate": "work/my-agent.trace.json",
+  "report": "work/reports/compare.json",
+  "final_answer_mode": "claims-only",
+  "contract": {
+    "required_claims": ["final_answer.claims.order_status"],
+    "assertions": [
+      {"path": "final_answer.claims.order_status", "equals": "not_shipped"}
+    ],
+    "must_call": [
+      {"tool": "get_order", "arguments": {"order_id": "123"}}
+    ],
+    "must_not_call": ["cancel_order", "refund"],
+    "ignore_paths": ["tool_results[*].result.request_id"]
+  }
+}
+```
+
+```bash
+agent-regression check --config .agent-regression/config.json
+agent-regression compare --config .agent-regression/config.json
+```
+
+Use `ignore_paths` or normalizers for request IDs and timestamps; `must_call`, `must_not_call`, and `tool_allowlist` for tool boundaries; `tool_limits` and `max_steps` for loops; `path_rules` and `state_equivalence` for safe route variation; `relations` for cross-step arguments; and world-state snapshots plus `side_effects` for state changes. Pair each relaxed rule with a negative case: ignoring a request ID must not allow a wrong order ID. See the [configuration manual](docs/user-manual.en.md).
+
+For batches with different legitimate outcomes, `case_contracts` selects assertions by relative Trace path, such as `orders/shipped.trace.json`. Cases without an override use the default Contract; unsafe paths, missing Traces, and invalid Contracts fail. See the [batch-case guide](docs/usage-guide.en.md#6-multiple-cases-and-ci).
+
+### Run in CI
+
+Commit the recording script, reviewed Baseline, and Contract. CI generates only the Candidate:
+
+```text
+scripts/record_agent.py                 runs the Agent and writes a Candidate
+baselines/my-agent.trace.json           reviewed Baseline committed to Git
+.agent-regression/config.json           Contract and comparison policy
+```
+
+```yaml
+name: Agent regression
+on: [push, pull_request]
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.0"
+      - name: Record candidate
+        run: python scripts/record_agent.py --out work/my-agent.trace.json
+      - name: Compare
+        run: agent-regression compare --config .agent-regression/config.json
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-regression-report
+          path: work/reports/
+          if-no-files-found: error
+```
+
+Exit codes are **0 = pass, 1 = regression, 2 = invalid input, configuration, or execution error.** Keep the comparison step blocking; do not add `|| true` or `continue-on-error`.
+
+### Current source capabilities
+
+The source includes structured Traces, deterministic Contracts, tool and argument checks, call counts and paths, cross-step relations, final-state and side-effect checks, synchronous/asynchronous/concurrent/multi-turn runs, MCP stdio and Streamable HTTP recording, framework converters, JSON/Markdown/JUnit reports, a local Viewer, redaction, history, batch scenarios, and coverage/study tools.
+
+### Validation status
+
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-22 source review recorded **316 passing tests**.
+
+That review found and fixed HelpPilot claims taken from mutation flags, dropped actions, missing retrieval bodies, and generated CI tag references on `main`. **The fixes are not in the v4.38.0 release artifact.** Earlier green CI does not rule out those false negatives. See the [acceptance correction](docs/v4.38.0-acceptance.md) and [architecture/value review](docs/architecture-value-review.zh-CN.md).
+
+| Evidence | What it verifies | What it does not prove |
+| --- | --- | --- |
+| [Independent consumer repository](docs/consumer-pilot.md) | Released wheel, public API, CLI, and three regression gates run outside this checkout | Zero-code compatibility with every Agent |
+| [Independent LangGraph pilot](docs/p1-langgraph-agent-stack-validation.md) | External graph events, pinned evidence, and four negative cases | Upstream adoption or online-model quality |
+| [HelpPilot independent workflow](docs/v4.38.0-acceptance.md) | External graph, SQLite tools, RAG, human approval, and business-shaped regressions | Production quality or real-money safety |
+| [DeepSeek live run](docs/deepseek-live.md) | Real-model order lookup and two-tool dependency | Reliability across every model or domain |
+| [τ²-bench](docs/tau2-independent-validation.md) | Rule behavior and error evidence on pinned public trajectories | Generalization to unseen data |
+| AgentDojo acceptance matrix | Contracts, hashes, and repeatability on pinned public security trajectories | A complete security rate |
+
+Still missing are 10–20 business-owner-reviewed cases, sustained use across multiple independent projects, false-alarm and missed-failure evidence from real change cycles, and usability studies with people outside the development team. See the [iteration plan](docs/product-iteration-plan.zh-CN.md) and [limitations](docs/limitations.md).
+
+### What it does not solve
+
+The kit does not automatically decide whether arbitrary prose is factually true. It is not a production Tool Gateway, authorization system, tenant-isolation layer, DLP product, or model sandbox. It checks recorded evidence and explicit rules; hidden side effects need project-owned state snapshots, and real writes need isolated environments.
+
+### Documentation
+
+| Goal | Document |
+| --- | --- |
+| Full onboarding and configuration | [User manual](docs/user-manual.en.md) |
+| Architecture and core boundaries | [Technical design](docs/technical-design.en.md) |
+| Integrate Agent frameworks | [Framework integrations](docs/framework-integrations.md) |
+| Configure safe path variation and final state | [State equivalence](docs/state-equivalence.md) · [Path variation example](examples/path-variation/README.md) |
+| Troubleshoot installation, configuration, and exit codes | [FAQ](docs/usage-guide.en.md) |
+| Upgrade an older version | [Upgrade guide](UPGRADING.md) · [Changelog](CHANGELOG.md) |
+| Review evidence and the next iteration | [Maturity evidence](docs/maturity-roadmap.md) · [Iteration plan](docs/product-iteration-plan.zh-CN.md) |
+| Security and contribution | [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) |
+
+### Local development
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+python -m unittest discover -s tests -v
+```
+
+License: [MIT](LICENSE).

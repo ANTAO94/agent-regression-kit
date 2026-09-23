@@ -7,9 +7,11 @@
 
 **Regression tests for AI Agents: catch wrong tools, changed arguments, skipped steps, and incorrect business conclusions after changing a prompt, model, tool, or code.**
 
-[中文](README.md) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
+[Bilingual homepage / 双语首页](README.md#english) · [中文](README.md#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
 Python ≥ 3.9 · Current release `v4.38.0` · No required third-party core runtime dependencies
+
+> Release status: fixes to HelpPilot evidence capture and generated CI references landed on `main` on 2026-09-22. **They are not part of the v4.38.0 release artifact.** Validation of the current source does not establish the behavior of that release package.
 
 ## Contents
 
@@ -19,7 +21,7 @@ Python ≥ 3.9 · Current release `v4.38.0` · No required third-party core runt
 - [Connect your Agent](#connect-your-agent)
 - [Configure rules and noise filters](#configure-business-rules-and-noise-filters)
 - [Run in CI](#run-in-ci)
-- [Capabilities and validation](#current-capabilities)
+- [Source capabilities and validation](#current-source-capabilities)
 - [Boundaries and documentation](#what-it-does-not-solve)
 
 ## Why this exists
@@ -169,7 +171,7 @@ Subsequent runs generate only a candidate. **Never overwrite the Baseline automa
 
 The repository also includes a pinned [independent LangGraph project pilot](docs/p1-langgraph-agent-stack-validation.md). It leaves the candidate business graph unchanged, records the exact tool evidence consumed by the Agent, and tests argument regression, skipped retrieval, result misinterpretation, and corrupted evidence. This is deterministic integration evidence, not upstream adoption or online-model quality evidence.
 
-This release adds a more business-shaped [HelpPilot independent workflow](docs/v4.38.0-acceptance.md): it runs a public LangGraph support project through order lookup, tracking, refund-policy retrieval, refund drafting, human approval, refund execution, and a cited reply, then rejects wrong-resource, skipped-tool, and result-misread mutations. It pins the external commit and uses seeded/demo data plus deterministic substitutes; no payment or customer credentials are used. This is reproducible integration evidence, not upstream adoption or production-quality evidence.
+The `v4.38.0` release includes a more business-shaped [HelpPilot independent workflow](docs/v4.38.0-acceptance.md): it runs a public LangGraph support project through order lookup, tracking, refund-policy retrieval, refund drafting, human approval, refund execution, and a cited reply, then rejects wrong-resource, skipped-tool, and result-misread mutations. It pins the external commit and uses seeded/demo data plus deterministic substitutes; no payment or customer credentials are used. This is reproducible integration evidence, not upstream adoption or production-quality evidence. The missed-failure fixes found on review are on `main`, not in the published `v4.38.0` package.
 
 ## Configure business rules and noise filters
 
@@ -265,7 +267,7 @@ jobs:
 
 Exit codes: **0 = pass, 1 = regression, 2 = invalid input, configuration, or execution error.** Do not add `|| true` or `continue-on-error` to the comparison step.
 
-## Current capabilities
+## Current source capabilities
 
 - structured Trace, Baseline/Candidate comparison, and deterministic Contracts;
 - tool arguments, results, call counts, paths, and unauthorized-tool checks;
@@ -278,7 +280,7 @@ Exit codes: **0 = pass, 1 = regression, 2 = invalid input, configuration, or exe
 
 ## Validation status
 
-The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the current source tree passes **316 tests**.
+The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-22 source review recorded **316 passing tests**.
 
 The 2026-09-22 review found and fixed HelpPilot claim extraction, dropped actions,
 missing retrieval bodies, and generated CI tag references on main. These fixes
