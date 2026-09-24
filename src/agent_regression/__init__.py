@@ -26,6 +26,17 @@ from .readiness import (
 from .cassette import CassetteEntry, CassetteToolExecutor, ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioBatchResult, ScenarioCase, ScenarioResult, record_scenario_batch
 from .compare import ComparisonPolicy, compare_traces
+from .incidents import Incident, IncidentValidationError, import_incident, load_incident
+from .cases import (
+    EvaluationCase, CaseValidationError, create_case_draft, case_definition_sha256,
+    load_case, revise_case, save_case, validate_case,
+)
+from .case_runner import CaseRun, approve_case, compare_case, compare_case_suite, validate_case_definition
+from .execution_records import ExecutionValidationError, record_execution, validate_execution_record
+from .incident_resolution import (
+    ResolutionValidationError, validate_incident, resolve_incident,
+    validate_resolution, render_incident_report,
+)
 from .coverage import (
     compare_trace_coverage,
     trace_business_branch,
@@ -153,6 +164,13 @@ from .rule_agent import (
 )
 
 __all__ = [
+    "ExecutionValidationError", "record_execution", "validate_execution_record",
+    "ResolutionValidationError", "validate_incident", "resolve_incident",
+    "validate_resolution", "render_incident_report",
+    "Incident", "IncidentValidationError", "import_incident", "load_incident",
+    "EvaluationCase", "CaseValidationError", "create_case_draft", "case_definition_sha256",
+    "load_case", "revise_case", "save_case", "validate_case", "CaseRun", "approve_case",
+    "compare_case", "compare_case_suite", "validate_case_definition",
     "AgentAdapter",
     "AsyncAgentAdapter",
     "AsyncCallableAgentAdapter",

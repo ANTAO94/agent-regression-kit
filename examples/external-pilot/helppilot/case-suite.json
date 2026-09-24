@@ -1,0 +1,6 @@
+{
+  "schema_version": "0.1",
+  "cases": [
+    {"case": "cases/helppilot.json", "candidate": "recovered.trace.json"}
+  ]
+}

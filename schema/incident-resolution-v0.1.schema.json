@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Regression IncidentResolution v0.1",
+  "description": "Content hashes detect changed bundle evidence; they do not authenticate a person or execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "resolution_id", "incident_ref", "incident_id", "case_ref", "case_id", "case_revision", "definition_sha256", "before_run_ref", "after_run_ref", "after_execution_ref", "resolution_kind", "reviewer", "reviewed_at", "reason", "change_ref"],
+  "allOf": [{
+    "if": {"properties": {"resolution_kind": {"const": "bug_fix"}}},
+    "then": {"properties": {"change_ref": {"type": "string", "minLength": 1}}}
+  }],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "resolution_id": {"type": "string", "minLength": 1},
+    "incident_ref": {"$ref": "#/$defs/reference"},
+    "incident_id": {"type": "string", "minLength": 1},
+    "case_ref": {"$ref": "#/$defs/reference"},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_revision": {"type": "integer", "minimum": 1},
+    "definition_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "before_run_ref": {"$ref": "#/$defs/reference"},
+    "after_run_ref": {"$ref": "#/$defs/reference"},
+    "after_execution_ref": {"$ref": "#/$defs/reference"},
+    "resolution_kind": {"enum": ["injected_recovery", "bug_fix"]},
+    "reviewer": {"type": "string", "minLength": 1},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "reason": {"type": "string", "minLength": 1},
+    "change_ref": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "reference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?/)[^\\\\]+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

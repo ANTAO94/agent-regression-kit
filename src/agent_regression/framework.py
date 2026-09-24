@@ -32,6 +32,15 @@ class FrameworkTraceRecorder:
         self._run_id = run_id
         self._request = deepcopy(request)
         self._metadata = dict(metadata or {})
+        # Bind a newly constructed recorder to its active invocation. A Trace
+        # created before record_execution starts cannot acquire this identity.
+        from .execution_records import current_execution_id
+        execution_id = current_execution_id()
+        if execution_id is not None:
+            existing = self._metadata.get("execution_id")
+            if existing is not None and existing != execution_id:
+                raise ValueError("recorder metadata.execution_id conflicts with active execution")
+            self._metadata["execution_id"] = execution_id
         self._redaction = redaction_policy or DEFAULT_REDACTION_POLICY
         self._events: list[Dict[str, Any]] = []
         self._pending: Dict[str, str] = {}

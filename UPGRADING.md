@@ -4,6 +4,28 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
+## Reviewed lifecycle source upgrade / 审核闭环源码升级
+
+Existing Trace, compare, and session commands are unchanged. New lifecycle
+commands require installation from the current checkout until a corresponding
+release is published; published v4.38.1 does not contain them.
+
+An old Case can still be loaded, but strict gates require complete positive and
+negative approval evidence. `case upgrade --root bundle --case old.json --out
+new.json` creates a new draft revision; approve it with real samples rather than
+copying the old review. A new execution record cannot be manufactured by
+timestamping an old Trace: construct the recorder inside `record_execution`'s
+callback. `incident resolve` writes a separate immutable record; legacy
+`status: resolved` and inline `resolution` do not establish valid closure.
+
+旧 Trace 和 compare/session 命令接口不变。旧用例仍可读取，但严格门禁要求完整的
+正反例审核证据。通过 `case upgrade` 创建新草稿后重新审核，不要复制旧审核记录。
+在执行回调内部新建记录器，不能通过给旧 Trace 补时间戳产生可信的新执行。
+问题关闭会生成独立不可覆盖的记录；手填 `status: resolved` 不代表有效关闭。
+
+Full examples / 完整示例：[English](docs/case-lifecycle.en.md) ·
+[中文](docs/case-lifecycle.zh-CN.md).
+
 ## v4.38.0 → v4.38.1
 
 This corrective release does not change the Trace schema, public comparison

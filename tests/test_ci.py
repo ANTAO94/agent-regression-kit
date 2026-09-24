@@ -6,6 +6,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CiIntegrationTests(unittest.TestCase):
+    def test_case_lifecycle_uses_installed_wheel_and_keeps_closure_evidence(self):
+        workflow = (ROOT / ".github/workflows/case-lifecycle.yml").read_text(encoding="utf-8")
+        self.assertIn("pull_request:", workflow)
+        self.assertIn("fetch-depth: 0", workflow)
+        self.assertIn("python -m build --wheel", workflow)
+        self.assertIn("uv pip install --python", workflow)
+        self.assertIn('PYTHONPATH: ""', workflow)
+        self.assertIn("run_lifecycle.py", workflow)
+        self.assertIn("resolutions/refund.json", workflow)
+        self.assertIn("reproduce_helppilot_history.py", workflow)
+        self.assertIn("actions/upload-artifact@", workflow)
+        self.assertNotIn("|| true", workflow)
+
     def test_reusable_action_exposes_the_comparison_policy_controls(self):
         action = (ROOT / ".github/actions/agent-regression/action.yml").read_text(
             encoding="utf-8"
@@ -118,7 +131,7 @@ class CiIntegrationTests(unittest.TestCase):
         self.assertIn("poysa213/HelpPilot.git", workflow)
         self.assertIn("3767824fb90b89a8b19fc4169d912645aaf6fe0b", workflow)
         self.assertIn("agent-regression-kit", workflow)
-        self.assertIn('== "4.38.1"', workflow)
+        self.assertIn('== "4.40.0"', workflow)
         self.assertIn("tool_argument_policy", workflow)
         self.assertIn("required_tool", workflow)
         self.assertIn("contract_assertion", workflow)
@@ -128,7 +141,7 @@ class CiIntegrationTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/langgraph-external-pilot.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn('== "4.38.1"', workflow)
+        self.assertIn('== "4.40.0"', workflow)
 
     def test_workflows_use_node24_official_actions_and_governance_exists(self):
         workflows = "\n".join(

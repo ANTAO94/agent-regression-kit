@@ -15,6 +15,8 @@
 
 [中文](#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [English-only README](README.en.md) · [User manual](docs/user-manual.en.md)
 
+The v4.40.0 source adds **failure → reviewed case → fresh execution → verified closure**. Follow the complete workflow in [English](docs/case-lifecycle.en.md) or [中文](docs/case-lifecycle.zh-CN.md). The older published v4.38.1 wheel does not contain these commands.
+
 Python ≥ 3.9 · Current release [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · No required third-party core runtime dependencies
 
 > `v4.38.1` includes the HelpPilot evidence and generated CI fixes missing from `v4.38.0`. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
@@ -195,11 +197,11 @@ Exit codes are **0 = pass, 1 = regression, 2 = invalid input, configuration, or 
 
 ### Current source capabilities
 
-The source includes structured Traces, deterministic Contracts, tool and argument checks, call counts and paths, cross-step relations, final-state and side-effect checks, synchronous/asynchronous/concurrent/multi-turn runs, MCP stdio and Streamable HTTP recording, framework converters, JSON/Markdown/JUnit reports, a local Viewer, redaction, history, batch scenarios, and coverage/study tools.
+The source includes structured Traces, deterministic Contracts, tool and argument checks, call counts and paths, cross-step relations, final-state and side-effect checks, synchronous/asynchronous/concurrent/multi-turn runs, MCP stdio and Streamable HTTP recording, framework converters, JSON/Markdown/JUnit reports, a local Viewer, redaction, history, batch scenarios, and coverage/study tools. The v4.40.0 source adds reviewed cases, callback-bound execution records, strict incident closure, and CI suites; these additions are not in the older v4.38.1 artifact.
 
 ### Validation status
 
-The current source is suitable for local development and team CI pilots. The main CI matrix covers Python 3.9, 3.11, and 3.13; the 2026-09-23 local source run recorded **317 passing tests** on Python 3.9.
+The v4.40.0 source passed **361 tests** on Python 3.9.6, clean-wheel installation, and three complete HelpPilot closure runs using the installed package. All 57 generated lifecycle objects passed schema validation. See [v4.40 acceptance](docs/v4.40-acceptance.md) for commands, evidence boundaries, and release status. These checks do not establish production quality or independent adoption.
 
 That review found and fixed HelpPilot claims taken from mutation flags, dropped actions, missing retrieval bodies, and generated CI tag references. The fixes are included in `v4.38.1`, not `v4.38.0`. Earlier green CI does not rule out those false negatives. See the [patch acceptance record](docs/v4.38.1-acceptance.md) and [architecture/value review](docs/architecture-value-review.zh-CN.md).
 
@@ -249,6 +251,8 @@ License: [MIT](LICENSE).
 **给 AI Agent 加回归测试：在 Prompt、模型、工具或代码变化后，发现错误工具、错误参数、漏步骤和错误业务结论。**
 
 [English on this page](#english) · [5 分钟上手](#5-分钟跑通) · [接入自己的-agent](#接入自己的-agent) · [CI](#放进-ci) · [中文手册](docs/user-manual.zh-CN.md) · [技术设计](docs/technical-design.zh-CN.md)
+
+v4.40.0 源码新增“**失败证据 → 审核用例 → 新运行 → 可复核关闭**”，完整操作见[中文](docs/case-lifecycle.zh-CN.md)和[英文](docs/case-lifecycle.en.md)。旧 v4.38.1 安装包不包含这些命令。
 
 Python ≥ 3.9 · 当前发布版 [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · 核心无必需第三方运行时依赖
 
@@ -527,7 +531,7 @@ jobs:
 
 ## 已验证到什么程度
 
-当前源码适合本地开发和团队 CI 试点。主分支测试矩阵覆盖 Python 3.9、3.11 和 3.13；2026-09-23 的本地源码运行在 Python 3.9 上有 **317 个测试通过**。
+v4.40.0 源码在 Python 3.9.6 上 **361 项测试通过**，干净安装验证通过；从安装包运行的三轮 HelpPilot 完整关闭流程均通过，57 个产物符合 Schema。命令、证据边界和发布状态见 [v4.40 验收](docs/v4.40-acceptance.md)。这些测试不等于生产质量或独立用户采用。
 
 2026-09-22 复审发现并在 main 修复 HelpPilot claims、动作过滤和检索正文采集缺口，以及初始化 CI 的 tag 引用。
 修复已进入 v4.38.1 发布包，但不在 v4.38.0 中。原有 CI 结果不能证明不存在这些漏报，详见

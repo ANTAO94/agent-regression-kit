@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 4.40.0 - 2026-09-23
+
+The unreleased v4.39 lifecycle and its v4.40 evidence hardening are delivered
+together; there was no v4.39 published package.
+
+- Add reviewed Incident / EvaluationCase / CaseRun lifecycle with positive and
+  negative approval evidence revalidation, immutable references, and CI suites.
+- Bind callback-generated Traces to ExecutionRecord IDs, code revisions,
+  input/environment digests, and real invocation timings without claiming
+  authenticated provenance.
+- Add strict incident resolution: recompute before/after outcomes under the
+  same reviewed definition, require a fresh passing execution, and distinguish
+  injected recovery from historical bug fixes.
+- Preserve safely independently verifiable violations when other evidence is
+  incomplete; reject stale approvals and forged or mismatched closure evidence.
+- Add a pinned HelpPilot installed-wheel closure workflow, five negative
+  scenarios, a wording-noise fixture, and a historical toolkit-adapter
+  false-negative reproduction. Neither constitutes independent adoption.
+- Add bilingual lifecycle and migration instructions. Existing Trace and
+  compare/session commands retain their interfaces.
+
 ## 4.38.1 - 2026-09-23
 
 - Fix generated CI refs to use the published `v`-prefixed Git tag.

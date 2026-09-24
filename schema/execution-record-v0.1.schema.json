@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-regression-kit.local/schema/execution-record-v0.1.schema.json",
+  "title": "ExecutionRecord v0.1",
+  "description": "Content hashes and CI correlation are consistency evidence, not authentication.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "execution_id", "trace_ref", "trace_run_id", "agent_revision",
+    "dirty", "input_sha256", "environment_sha256", "recorder_version",
+    "started_at", "finished_at", "producer", "provenance_level",
+    "recording_mode", "callback_binding", "trust_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "execution_id": {"type": "string", "format": "uuid"},
+    "trace_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "trace_run_id": {"type": "string", "minLength": 1},
+    "agent_revision": {"type": "string", "minLength": 1},
+    "dirty": {"type": ["boolean", "null"]},
+    "input_sha256": {"$ref": "#/$defs/optionalDigest"},
+    "environment_sha256": {"$ref": "#/$defs/optionalDigest"},
+    "recorder_version": {"type": "string", "minLength": 1},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "producer": {"type": "object"},
+    "provenance_level": {"enum": ["declared", "ci_correlated"]},
+    "recording_mode": {"enum": ["recorded", "imported"]},
+    "callback_binding": {"enum": ["in_process_callback", "unverified_import"]},
+    "trust_boundary": {"const": "caller_supplied_callback_and_trace_not_authenticated"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"provenance_level": {"const": "ci_correlated"}}},
+      "then": {
+        "properties": {
+          "producer": {
+            "required": ["runner", "repository", "commit", "job_id", "run_id"],
+            "properties": {
+              "runner": {"type": "string", "minLength": 1},
+              "repository": {"type": "string", "minLength": 1},
+              "commit": {"type": "string", "minLength": 1},
+              "job_id": {"type": "string", "minLength": 1},
+              "run_id": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "producer": {
+            "anyOf": [
+              {"required": ["runner"]}, {"required": ["repository"]},
+              {"required": ["commit"]}, {"required": ["job_id"]},
+              {"required": ["run_id"]}
+            ]
+          }
+        }
+      },
+      "then": {"properties": {"provenance_level": {"const": "ci_correlated"}}}
+    },
+    {
+      "if": {"properties": {"recording_mode": {"const": "recorded"}}},
+      "then": {"properties": {"callback_binding": {"const": "in_process_callback"}}},
+      "else": {"properties": {"callback_binding": {"const": "unverified_import"}}}
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "optionalDigest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]}
+  }
+}

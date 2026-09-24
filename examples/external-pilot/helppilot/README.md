@@ -1,5 +1,47 @@
 # HelpPilot external validation / HelpPilot 独立项目验证
 
+The reviewed case workflow is explained in [English](../../../docs/case-lifecycle.en.md) and [中文](../../../docs/case-lifecycle.zh-CN.md). Its [CI demonstration](../../../.github/workflows/case-lifecycle.yml) imports a controlled failure, approves normal/bad samples, checks all five mutations and wording noise, then records a fresh recovery and verifies an immutable incident resolution. 当前源码支持“失败 → 审核 → 新运行 → 关闭证据”的完整技术演练；它仍是故障注入，不是上游实际业务缺陷或独立采用。
+
+## Complete closure bundle / 完整关闭证据
+
+After the setup below, use the external project's Python with this kit installed:
+
+```bash
+PILOT_DIR=/tmp/helppilot
+python3 -m pip install build
+ARK_WHEEL_DIR=$(mktemp -d)
+python3 -m build --wheel --outdir "$ARK_WHEEL_DIR"
+uv pip install --python "$PILOT_DIR/.venv/bin/python" "$ARK_WHEEL_DIR"/*.whl
+"$PILOT_DIR/.venv/bin/python" examples/external-pilot/helppilot/run_lifecycle.py \
+  --project-dir "$PILOT_DIR" --root /tmp/helppilot-new-closure
+"$PILOT_DIR/.venv/bin/agent-regression" incident report \
+  --root /tmp/helppilot-new-closure --incident incident.json \
+  --resolution resolutions/refund.json --format markdown
+```
+
+Use a new, empty output directory. `verification.json` records each negative
+category and the final outcome; `closure.md` explains the before/after link.
+The bundle includes Trace, ExecutionRecord, approved Case, CaseRun and Resolution
+files, allowing revalidation without calling a model or issuing real refunds.
+`PILOT_DIR` is the pinned external checkout path configured below.
+
+先完成下方安装步骤，再用外部项目的 Python 执行。每次使用新的空目录；保存整个
+bundle，可在离线状态重新校验关闭链。执行记录中的时间属于 Agent 调用，CaseRun
+时间属于比较过程。模型、检索和数据仍为受控替身，不代表生产质量。
+
+The toolkit's own historical adapter false negative can also be reproduced:
+
+```bash
+python scripts/reproduce_helppilot_history.py --out /tmp/helppilot-adapter-history
+```
+
+This reads exact pre/post-fix Git revisions (fetch full history first). The same
+incorrect reply used to pass because its claim was hardcoded; after the fix it
+correctly fails. This **pass → fail** is a repaired detector, not a failed Agent
+repair. It does not execute the external Agent or establish a business closure.
+这是我们自身适配器的历史漏报复现：旧版本错放行，修复版本正确拦截；不能算作外部
+Agent 业务修复或上游采用。manifest 保存源码提交及输入/规则指纹。
+
 This example validates the packaged Agent Regression Kit boundary against the
 independent public [poysa213/HelpPilot](https://github.com/poysa213/HelpPilot)
 repository. HelpPilot owns the LangGraph graph, SQLite business tools, RAG

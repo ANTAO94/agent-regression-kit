@@ -15,6 +15,15 @@ from .cassette import ReplayMismatchError, replay_agent_run
 from .batch_record import ScenarioCase, record_scenario_batch
 from .async_record import record_async_run
 from .compare import ComparisonPolicy, compare_traces
+from .case_runner import approve_case, compare_case, compare_case_suite, validate_case_definition
+from .execution_records import validate_execution_record
+from .incident_resolution import (
+    validate_incident, resolve_incident, validate_resolution, render_incident_report,
+)
+from .cases import create_case_draft, load_case, revise_case, save_case
+from .incidents import (
+    import_incident, load_incident, resolve_reference, safe_input_path,
+)
 from .compat import run_compatibility_smoke
 from .config import contract_diagnostics, load_batch_compare_config, load_compare_config
 from .contracts import ContractPolicy
@@ -210,6 +219,87 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="agent-regression")
     parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    incident = subparsers.add_parser("incident", help="register redacted failure evidence")
+    incident_actions = incident.add_subparsers(dest="incident_action", required=True)
+    incident_import = incident_actions.add_parser("import")
+    for flag in ("trace", "report", "out"):
+        incident_import.add_argument("--" + flag, required=True)
+    incident_import.add_argument("--root", default=".", help="bundle root for all relative paths")
+    incident_import.add_argument("--source-kind", default="ci_failure",
+                                 choices=["ci_failure", "injected", "historical_bug", "user_feedback"])
+    incident_import.add_argument("--title")
+    incident_import.add_argument("--summary")
+    incident_import.add_argument("--secret-value", action="append", default=[])
+
+    incident_validate = incident_actions.add_parser("validate")
+    incident_validate.add_argument("--root", default=".")
+    incident_validate.add_argument("--incident", required=True)
+    incident_resolve = incident_actions.add_parser("resolve")
+    incident_resolve.add_argument("--root", default=".")
+    for flag in ("incident", "case", "before", "after", "reviewer", "reason", "out"):
+        incident_resolve.add_argument("--" + flag, required=True)
+    incident_resolve.add_argument("--kind", choices=["injected_recovery", "bug_fix"], required=True)
+    incident_resolve.add_argument("--change-ref")
+    incident_report = incident_actions.add_parser("report")
+    incident_report.add_argument("--root", default=".")
+    incident_report.add_argument("--incident", required=True)
+    incident_report.add_argument("--resolution")
+    incident_report.add_argument("--format", choices=["json", "markdown"], default="markdown")
+
+    execution = subparsers.add_parser("execution", help="validate execution evidence")
+    execution_actions = execution.add_subparsers(dest="execution_action", required=True)
+    execution_validate = execution_actions.add_parser("validate")
+    execution_validate.add_argument("--root", default=".")
+    execution_validate.add_argument("--record", required=True)
+    execution_validate.add_argument("--candidate")
+    execution_validate.add_argument("--require-recorded", action="store_true")
+
+    lifecycle = subparsers.add_parser("case", help="review and compare regression cases")
+    case_actions = lifecycle.add_subparsers(dest="case_action", required=True)
+    draft = case_actions.add_parser("draft")
+    for flag in ("incident", "baseline", "policy", "out", "expected-behavior"):
+        draft.add_argument("--" + flag, required=True)
+    draft.add_argument("--root", default=".")
+    draft.add_argument("--title")
+    draft.add_argument("--input")
+    draft.add_argument("--environment")
+    draft.add_argument("--tag", action="append", default=[])
+    validate_case_parser = case_actions.add_parser("validate")
+    validate_case_parser.add_argument("--root", default=".")
+    validate_case_parser.add_argument("--case", required=True)
+    validate_case_parser.add_argument("--review-evidence", action="store_true",
+                                     help="require an approved case with verified review evidence")
+    upgrade = case_actions.add_parser("upgrade", help="preserve the old case and create a new draft for review")
+    upgrade.add_argument("--root", default=".")
+    upgrade.add_argument("--case", required=True)
+    upgrade.add_argument("--out", required=True)
+    revise = case_actions.add_parser("revise", help="create a new draft revision from an existing case")
+    revise.add_argument("--root", default=".")
+    revise.add_argument("--case", required=True)
+    revise.add_argument("--out", required=True)
+    revise.add_argument("--baseline")
+    revise.add_argument("--policy")
+    revise.add_argument("--input")
+    revise.add_argument("--environment")
+    revise.add_argument("--title")
+    revise.add_argument("--expected-behavior")
+    approval = case_actions.add_parser("approve")
+    approval.add_argument("--root", default=".")
+    for flag in ("case", "positive", "negative", "reviewer", "reason"):
+        approval.add_argument("--" + flag, required=True)
+    case_compare = case_actions.add_parser("compare")
+    case_compare.add_argument("--root", default=".")
+    for flag in ("case", "candidate", "out"):
+        case_compare.add_argument("--" + flag, required=True)
+    case_compare.add_argument("--agent-revision")
+    case_compare.add_argument("--execution")
+    suite = case_actions.add_parser("suite")
+    suite_actions = suite.add_subparsers(dest="suite_action", required=True)
+    suite_compare = suite_actions.add_parser("compare")
+    suite_compare.add_argument("--root", default=".")
+    suite_compare.add_argument("--manifest", required=True)
+    suite_compare.add_argument("--out", required=True)
 
     init = subparsers.add_parser(
         "init", help="scaffold an Agent Regression Kit integration in a project"
@@ -676,6 +766,115 @@ def main(argv: list[str] | None = None) -> int:
         secret_values=tuple(getattr(args, "secret_value", None) or [])
     )
     try:
+        if args.command == "incident":
+            if args.incident_action == "validate":
+                _write_output(validate_incident(root=args.root, incident_path=args.incident))
+                return 0
+            if args.incident_action == "resolve":
+                _write_output(resolve_incident(
+                    root=args.root, incident_path=args.incident, case_path=args.case,
+                    before_path=args.before, after_path=args.after, kind=args.kind,
+                    reviewer=args.reviewer, reason=args.reason, out_path=args.out,
+                    change_ref=args.change_ref,
+                ))
+                return 0
+            if args.incident_action == "report":
+                if args.format == "markdown":
+                    _write_text(render_incident_report(
+                        root=args.root, incident_path=args.incident, resolution_path=args.resolution,
+                    ))
+                else:
+                    value = validate_incident(root=args.root, incident_path=args.incident)
+                    if args.resolution:
+                        resolution = validate_resolution(root=args.root, resolution_path=args.resolution)
+                        # Validate the explicitly requested incident/report relationship too.
+                        render_incident_report(root=args.root, incident_path=args.incident,
+                                               resolution_path=args.resolution)
+                        value = {"incident": value, "resolution": resolution, "status": "resolved"}
+                    _write_output(value)
+                return 0
+            incident = import_incident(
+                trace_path=args.trace, report_path=args.report, out_path=args.out,
+                root=args.root, source_kind=args.source_kind, title=args.title,
+                summary=args.summary, redaction_policy=redaction_policy,
+            )
+            _write_output(incident.to_dict())
+            return 0
+
+        if args.command == "execution":
+            _write_output(validate_execution_record(
+                root=args.root, record_path=args.record, candidate_path=args.candidate,
+                require_recorded=args.require_recorded,
+            ))
+            return 0
+
+        if args.command == "case":
+            root = Path(args.root).resolve()
+            if args.case_action == "draft":
+                incident_file = safe_input_path(root, args.incident)
+                incident = load_incident(incident_file)
+                for ref in incident.evidence_refs:
+                    resolve_reference(root, ref)
+                case = create_case_draft(
+                    root=root, baseline_path=args.baseline, policy_path=args.policy,
+                    title=args.title or incident.title,
+                    expected_behavior=args.expected_behavior,
+                    incident_refs=[incident.incident_id], tags=args.tag,
+                    input_path=args.input, environment_path=args.environment,
+                )
+                save_case(case, root=root, out_path=args.out)
+                _write_output(case.to_dict())
+                return 0
+            if args.case_action == "suite":
+                report, exit_code = compare_case_suite(
+                    args.manifest,
+                    root=root,
+                    out_path=args.out,
+                    redaction_policy=redaction_policy,
+                )
+                _write_output(report)
+                return exit_code
+            if args.case_action in {"revise", "upgrade"}:
+                revised = revise_case(
+                    root=root,
+                    case_path=args.case,
+                    baseline_path=getattr(args, "baseline", None),
+                    policy_path=getattr(args, "policy", None),
+                    input_path=getattr(args, "input", None),
+                    environment_path=getattr(args, "environment", None),
+                    title=getattr(args, "title", None),
+                    expected_behavior=getattr(args, "expected_behavior", None),
+                )
+                save_case(revised, root=root, out_path=args.out)
+                _write_output(revised.to_dict())
+                return 0
+            case_file = safe_input_path(root, args.case)
+            case = load_case(case_file)
+            if args.case_action == "validate":
+                if args.review_evidence and case.status != "approved":
+                    raise ValueError("review evidence validation requires an approved case; approve the new draft first")
+                _write_output(validate_case_definition(case, root))
+                return 0
+            if args.case_action == "approve":
+                approved = approve_case(
+                    root=root, case_path=args.case, positive_path=args.positive,
+                    negative_path=args.negative, reviewer=args.reviewer, reason=args.reason,
+                )
+                _write_output(approved.to_dict())
+                return 0
+            if args.case_action == "compare":
+                run, exit_code = compare_case(
+                    root=root,
+                    case_path=args.case,
+                    candidate_path=args.candidate,
+                    out_path=args.out,
+                    agent_revision=args.agent_revision,
+                    execution_path=args.execution,
+                    redaction_policy=redaction_policy,
+                )
+                _write_output(run)
+                return exit_code
+
         compare_config = (
             load_compare_config(args.config)
             if args.command == "compare" and args.config

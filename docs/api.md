@@ -2,6 +2,48 @@
 
 The supported imports are exported from `agent_regression`.
 
+## Reviewed cases and verified closure (v4.40.0)
+
+The complete runnable workflow is in the [English guide](case-lifecycle.en.md)
+and [Chinese guide](case-lifecycle.zh-CN.md). These APIs are additive; existing
+Trace recording and comparison APIs are unchanged.
+
+- `import_incident(root=..., trace_path=..., report_path=..., out_path=...,
+  source_kind=...)` retains redacted failure evidence with relative references.
+- `create_case_draft(...)`, `save_case(...)`, `approve_case(...)`, and
+  `validate_case(case, root, require_approved=True)` manage a reviewed definition.
+  Strict validation recomputes the saved positive/negative approval evidence.
+- `compare_case(root=..., case_path=..., candidate_path=..., out_path=...,
+  execution_path=None)` writes a CaseRun and report, returning `(result, code)`.
+  Codes are 0 pass, 1 fail, and 2 inconclusive/error. The object-based overload
+  is retained for existing callers.
+- `record_execution(root=..., trace_path=..., out_path=..., invoke=...,
+  agent_revision="unknown", dirty=None, input_data=None, environment=None,
+  producer=None, redaction_policy=None)` invokes a synchronous zero-argument
+  callback once. Construct `FrameworkTraceRecorder` inside that callback and
+  return its newly recorded AgentTrace. The API returns the ExecutionRecord
+  dictionary after publishing both immutable files. Failed recording does not
+  produce a valid record. It is not a process sandbox or source attestation.
+- `validate_execution_record(root=..., record_path=..., candidate_path=None,
+  require_recorded=False)` returns the validated record. Strict mode rejects
+  imported/unbound evidence as proof of a new execution.
+- `resolve_incident(root=..., incident_path=..., case_path=..., before_path=...,
+  after_path=..., kind=..., reviewer=..., reason=..., out_path=...,
+  change_ref=None)` publishes an immutable Resolution after checking the chain.
+  `kind` is `injected_recovery` or `bug_fix`; the latter requires a historical
+  incident and an explicit change reference reviewed by a person.
+- `validate_incident(root=..., incident_path=...)`,
+  `validate_resolution(root=..., resolution_path=...)`, and
+  `render_incident_report(root=..., incident_path=..., resolution_path=None)`
+  validate imported evidence, recheck closure, and render a Markdown report.
+
+`ExecutionValidationError`, `ResolutionValidationError`, and
+`CaseValidationError` are `ValueError` subclasses. File and callback errors may
+also propagate; callers should not convert them into successful business runs.
+All evidence paths are relative to the bundle root. Reviewer and producer
+identities are declarations, not authentication. Timing measures invocation
+or comparison as documented, not model-only latency.
+
 The independent-source matrix validator supports an explicit
 `expected_contract_passed` per case. Use `false` for a reviewed attack
 trajectory that should be blocked: the case passes only when the Contract

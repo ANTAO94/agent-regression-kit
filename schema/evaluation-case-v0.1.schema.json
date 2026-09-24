@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Regression EvaluationCase v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "revision", "title", "kind", "status", "tags", "baseline_ref", "policy_ref", "expected_behavior", "incident_refs", "input_ref", "environment_ref", "evidence_requirements", "review"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "case_id": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1},
+    "title": {"type": "string", "minLength": 1},
+    "kind": {"const": "trace"},
+    "status": {"enum": ["draft", "approved", "retired"]},
+    "tags": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "baseline_ref": {"$ref": "#/$defs/reference"},
+    "policy_ref": {"$ref": "#/$defs/reference"},
+    "input_ref": {"oneOf": [{"$ref": "#/$defs/reference"}, {"type": "null"}]},
+    "environment_ref": {"oneOf": [{"$ref": "#/$defs/reference"}, {"type": "null"}]},
+    "expected_behavior": {"type": "string", "minLength": 1},
+    "incident_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "evidence_requirements": {"type": "array", "items": {"type": "object", "required": ["path"], "properties": {"path": {"type": "string", "minLength": 1}, "exists": {"type": "boolean"}, "type": {"enum": ["string", "number", "integer", "boolean", "object", "array", "null"]}}, "additionalProperties": false}},
+    "review": {"oneOf": [{"type": "null"}, {"type": "object", "properties": {
+      "reviewer": {"type": "string", "minLength": 1},
+      "reviewed_at": {"type": "string", "minLength": 1},
+      "reason": {"type": "string", "minLength": 1},
+      "definition_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+      "validation_runs": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "object", "additionalProperties": false,
+        "required": ["role", "candidate_ref", "run_id", "outcome", "report_ref"],
+        "properties": {"role": {"enum": ["positive", "negative"]}, "candidate_ref": {"$ref": "#/$defs/reference"}, "run_id": {"type": "string", "minLength": 1}, "outcome": {"enum": ["pass", "fail"]}, "report_ref": {"$ref": "#/$defs/reference"}}}
+      }
+    }, "additionalProperties": false}]}
+  },
+  "allOf": [{"if": {"properties": {"status": {"const": "approved"}}}, "then": {"properties": {"review": {"type": "object", "required": ["reviewer", "reviewed_at", "reason", "definition_sha256"]}}}}],
+  "$defs": {
+    "reference": {"type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"], "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }}
+  }
+}

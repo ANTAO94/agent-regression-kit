@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
@@ -113,6 +115,11 @@ jobs:
           test -f "$DOC_ROOT/v4.37.0-acceptance.md"
           test -f "$DOC_ROOT/v4.38.0-acceptance.md"
           test -f "$DOC_ROOT/v4.38.1-acceptance.md"
+          test -f "$DOC_ROOT/v4.40-acceptance.md"
+          test -f "$DOC_ROOT/case-lifecycle.en.md"
+          test -f "$DOC_ROOT/case-lifecycle.zh-CN.md"
+          test -f "$DOC_ROOT/../schema/execution-record-v0.1.schema.json"
+          test -f "$DOC_ROOT/../schema/incident-resolution-v0.1.schema.json"
           test -f "$DOC_ROOT/helppilot-case-study.md"
           test -f "$DOC_ROOT/readiness-audit.md"
           test -f "$DOC_ROOT/performance.md"

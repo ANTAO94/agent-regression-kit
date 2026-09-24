@@ -13,6 +13,10 @@
 
 Python ≥ 3.9 · Current release [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · No required third-party core runtime dependencies
 
+The v4.40.0 source adds **failure → reviewed case → fresh execution → verified closure**. See the complete [English workflow](docs/case-lifecycle.en.md) and [中文说明](docs/case-lifecycle.zh-CN.md); these commands are not in the older v4.38.1 wheel.
+
+Local acceptance: **361 tests**, clean-wheel installation, three installed-package HelpPilot closure runs, and 57 schema-valid generated objects. See [v4.40 acceptance](docs/v4.40-acceptance.md) for evidence boundaries and release status.
+
 > `v4.38.1` includes the HelpPilot evidence and generated CI fixes missing from `v4.38.0`. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
 
 ## Contents

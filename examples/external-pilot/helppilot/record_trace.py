@@ -16,10 +16,11 @@ from copy import deepcopy
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
 
-from agent_regression import FrameworkTraceRecorder
+from agent_regression import FrameworkTraceRecorder, record_execution
 
 
 ORDER_ID = "ORD-5001"
@@ -202,7 +203,7 @@ def _trace_from_run(
             "framework": "langgraph",
             "source_commit": source_commit,
         },
-        run_id=f"helppilot-{mutation}",
+        run_id=f"helppilot-{mutation}-{uuid.uuid4().hex[:12]}",
         request={"query": QUERY, "customer_id": CUSTOMER_ID, "order_id": ORDER_ID},
         metadata={
             "source_repository": "poysa213/HelpPilot",
@@ -240,17 +241,9 @@ def _trace_from_run(
     return recorder.finish()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--project-dir", type=Path, required=True)
-    parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument(
-        "--mutation",
-        choices=["none", "wrong-resource", "skip-tool", "misread-result", "extra-write", "corrupt-policy"],
-        default="none",
-    )
-    args = parser.parse_args()
-    project_dir = args.project_dir.resolve()
+def run_agent(project_dir: Path, mutation: str = "none") -> Any:
+    """Execute the external graph in a fresh isolated database for each call."""
+    project_dir = project_dir.resolve()
     source_commit = _source_commit(project_dir)
     config, db, graph, rag, seed = _load_external_project(project_dir)
 
@@ -267,11 +260,11 @@ def main() -> int:
             {
                 "doc_id": "refund-policy",
                 "title": "Refund policy",
-                "text": "Refunds are prohibited." if args.mutation == "corrupt-policy" else "Lost packages qualify for a full refund.",
+                "text": "Refunds are prohibited." if mutation == "corrupt-policy" else "Lost packages qualify for a full refund.",
                 "score": 1.0,
             }
         ][:k]
-        graph._llm = lambda model, temperature=0.0: DeterministicModel(model, args.mutation)
+        graph._llm = lambda model, temperature=0.0: DeterministicModel(model, mutation)
 
         captures: list[dict[str, Any]] = []
         graph.tools.SOLVER_TOOLS_BY_NAME = {
@@ -279,7 +272,7 @@ def main() -> int:
             for name, tool in graph.tools.SOLVER_TOOLS_BY_NAME.items()
         }
 
-        thread_id = f"helppilot-{args.mutation}"
+        thread_id = f"helppilot-{mutation}"
         app = graph.get_app()
         first = graph.run_turn(QUERY, CUSTOMER_ID, thread_id, app=app)
         if first["status"] != "interrupted":
@@ -287,7 +280,7 @@ def main() -> int:
         before_resume = _action_rows(db, thread_id)
         if any(row["action"] == "issue_refund" for row in before_resume):
             raise RuntimeError("issue_refund occurred before human approval")
-        if args.mutation == "extra-write":
+        if mutation == "extra-write":
             # Inject a real logged write at the approval boundary, independently
             # of the solver's fixed iteration budget.
             graph.tools.set_run_context(thread_id, CUSTOMER_ID)
@@ -303,12 +296,44 @@ def main() -> int:
             final=final,
             thread_id=thread_id,
             source_commit=source_commit,
-            mutation=args.mutation,
+            mutation=mutation,
             captures=captures,
         )
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(trace.to_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return trace
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project-dir", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--bundle-root", type=Path)
+    parser.add_argument("--execution-out", type=Path)
+    parser.add_argument(
+        "--mutation",
+        choices=["none", "wrong-resource", "skip-tool", "misread-result", "extra-write", "corrupt-policy"],
+        default="none",
+    )
+    args = parser.parse_args()
+    project_dir = args.project_dir.resolve()
+    source_commit = _source_commit(project_dir)
+    if args.execution_out:
+        if args.bundle_root is None:
+            parser.error("--execution-out requires --bundle-root; output paths must be relative to it")
+        record_execution(
+            root=args.bundle_root, trace_path=args.out, out_path=args.execution_out,
+            invoke=lambda: run_agent(project_dir, args.mutation),
+            agent_revision=source_commit,
+            dirty=bool(subprocess.check_output(
+                ["git", "-C", str(project_dir), "status", "--porcelain"], text=True,
+            ).strip()),
+            input_data={"query": QUERY, "customer_id": CUSTOMER_ID, "order_id": ORDER_ID},
+            environment={"fixture": "lost-order-refund-v1", "source_commit": source_commit},
+        )
+    else:
+        trace = run_agent(project_dir, args.mutation)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(trace.to_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"out": str(args.out), "source_commit": source_commit, "mutation": args.mutation}))
     return 0
 
