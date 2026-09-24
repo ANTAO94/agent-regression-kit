@@ -1,6 +1,6 @@
 # Reviewed regression cases (development source)
 
-This guide describes the v4.40.0 source lifecycle, including the previously unreleased v4.39 work. These commands are not part of the older v4.38.1 wheel. Install the current checkout while release validation is in progress. See the [Chinese guide](case-lifecycle.zh-CN.md) for the same workflow.
+This guide describes the published v4.40.0 lifecycle, including the previously unreleased v4.39 work. These commands are not part of the older v4.38.1 wheel. Install with `python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"` or use the [release wheel](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.40.0). See the [Chinese guide](case-lifecycle.zh-CN.md) for the same workflow.
 
 ## What the five objects mean
 

@@ -4,11 +4,10 @@ This file records migration actions for released versions. The core rule is:
 **upgrade the comparison tool before changing a reviewed baseline**. A package
 upgrade must not silently turn a candidate difference into a new baseline.
 
-## Reviewed lifecycle source upgrade / 审核闭环源码升级
+## v4.38.1 → v4.40.0 reviewed lifecycle / 审核闭环升级
 
 Existing Trace, compare, and session commands are unchanged. New lifecycle
-commands require installation from the current checkout until a corresponding
-release is published; published v4.38.1 does not contain them.
+commands are included in published v4.40.0; v4.38.1 does not contain them.
 
 An old Case can still be loaded, but strict gates require complete positive and
 negative approval evidence. `case upgrade --root bundle --case old.json --out

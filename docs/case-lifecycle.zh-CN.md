@@ -1,6 +1,6 @@
 # 经过审核的回归用例（开发源码）
 
-本文说明 v4.40.0 源码中的用例闭环，包含此前未发布的 v4.39 工作。这些新命令不属于旧 v4.38.1 安装包；发布验证期间请从当前源码安装。[English guide](case-lifecycle.en.md) 提供同一流程。
+本文说明已发布的 v4.40.0 用例闭环，包含此前未发布的 v4.39 工作。旧 v4.38.1 安装包不含这些命令。可用 `python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"` 安装，或下载 [release wheel](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.40.0)。[English guide](case-lifecycle.en.md) 提供同一流程。
 
 ## 先理解五个对象
 

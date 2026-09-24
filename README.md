@@ -17,7 +17,7 @@
 
 The v4.40.0 source adds **failure → reviewed case → fresh execution → verified closure**. Follow the complete workflow in [English](docs/case-lifecycle.en.md) or [中文](docs/case-lifecycle.zh-CN.md). The older published v4.38.1 wheel does not contain these commands.
 
-Python ≥ 3.9 · Current release [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · No required third-party core runtime dependencies
+Python ≥ 3.9 · Current release [`v4.40.0`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.40.0) · No required third-party core runtime dependencies
 
 > `v4.38.1` includes the HelpPilot evidence and generated CI fixes missing from `v4.38.0`. See the [HelpPilot case study](docs/helppilot-case-study.md) and [patch acceptance record](docs/v4.38.1-acceptance.md).
 
@@ -66,12 +66,12 @@ An evaluation platform measures overall quality across datasets and cases. This 
 ### 5-minute quick start
 
 This starter example is offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
-The install command below uses the published `v4.38.1` tag.
+The install command below uses the published `v4.40.0` tag.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"
 agent-regression --version
 mkdir agent-regression-demo
 cd agent-regression-demo
@@ -164,7 +164,7 @@ baselines/my-agent.trace.json           reviewed Baseline committed to Git
 .agent-regression/config.json           Contract and comparison policy
 ```
 
-The CI example installs the published `v4.38.1` tag.
+The CI example installs the published `v4.40.0` tag.
 
 ```yaml
 name: Agent regression
@@ -179,7 +179,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare
@@ -254,7 +254,7 @@ License: [MIT](LICENSE).
 
 v4.40.0 源码新增“**失败证据 → 审核用例 → 新运行 → 可复核关闭**”，完整操作见[中文](docs/case-lifecycle.zh-CN.md)和[英文](docs/case-lifecycle.en.md)。旧 v4.38.1 安装包不包含这些命令。
 
-Python ≥ 3.9 · 当前发布版 [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · 核心无必需第三方运行时依赖
+Python ≥ 3.9 · 当前发布版 [`v4.40.0`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.40.0) · 核心无必需第三方运行时依赖
 
 > `v4.38.1` 已包含 HelpPilot 证据采集和初始化 CI 修复，`v4.38.0` 发布包不包含这些修复。见 [HelpPilot 案例](docs/helppilot-case-study.md)和[补丁验收记录](docs/v4.38.1-acceptance.md)。
 
@@ -327,14 +327,14 @@ flowchart TD
 ## 5 分钟跑通
 
 以下示例完全离线，不需要模型 API Key。命令适用于 macOS、Linux 和 Windows WSL。
-以下命令从已发布的 `v4.38.1` tag 安装。
+以下命令从已发布的 `v4.40.0` tag 安装。
 
 ### 1. 安装
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"
 agent-regression --version
 ```
 
@@ -485,7 +485,7 @@ baselines/my-agent.trace.json           人工审核并提交的 baseline
 .agent-regression/config.json           Contract 和比较策略
 ```
 
-下面的 CI 示例安装已发布的 `v4.38.1` tag。
+下面的 CI 示例安装已发布的 `v4.40.0` tag。
 
 最小 GitHub Actions：
 
@@ -502,7 +502,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare

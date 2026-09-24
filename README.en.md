@@ -11,7 +11,7 @@
 
 [Bilingual homepage / 双语首页](README.md#english) · [中文](README.md#简体中文) · [5-minute quick start](#5-minute-quick-start) · [Connect your Agent](#connect-your-agent) · [CI](#run-in-ci) · [User manual](docs/user-manual.en.md) · [Technical design](docs/technical-design.en.md)
 
-Python ≥ 3.9 · Current release [`v4.38.1`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.38.1) · No required third-party core runtime dependencies
+Python ≥ 3.9 · Current release [`v4.40.0`](https://github.com/ANTAO94/agent-regression-kit/releases/tag/v4.40.0) · No required third-party core runtime dependencies
 
 The v4.40.0 source adds **failure → reviewed case → fresh execution → verified closure**. See the complete [English workflow](docs/case-lifecycle.en.md) and [中文说明](docs/case-lifecycle.zh-CN.md); these commands are not in the older v4.38.1 wheel.
 
@@ -88,14 +88,14 @@ In one sentence: preserve evidence from a correct run, rerun after every change,
 ## 5-minute quick start
 
 This example is fully offline and needs no model API key. Commands target macOS, Linux, and Windows WSL.
-The install command below uses the published `v4.38.1` tag.
+The install command below uses the published `v4.40.0` tag.
 
 ### 1. Install
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
+python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"
 agent-regression --version
 ```
 
@@ -245,7 +245,7 @@ baselines/my-agent.trace.json           reviewed Baseline committed to Git
 .agent-regression/config.json           Contract and comparison policy
 ```
 
-The CI example installs the published `v4.38.1` tag.
+The CI example installs the published `v4.40.0` tag.
 
 Minimal GitHub Actions workflow:
 
@@ -262,7 +262,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.38.1"
+        run: python -m pip install "git+https://github.com/ANTAO94/agent-regression-kit.git@v4.40.0"
       - name: Record candidate
         run: python scripts/record_agent.py --out work/my-agent.trace.json
       - name: Compare
